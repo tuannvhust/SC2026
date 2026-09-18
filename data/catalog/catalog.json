@@ -1,0 +1,1310 @@
+{
+  "products": [
+    {
+      "sku": "SKU-PH-A55-128",
+      "name": "Samsung Galaxy A55 5G",
+      "category": "dien_thoai",
+      "brand": "Samsung",
+      "variants": [
+        {
+          "variant_id": "128GB-8GB",
+          "storage_gb": 128,
+          "ram_gb": 8,
+          "color": "đen",
+          "price_vnd": 9490000,
+          "stock_qty": 34
+        },
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "xanh lam",
+          "price_vnd": 10490000,
+          "stock_qty": 15
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.6,
+        "battery_mah": 5000,
+        "chipset": "Exynos 1480",
+        "camera_mp": 50,
+        "os": "Android 14"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": [
+        {
+          "promo_code": "TRA-GOP-0",
+          "description": "Trả góp 0% 6 tháng",
+          "discount_vnd": 0,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        },
+        {
+          "promo_code": "TRADE-IN-500K",
+          "description": "Trợ giá thu cũ thêm 500.000đ",
+          "discount_vnd": 500000,
+          "valid_from": "2026-08-15",
+          "valid_to": "2026-09-15",
+          "active": false
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-S24-256",
+      "name": "Samsung Galaxy S24",
+      "category": "dien_thoai",
+      "brand": "Samsung",
+      "variants": [
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "tím",
+          "price_vnd": 18990000,
+          "stock_qty": 9
+        },
+        {
+          "variant_id": "512GB-8GB",
+          "storage_gb": 512,
+          "ram_gb": 8,
+          "color": "đen",
+          "price_vnd": 21990000,
+          "stock_qty": 4
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.2,
+        "battery_mah": 4000,
+        "chipset": "Snapdragon 8 Gen 3",
+        "camera_mp": 50,
+        "os": "Android 14"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": [
+        {
+          "promo_code": "S24-GIFT-EARBUDS",
+          "description": "Tặng tai nghe Galaxy Buds FE",
+          "discount_vnd": 1290000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-IP15-128",
+      "name": "iPhone 15",
+      "category": "dien_thoai",
+      "brand": "Apple",
+      "variants": [
+        {
+          "variant_id": "128GB",
+          "storage_gb": 128,
+          "ram_gb": 6,
+          "color": "xanh dương",
+          "price_vnd": 19990000,
+          "stock_qty": 22
+        },
+        {
+          "variant_id": "256GB",
+          "storage_gb": 256,
+          "ram_gb": 6,
+          "color": "hồng",
+          "price_vnd": 22990000,
+          "stock_qty": 11
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.1,
+        "battery_mah": 3349,
+        "chipset": "A16 Bionic",
+        "camera_mp": 48,
+        "os": "iOS 18"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": [
+        {
+          "promo_code": "IP15-TRA-GOP",
+          "description": "Trả góp 0% qua thẻ tín dụng",
+          "discount_vnd": 0,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-10-31",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-IP14PM-256",
+      "name": "iPhone 14 Pro Max",
+      "category": "dien_thoai",
+      "brand": "Apple",
+      "variants": [
+        {
+          "variant_id": "256GB",
+          "storage_gb": 256,
+          "ram_gb": 6,
+          "color": "tím đậm",
+          "price_vnd": 24990000,
+          "stock_qty": 6
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.7,
+        "battery_mah": 4323,
+        "chipset": "A16 Bionic",
+        "camera_mp": 48,
+        "os": "iOS 18"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-PH-XM14-256",
+      "name": "Xiaomi 14",
+      "category": "dien_thoai",
+      "brand": "Xiaomi",
+      "variants": [
+        {
+          "variant_id": "256GB-12GB",
+          "storage_gb": 256,
+          "ram_gb": 12,
+          "color": "đen",
+          "price_vnd": 15990000,
+          "stock_qty": 18
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.36,
+        "battery_mah": 4610,
+        "chipset": "Snapdragon 8 Gen 3",
+        "camera_mp": 50,
+        "os": "Android 14 (HyperOS)"
+      },
+      "warranty_months": 18,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 9,
+        "interest_rate": 1.2
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "XM14-SALE-10",
+          "description": "Giảm 10% flash sale cuối tuần",
+          "discount_vnd": 1599000,
+          "valid_from": "2026-09-13",
+          "valid_to": "2026-09-14",
+          "active": false
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-REDNOTE13-128",
+      "name": "Xiaomi Redmi Note 13",
+      "category": "dien_thoai",
+      "brand": "Xiaomi",
+      "variants": [
+        {
+          "variant_id": "128GB-6GB",
+          "storage_gb": 128,
+          "ram_gb": 6,
+          "color": "xanh mint",
+          "price_vnd": 4690000,
+          "stock_qty": 45
+        },
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "đen",
+          "price_vnd": 5490000,
+          "stock_qty": 27
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.67,
+        "battery_mah": 5000,
+        "chipset": "Snapdragon 685",
+        "camera_mp": 108,
+        "os": "Android 13 (HyperOS)"
+      },
+      "warranty_months": 18,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 6,
+        "interest_rate": 1.2
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "STUDENT-BACK2SCHOOL",
+          "description": "Giảm 200.000đ cho học sinh sinh viên",
+          "discount_vnd": 200000,
+          "valid_from": "2026-08-20",
+          "valid_to": "2026-09-20",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-P8P-256",
+      "name": "OPPO Reno12 Pro",
+      "category": "dien_thoai",
+      "brand": "OPPO",
+      "variants": [
+        {
+          "variant_id": "256GB-12GB",
+          "storage_gb": 256,
+          "ram_gb": 12,
+          "color": "vàng",
+          "price_vnd": 11990000,
+          "stock_qty": 13
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.7,
+        "battery_mah": 5000,
+        "chipset": "Dimensity 8350",
+        "camera_mp": 50,
+        "os": "Android 14 (ColorOS 14)"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0.9
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": [
+        {
+          "promo_code": "OPPO-GIFT-CASE",
+          "description": "Tặng ốp lưng chính hãng",
+          "discount_vnd": 350000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-A3PRO-256",
+      "name": "OPPO A3 Pro",
+      "category": "dien_thoai",
+      "brand": "OPPO",
+      "variants": [
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "xanh",
+          "price_vnd": 6490000,
+          "stock_qty": 31
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.67,
+        "battery_mah": 5800,
+        "chipset": "Snapdragon 6 Gen 1",
+        "camera_mp": 64,
+        "os": "Android 14 (ColorOS 14)"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 9,
+        "interest_rate": 0.9
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-PH-VX200-256",
+      "name": "vivo X200",
+      "category": "dien_thoai",
+      "brand": "vivo",
+      "variants": [
+        {
+          "variant_id": "256GB-12GB",
+          "storage_gb": 256,
+          "ram_gb": 12,
+          "color": "đen",
+          "price_vnd": 19990000,
+          "stock_qty": 8
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.67,
+        "battery_mah": 5800,
+        "chipset": "Dimensity 9400",
+        "camera_mp": 50,
+        "os": "Android 15 (Funtouch OS 15)"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": [
+        {
+          "promo_code": "VX200-PRE-ORDER",
+          "description": "Ưu đãi đặt trước, tặng sạc nhanh 80W",
+          "discount_vnd": 690000,
+          "valid_from": "2026-09-05",
+          "valid_to": "2026-09-25",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-Y19S-128",
+      "name": "vivo Y19s",
+      "category": "dien_thoai",
+      "brand": "vivo",
+      "variants": [
+        {
+          "variant_id": "128GB-4GB",
+          "storage_gb": 128,
+          "ram_gb": 4,
+          "color": "trắng",
+          "price_vnd": 3490000,
+          "stock_qty": 52
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.68,
+        "battery_mah": 5500,
+        "chipset": "Unisoc T612",
+        "camera_mp": 50,
+        "os": "Android 14 (Funtouch OS 14)"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "Y19S-COMBO-SIM",
+          "description": "Tặng gói data 4G 1 năm khi mua kèm SIM",
+          "discount_vnd": 240000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-PH-EDGE50-256",
+      "name": "Motorola Edge 50 Fusion",
+      "category": "dien_thoai",
+      "brand": "Motorola",
+      "variants": [
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "hồng",
+          "price_vnd": 8990000,
+          "stock_qty": 5
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.7,
+        "battery_mah": 5000,
+        "chipset": "Snapdragon 7s Gen 2",
+        "camera_mp": 50,
+        "os": "Android 14"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 6,
+        "interest_rate": 1.5
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-PH-NORD4-256",
+      "name": "OnePlus Nord 4",
+      "category": "dien_thoai",
+      "brand": "OnePlus",
+      "variants": [
+        {
+          "variant_id": "256GB-12GB",
+          "storage_gb": 256,
+          "ram_gb": 12,
+          "color": "xám titan",
+          "price_vnd": 10990000,
+          "stock_qty": 0
+        }
+      ],
+      "specs": {
+        "screen_inch": 6.74,
+        "battery_mah": 5500,
+        "chipset": "Snapdragon 7+ Gen 3",
+        "camera_mp": 50,
+        "os": "Android 14 (OxygenOS 14)"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 9,
+        "interest_rate": 0.9
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": [
+        {
+          "promo_code": "NORD4-EARLYBIRD",
+          "description": "Ưu đãi giảm 500.000đ đợt hàng đầu",
+          "discount_vnd": 500000,
+          "valid_from": "2026-07-01",
+          "valid_to": "2026-07-31",
+          "active": false
+        }
+      ]
+    },
+    {
+      "sku": "SKU-LT-X14-512",
+      "name": "Lenovo ThinkPad X14 Gen 5",
+      "category": "laptop",
+      "brand": "Lenovo",
+      "variants": [
+        {
+          "variant_id": "512GB-16GB",
+          "storage_gb": 512,
+          "ram_gb": 16,
+          "color": "đen",
+          "price_vnd": 28900000,
+          "stock_qty": 7
+        }
+      ],
+      "specs": {
+        "cpu": "Intel Core Ultra 7",
+        "gpu": "Intel Iris Xe",
+        "screen_inch": 14,
+        "weight_kg": 1.36,
+        "os": "Windows 11"
+      },
+      "warranty_months": 24,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 1.5
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "STUDENT-10",
+          "description": "Giảm 10% cho sinh viên",
+          "discount_vnd": 2890000,
+          "valid_from": "2026-08-01",
+          "valid_to": "2026-10-15",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-LT-MBA-M3-256",
+      "name": "MacBook Air M3",
+      "category": "laptop",
+      "brand": "Apple",
+      "variants": [
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "bạc",
+          "price_vnd": 27990000,
+          "stock_qty": 10
+        },
+        {
+          "variant_id": "512GB-8GB",
+          "storage_gb": 512,
+          "ram_gb": 8,
+          "color": "xám",
+          "price_vnd": 32990000,
+          "stock_qty": 5
+        }
+      ],
+      "specs": {
+        "cpu": "Apple M3",
+        "gpu": "8-core GPU",
+        "screen_inch": 13.6,
+        "weight_kg": 1.24,
+        "os": "macOS"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": [
+        {
+          "promo_code": "MBA-BACK2SCHOOL",
+          "description": "Tặng balo laptop chính hãng",
+          "discount_vnd": 890000,
+          "valid_from": "2026-08-15",
+          "valid_to": "2026-09-20",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-LT-ROG-STRIX-1TB",
+      "name": "Asus ROG Strix G16",
+      "category": "laptop",
+      "brand": "Asus",
+      "variants": [
+        {
+          "variant_id": "1TB-16GB",
+          "storage_gb": 1000,
+          "ram_gb": 16,
+          "color": "đen",
+          "price_vnd": 34990000,
+          "stock_qty": 4
+        }
+      ],
+      "specs": {
+        "cpu": "Intel Core i7-13650HX",
+        "gpu": "RTX 4060 8GB",
+        "screen_inch": 16,
+        "weight_kg": 2.5,
+        "os": "Windows 11",
+        "refresh_rate_hz": 165
+      },
+      "warranty_months": 24,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 1.2
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "ROG-GAMING-COMBO",
+          "description": "Tặng chuột + túi chống sốc gaming",
+          "discount_vnd": 1200000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-LT-VIVOBOOK-512",
+      "name": "Asus Vivobook 15",
+      "category": "laptop",
+      "brand": "Asus",
+      "variants": [
+        {
+          "variant_id": "512GB-8GB",
+          "storage_gb": 512,
+          "ram_gb": 8,
+          "color": "xanh",
+          "price_vnd": 15990000,
+          "stock_qty": 20
+        }
+      ],
+      "specs": {
+        "cpu": "Intel Core i5-1235U",
+        "gpu": "Intel Iris Xe",
+        "screen_inch": 15.6,
+        "weight_kg": 1.7,
+        "os": "Windows 11"
+      },
+      "warranty_months": 24,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 9,
+        "interest_rate": 0.9
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-LT-DELL-XPS13-512",
+      "name": "Dell XPS 13",
+      "category": "laptop",
+      "brand": "Dell",
+      "variants": [
+        {
+          "variant_id": "512GB-16GB",
+          "storage_gb": 512,
+          "ram_gb": 16,
+          "color": "bạc",
+          "price_vnd": 31990000,
+          "stock_qty": 6
+        }
+      ],
+      "specs": {
+        "cpu": "Intel Core Ultra 7",
+        "gpu": "Intel Arc Graphics",
+        "screen_inch": 13.4,
+        "weight_kg": 1.23,
+        "os": "Windows 11"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 1.0
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "XPS13-VOUCHER",
+          "description": "Voucher 1.000.000đ mua phụ kiện",
+          "discount_vnd": 1000000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-15",
+          "active": false
+        }
+      ]
+    },
+    {
+      "sku": "SKU-LT-LEGION5-512",
+      "name": "Lenovo Legion 5",
+      "category": "laptop",
+      "brand": "Lenovo",
+      "variants": [
+        {
+          "variant_id": "512GB-16GB",
+          "storage_gb": 512,
+          "ram_gb": 16,
+          "color": "xanh navy",
+          "price_vnd": 26990000,
+          "stock_qty": 8
+        }
+      ],
+      "specs": {
+        "cpu": "AMD Ryzen 7 7840HS",
+        "gpu": "RTX 4050 6GB",
+        "screen_inch": 15.6,
+        "weight_kg": 2.4,
+        "os": "Windows 11",
+        "refresh_rate_hz": 144
+      },
+      "warranty_months": 24,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 1.1
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "LEGION5-GAMER",
+          "description": "Tặng bàn phím cơ gaming",
+          "discount_vnd": 590000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-LT-HP-PAV14-256",
+      "name": "HP Pavilion 14",
+      "category": "laptop",
+      "brand": "HP",
+      "variants": [
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "bạc",
+          "price_vnd": 13990000,
+          "stock_qty": 16
+        }
+      ],
+      "specs": {
+        "cpu": "Intel Core i5-1335U",
+        "gpu": "Intel Iris Xe",
+        "screen_inch": 14,
+        "weight_kg": 1.4,
+        "os": "Windows 11"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 9,
+        "interest_rate": 0.9
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-LT-MACBOOKPRO14-M3PRO-512",
+      "name": "MacBook Pro 14 M3 Pro",
+      "category": "laptop",
+      "brand": "Apple",
+      "variants": [
+        {
+          "variant_id": "512GB-18GB",
+          "storage_gb": 512,
+          "ram_gb": 18,
+          "color": "đen không gian",
+          "price_vnd": 54990000,
+          "stock_qty": 3
+        }
+      ],
+      "specs": {
+        "cpu": "Apple M3 Pro",
+        "gpu": "14-core GPU",
+        "screen_inch": 14.2,
+        "weight_kg": 1.55,
+        "os": "macOS"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 12,
+        "interest_rate": 0
+      },
+      "trade_in": {
+        "supported": true,
+        "estimator_tool": "trade_in.get_quote"
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-LT-ACER-ASPIRE3-256",
+      "name": "Acer Aspire 3",
+      "category": "laptop",
+      "brand": "Acer",
+      "variants": [
+        {
+          "variant_id": "256GB-8GB",
+          "storage_gb": 256,
+          "ram_gb": 8,
+          "color": "bạc",
+          "price_vnd": 10990000,
+          "stock_qty": 25
+        }
+      ],
+      "specs": {
+        "cpu": "Intel Core i3-1215U",
+        "gpu": "Intel UHD",
+        "screen_inch": 15.6,
+        "weight_kg": 1.7,
+        "os": "Windows 11"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": true,
+        "min_months": 3,
+        "max_months": 6,
+        "interest_rate": 0.9
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "ASPIRE3-COMBO-MOUSE",
+          "description": "Tặng chuột không dây",
+          "discount_vnd": 150000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-AC-BUDS3",
+      "name": "Tai nghe không dây SoundPro Buds 3",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "đen",
+          "price_vnd": 1290000,
+          "stock_qty": 58
+        },
+        {
+          "variant_id": "std-white",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "trắng",
+          "price_vnd": 1290000,
+          "stock_qty": 40
+        }
+      ],
+      "specs": {
+        "connectivity": "Bluetooth 5.3",
+        "battery_life_hours": 6,
+        "case_battery_hours": 24,
+        "noise_cancelling": true
+      },
+      "warranty_months": 6,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "COMBO-PHONE-BUDS",
+          "description": "Giảm 300.000đ khi mua kèm điện thoại",
+          "discount_vnd": 300000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-AC-CHARGER65W",
+      "name": "Sạc nhanh GaN 65W SoundPro",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "trắng",
+          "price_vnd": 490000,
+          "stock_qty": 90
+        }
+      ],
+      "specs": {
+        "output_watt": 65,
+        "ports": "2x USB-C, 1x USB-A"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-AC-CASE-A55",
+      "name": "Ốp lưng chống sốc Galaxy A55",
+      "category": "phu_kien_dien_tu",
+      "brand": "Generic",
+      "variants": [
+        {
+          "variant_id": "clear",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "trong suốt",
+          "price_vnd": 99000,
+          "stock_qty": 120
+        }
+      ],
+      "specs": {
+        "material": "TPU chống sốc",
+        "compatible_sku": "SKU-PH-A55-128"
+      },
+      "warranty_months": 1,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-AC-POWERBANK20K",
+      "name": "Pin dự phòng 20.000mAh SoundPro",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "đen",
+          "price_vnd": 690000,
+          "stock_qty": 65
+        }
+      ],
+      "specs": {
+        "capacity_mah": 20000,
+        "output_watt": 22.5,
+        "ports": "2x USB-A, 1x USB-C"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "POWERBANK-SALE",
+          "description": "Giảm 100.000đ trong tháng 9",
+          "discount_vnd": 100000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-AC-MOUSE-WL",
+      "name": "Chuột không dây văn phòng SoundPro M1",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "đen",
+          "price_vnd": 259000,
+          "stock_qty": 80
+        }
+      ],
+      "specs": {
+        "connectivity": "2.4GHz + Bluetooth",
+        "battery_type": "AA"
+      },
+      "warranty_months": 6,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-AC-KEYBOARD-MECH",
+      "name": "Bàn phím cơ gaming SoundPro K7",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "blue-switch",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "đen RGB",
+          "price_vnd": 890000,
+          "stock_qty": 22
+        }
+      ],
+      "specs": {
+        "switch_type": "Blue switch",
+        "backlight": "RGB",
+        "connectivity": "USB-C có dây"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "KEYBOARD-GAMER-COMBO",
+          "description": "Giảm 10% khi mua kèm laptop gaming",
+          "discount_vnd": 89000,
+          "valid_from": "2026-09-01",
+          "valid_to": "2026-09-30",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-AC-LAPTOPBAG",
+      "name": "Balo laptop chống nước SoundPro 15.6inch",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "xám",
+          "price_vnd": 390000,
+          "stock_qty": 55
+        }
+      ],
+      "specs": {
+        "max_laptop_inch": 15.6,
+        "material": "vải chống nước"
+      },
+      "warranty_months": 6,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-AC-SCREENPROTECT",
+      "name": "Kính cường lực full màn hình",
+      "category": "phu_kien_dien_tu",
+      "brand": "Generic",
+      "variants": [
+        {
+          "variant_id": "iphone15",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "trong suốt",
+          "price_vnd": 89000,
+          "stock_qty": 150
+        }
+      ],
+      "specs": {
+        "hardness": "9H",
+        "compatible_sku": "SKU-PH-IP15-128"
+      },
+      "warranty_months": 1,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-AC-USBHUB",
+      "name": "Hub chuyển đổi USB-C 7-in-1",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "xám không gian",
+          "price_vnd": 590000,
+          "stock_qty": 38
+        }
+      ],
+      "specs": {
+        "ports": "HDMI, 2x USB-A, SD, microSD, USB-C PD, Ethernet"
+      },
+      "warranty_months": 12,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "USBHUB-MACBOOK-COMBO",
+          "description": "Giảm 15% khi mua kèm MacBook",
+          "discount_vnd": 88500,
+          "valid_from": "2026-08-15",
+          "valid_to": "2026-09-20",
+          "active": true
+        }
+      ]
+    },
+    {
+      "sku": "SKU-AC-COOLINGPAD",
+      "name": "Đế tản nhiệt laptop gaming SoundPro C5",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "đen",
+          "price_vnd": 450000,
+          "stock_qty": 30
+        }
+      ],
+      "specs": {
+        "fan_count": 5,
+        "max_laptop_inch": 17,
+        "led": true
+      },
+      "warranty_months": 6,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": []
+    },
+    {
+      "sku": "SKU-AC-EARBUDS-SPORT",
+      "name": "Tai nghe thể thao chống nước SoundPro Sport",
+      "category": "phu_kien_dien_tu",
+      "brand": "SoundPro",
+      "variants": [
+        {
+          "variant_id": "std",
+          "storage_gb": null,
+          "ram_gb": null,
+          "color": "đen cam",
+          "price_vnd": 790000,
+          "stock_qty": 44
+        }
+      ],
+      "specs": {
+        "connectivity": "Bluetooth 5.2",
+        "water_resistance": "IPX7",
+        "battery_life_hours": 8
+      },
+      "warranty_months": 6,
+      "installment": {
+        "supported": false
+      },
+      "trade_in": {
+        "supported": false
+      },
+      "promos": [
+        {
+          "promo_code": "SPORT-EARBUDS-SALE",
+          "description": "Giảm 100.000đ dịp tựu trường",
+          "discount_vnd": 100000,
+          "valid_from": "2026-08-15",
+          "valid_to": "2026-09-15",
+          "active": false
+        }
+      ]
+    }
+  ],
+  "policies": {
+    "return_policy": {
+      "window_days": 7,
+      "conditions": "còn nguyên phụ kiện, hộp, chưa kích hoạt bảo hành điện tử",
+      "who_pays_shipping": "shop",
+      "defect_vs_change_mind": {
+        "defective_window_days": 30,
+        "change_mind_window_days": 7
+      }
+    },
+    "shipping_policy": {
+      "regions": [
+        {
+          "region": "HCMC",
+          "fee_vnd": 0,
+          "eta_days": 1
+        },
+        {
+          "region": "toàn quốc",
+          "fee_vnd": 30000,
+          "eta_days": 3
+        }
+      ],
+      "cod_supported": true,
+      "cod_max_value_vnd": 15000000
+    },
+    "warranty_policy": {
+      "default_months_by_category": {
+        "dien_thoai": 12,
+        "laptop": 24,
+        "phu_kien_dien_tu": 6
+      },
+      "extended_warranty_available": true
+    }
+  }
+}
