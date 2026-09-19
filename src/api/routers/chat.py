@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+from src.memory.semantic_rag.orchestrator import process_raw_query
+from src.memory.semantic_rag.query_router import route
 
 router = APIRouter()
 
@@ -12,9 +14,9 @@ class ChatRequest(BaseModel):
 
 @router.post("/chat")
 def handle_chat(request: ChatRequest):
+    route_result = route(request.message)
     return {
-        "reply": "Dạ em chào anh/chị, em có thể hỗ trợ gì cho anh/chị ạ?",
+        "reply": process_raw_query(request.message),
         "sources": [],
-        "intent": "chitchat"
+        "intent": route_result["intent"]
     }
-

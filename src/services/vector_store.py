@@ -1,9 +1,9 @@
 """
 src/services/vector_store.py
-Client wrapper cho Qdrant Vector Database, hỗ trợ Hybrid Search kết hợp:
-- Dense Vector (BGE-M3 1024 dims, Cosine similarity)
-- Sparse Vector (BGE-M3 lexical weights, BM25-like matching)
-- Reciprocal Rank Fusion (RRF)
+Client wrapper cho Qdrant Vector Database (Cloud / Local), hỗ trợ:
+- Nhánh 1 (Dense): Gemini text-embedding-004 (768 chiều, Cosine distance)
+- Nhánh 2 (Sparse): BM25S lexical weights (indices & values)
+- Thuật toán RRF (Reciprocal Rank Fusion) kết hợp kết quả tự động
 - Metadata Filtering (category, in_stock, min_price, max_price)
 """
 
@@ -17,6 +17,7 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
+
 from qdrant_client import QdrantClient, models
 from qdrant_client.models import (
     VectorParams,
@@ -66,10 +67,18 @@ class QdrantVectorStore:
             )
             self.client = QdrantClient(path=default_path)
 
-    def init_collection(self, collection_name: str, dense_dim: int = 1024, recreate: bool = False):
+    def init_collection(
+        self,
+        collection_name: str,
+        dense_dim: Optional[int] = None,
+        recreate: bool = False,
+    ):
         """
-        Khởi tạo collection với cả 2 chỉ mục: Dense (1024 dims) và Sparse.
+        Khởi tạo collection với cả 2 chỉ mục trong cùng 1 collection:
+        - Dense: 768 chiều (Gemini text-embedding-004)
+        - Sparse: BM25S token indices & scores
         """
+        dense_dim = dense_dim or int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768"))
         exists = self.client.collection_exists(collection_name)
         if exists and recreate:
             self.client.delete_collection(collection_name)
@@ -87,30 +96,52 @@ class QdrantVectorStore:
                     )
                 }
             )
-            print(f" Đã khởi tạo Qdrant collection '{collection_name}' (Dense + Sparse).")
+            print(f" Đã khởi tạo Qdrant collection '{collection_name}' (Dense 768-dim + Sparse BM25S).")
+
+        if collection_name == "products":
+            self._ensure_product_payload_indexes()
+
+    def _ensure_product_payload_indexes(self) -> None:
+        """Create the payload indexes required by product query filters."""
+        collection_name = "products"
+        payload_schema = self.client.get_collection(collection_name).payload_schema
+        indexes = (
+            ("category", models.PayloadSchemaType.KEYWORD),
+            ("in_stock", models.PayloadSchemaType.BOOL),
+            ("min_price", models.PayloadSchemaType.INTEGER),
+        )
+
+        for field_name, field_schema in indexes:
+            if field_name not in payload_schema:
+                self.client.create_payload_index(
+                    collection_name=collection_name,
+                    field_name=field_name,
+                    field_schema=field_schema,
+                )
+
 
     def upsert_catalog_documents(
         self,
         collection_name: str,
         documents: List[Dict[str, Any]],
-        embeddings: List[Dict[str, Any]]
+        dense_vectors: List[List[float]],
+        sparse_vectors: List[Dict[str, Any]]
     ):
         """
-        Đẩy danh sách documents kèm vector BGE-M3 (dense + sparse) vào Qdrant.
+        Lưu cả 2 loại Vector (Dense 768 và Sparse BM25S) vào cùng 1 Collection trên Qdrant.
         """
         self.init_collection(collection_name)
         points = []
 
-        for doc, emb in zip(documents, embeddings):
+        for doc, dense, sparse in zip(documents, dense_vectors, sparse_vectors):
             doc_id = doc.get("_id") or doc.get("sku")
             point_id = get_deterministic_uuid(str(doc_id))
 
-            sparse_data = emb["sparse"]
             vector_dict = {
-                "dense": emb["dense"],
+                "dense": dense,
                 "sparse": SparseVector(
-                    indices=sparse_data["indices"],
-                    values=sparse_data["values"]
+                    indices=sparse["indices"],
+                    values=sparse["values"]
                 )
             }
 
@@ -122,14 +153,13 @@ class QdrantVectorStore:
                 )
             )
 
-        # Batch upsert
         self.client.upsert(
             collection_name=collection_name,
             points=points
         )
-        print(f" Đã upsert {len(points)} documents vào collection '{collection_name}'.")
+        print(f" Đã upsert {len(points)} documents (Dense 768 + Sparse BM25S) vào Qdrant '{collection_name}'.")
 
-    def hybrid_search(
+    def hybrid_search_rrf(
         self,
         collection_name: str,
         query_dense: List[float],
@@ -141,10 +171,12 @@ class QdrantVectorStore:
         max_price: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
-        Tìm kiếm Hybrid (Dense + Sparse) với thuật toán Reciprocal Rank Fusion (RRF),
-        kết hợp metadata pre-filtering.
+        Tìm kiếm Hybrid sử dụng thuật toán RRF (Reciprocal Rank Fusion) trên Qdrant
+        kết hợp bộ lọc metadata.
         """
-        # Xây dựng Filter điều kiện
+        if collection_name == "products":
+            self._ensure_product_payload_indexes()
+
         must_conditions = []
         if category:
             must_conditions.append(
@@ -155,17 +187,16 @@ class QdrantVectorStore:
                 FieldCondition(key="in_stock", match=MatchValue(value=True))
             )
         if min_price is not None or max_price is not None:
-            range_cond = {}
+            price_range = {}
             if min_price is not None:
-                range_cond["gte"] = min_price
+                price_range["gte"] = min_price
             if max_price is not None:
-                range_cond["lte"] = max_price
+                price_range["lte"] = max_price
             must_conditions.append(
-                FieldCondition(key="min_price", range=Range(**range_cond))
+                FieldCondition(key="min_price", range=Range(**price_range))
             )
 
         query_filter = Filter(must=must_conditions) if must_conditions else None
-
         sparse_vector = SparseVector(
             indices=query_sparse["indices"],
             values=query_sparse["values"]
@@ -177,19 +208,19 @@ class QdrantVectorStore:
                 Prefetch(
                     query=query_dense,
                     using="dense",
-                    limit=top_k * 2,
-                    filter=query_filter
+                    limit=max(top_k * 5, top_k),
+                    filter=query_filter,
                 ),
                 Prefetch(
                     query=sparse_vector,
                     using="sparse",
-                    limit=top_k * 2,
-                    filter=query_filter
+                    limit=max(top_k * 5, top_k),
+                    filter=query_filter,
                 )
             ],
             query=FusionQuery(fusion=Fusion.RRF),
             limit=top_k,
-            query_filter=query_filter
+            query_filter=query_filter,
         )
 
         results = []

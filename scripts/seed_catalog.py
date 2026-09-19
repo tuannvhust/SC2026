@@ -1,9 +1,10 @@
 """
 scripts/seed_catalog.py
-Nạp dữ liệu từ data/catalog/catalog.json, chuẩn hóa và:
-1. Đồng bộ dữ liệu có cấu trúc lên MongoDB Atlas (nếu có MONGODB_URI).
-2. Sinh Dense (1024 dims) và Sparse (lexical weights) embeddings bằng BGE-M3 (BAAI/bge-m3).
-3. Đẩy vào Qdrant Vector DB với Hybrid Index (Dense + Sparse) phục vụ RRF search.
+Nạp dữ liệu từ data/catalog/catalog.json, chuẩn hóa và xử lý song song (Parallel Processing):
+- Nhánh 1 (Dense Vector): Gửi văn bản qua Gemini API (text-embedding-004) -> Vector 768 chiều.
+- Nhánh 2 (Sparse Vector): Dùng bm25s (chạy trên CPU local) -> Trích xuất chỉ mục từ khóa chính xác.
+- Lưu trữ (Qdrant): Lưu cả 2 loại Vector vào cùng 1 Collection trên Qdrant.
+- Đồng bộ Document Store sang MongoDB Atlas (nếu có MONGODB_URI).
 
 Chạy lệnh:
     python scripts/seed_catalog.py
@@ -12,7 +13,8 @@ Chạy lệnh:
 import os
 import sys
 import json
-from typing import List
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 # Tải biến môi trường từ .env
@@ -31,6 +33,33 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from src.memory.semantic_rag.ingestion import parse_catalog_file
+from src.services.gemini_embedder import GeminiDenseEmbedder
+from src.services.bm25s_embedder import BM25SparseEmbedder
+from src.services.vector_store import QdrantVectorStore
+
+
+def parallel_embed_corpus(
+    texts: List[str],
+    dense_embedder: GeminiDenseEmbedder,
+    sparse_embedder: BM25SparseEmbedder,
+    save_dir: str
+) -> tuple[List[List[float]], List[Dict[str, Any]]]:
+    """
+    Xử lý song song 2 nhánh:
+    - Nhánh 1: Gemini API Dense (768 chiều)
+    - Nhánh 2: BM25S Sparse (CPU local)
+    """
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        print("   -> [Nhánh 1] Đang gửi qua Gemini API (text-embedding-004: 768 dims)...")
+        future_dense = executor.submit(dense_embedder.embed_batch, texts)
+
+        print(f"   -> [Nhánh 2] Đang tính toán Sparse Vector bằng bm25s và lưu vào {save_dir}...")
+        future_sparse = executor.submit(sparse_embedder.fit_corpus, texts, save_dir)
+
+        dense_vectors = future_dense.result()
+        sparse_vectors = future_sparse.result()
+
+    return dense_vectors, sparse_vectors
 
 
 def main():
@@ -76,40 +105,43 @@ def main():
             print(f"   -> MongoDB Atlas: {res_prod.matched_count + len(res_prod.upserted_ids)} products, "
                   f"{res_pol.matched_count + len(res_pol.upserted_ids)} policies.")
         except Exception as e:
-            print(f"   [!] Lỗi khi đồng bộ MongoDB: {e}")
+            print(f"   [!] Ghi chú MongoDB: {e}")
     else:
         print("[3/4] Bỏ qua MongoDB (chưa cấu hình MONGODB_URI).")
 
-    # 4. Sinh Embedding BGE-M3 (Dense + Sparse) và đẩy vào Qdrant
-    print("[4/4] Đang khởi tạo BGE-M3 và Qdrant Vector Store...")
+    # 4. Xử lý song song (Gemini 768 + bm25s) và nạp vào Qdrant
+    print("[4/4] Bắt đầu xử lý song song và nạp vào Qdrant (Dense 768 + Sparse BM25S)...")
     try:
-        from src.services.bge_m3_service import BGEM3Service
-        from src.services.vector_store import QdrantVectorStore
-
-        embedder = BGEM3Service()
+        dense_embedder = GeminiDenseEmbedder()
+        sparse_embedder_prod = BM25SparseEmbedder()
+        sparse_embedder_pol = BM25SparseEmbedder()
         vector_store = QdrantVectorStore()
 
-        # Embedding Products
-        print("   -> Đang sinh BGE-M3 embeddings cho 32 sản phẩm (Dense + Sparse)...")
+        bm25_prod_dir = os.path.join(processed_dir, "bm25_products")
+        bm25_pol_dir = os.path.join(processed_dir, "bm25_policies")
+
+        # Xử lý Products
+        print(f"\n--- Xử lý 32 sản phẩm ---")
         prod_texts = [p["embedding_text"] for p in products_docs]
-        prod_embeddings = embedder.encode_documents(prod_texts)
+        prod_dense, prod_sparse = parallel_embed_corpus(
+            prod_texts, dense_embedder, sparse_embedder_prod, bm25_prod_dir
+        )
 
-        vector_store.upsert_catalog_documents("products", products_docs, prod_embeddings)
+        vector_store.upsert_catalog_documents("products", products_docs, prod_dense, prod_sparse)
 
-        # Embedding Policies
-        print("   -> Đang sinh BGE-M3 embeddings cho các chính sách...")
+        # Xử lý Policies
+        print(f"\n--- Xử lý các chính sách ---")
         pol_texts = [pol["embedding_text"] for pol in policies_docs]
-        pol_embeddings = embedder.encode_documents(pol_texts)
+        pol_dense, pol_sparse = parallel_embed_corpus(
+            pol_texts, dense_embedder, sparse_embedder_pol, bm25_pol_dir
+        )
 
-        vector_store.upsert_catalog_documents("policies", policies_docs, pol_embeddings)
+        vector_store.upsert_catalog_documents("policies", policies_docs, pol_dense, pol_sparse)
 
-        print("\n Hoàn tất nạp BGE-M3 Dense + Sparse embeddings vào Qdrant!")
+        print("\n Hoàn tất nạp dữ liệu vào Qdrant (Dense 768 + Sparse BM25S) thành công!")
 
-    except ImportError as ie:
-        print(f"   [!] Thiếu thư viện cho Qdrant / BGE-M3: {ie}")
-        print("   Cài đặt: pip install qdrant-client FlagEmbedding torch")
     except Exception as e:
-        print(f"   [!] Lỗi trong quá trình nạp Qdrant: {e}")
+        print(f"   [!] Lỗi trong quá trình xử lý Qdrant: {e}")
 
 
 if __name__ == "__main__":

@@ -1,94 +1,125 @@
-# SC2026
+```markdown
+# SUDO CODE 2026 — Harness Agent cho Call Center Telesale
 
-# SUDO CODE 2026 — Harness Agent cho Call Center Telesale (Vòng 1)
-
-Harness Agent hỗ trợ telesale e-commerce: ngữ cảnh liên tục xuyên phiên/kênh,
-tự đánh giá và cải tiến theo thời gian (không fine-tune model).
+Harness Agent hỗ trợ telesale e-commerce: ngữ cảnh liên tục xuyên phiên/kênh, tự đánh giá và cải tiến theo thời gian (không fine-tune model).
 
 ## Cấu trúc thư mục
 
 ```
 .
 ├── data/
-│   ├── raw/
-│   │   ├── audio/           # file ghi âm cuộc gọi (thật hoặc TTS)
-│   │   ├── transcripts/     # transcript hội thoại dạng text
-│   │   └── chat/            # log chat (Zalo/Fanpage/app)
-│   ├── processed/           # output đã qua ASR + chuẩn hóa + trích xuất
-│   ├── catalog/             # catalog sản phẩm + chính sách (catalog.json)
-│   └── test_scenarios/      # bộ test đa phiên (Phụ lục B format)
-│
+│   ├── raw/              # audio, transcripts, chat logs
+│   ├── processed/        # output ASR + chuẩn hóa
+│   ├── catalog/          # catalog.json
+│   └── test_scenarios/
 ├── src/
-│   ├── asr/                 # Whisper/PhoWhisper, chuẩn hóa số (ITN)
-│   ├── nlp_extraction/      # trích xuất có cấu trúc: intent, entity, slot
-│   ├── models/               # Pydantic schema: CallTurn, CallSummary, Product, TestScenario
-│   ├── services/              # client wrapper dùng lại nhiều nơi: llm_client, vector_store, profile_store
-│   ├── retrieval/
-│   │   └── query_router.py   # phân loại lượt thoại: hỏi sản phẩm / đơn hàng / phản đối / chitchat -> chọn tool
+│   ├── asr/
+│   ├── nlp_extraction/
+│   ├── models/           # Pydantic schemas
+│   ├── services/         # llm_client, vector_store, profile_store
+│   ├── retrieval/        # query_router
 │   ├── memory/
-│   │   ├── working/         # ngữ cảnh lượt thoại hiện tại
-│   │   ├── episodic/        # tóm tắt từng cuộc gọi (giữ source_call_id để truy vết)
-│   │   ├── profile/         # sự thật bền vững về khách
-│   │   └── semantic_rag/    # RAG trên catalog/chính sách
-│   │       ├── ingestion.py    # catalog.json -> document (text + metadata) để embed
-│   │       ├── retriever.py    # tìm sản phẩm liên quan từ vector DB (search, get_by_sku)
-│   │       ├── reranker.py     # rerank lại top-k kết quả (M2, để trống ở M1)
-│   │       └── generator.py    # sinh câu trả lời từ context, kèm trích dẫn SKU nguồn
-│   ├── harness/             # vòng lặp perceive→resolve→retrieve→plan→act→observe→persist
-│   ├── mcp_servers/
-│   │   ├── mcp_memory/      # MCP server đọc/ghi bộ nhớ khách hàng (bắt buộc)
-│   │   └── mcp_catalog/     # MCP server tra catalog/giá/KM
-│   ├── tools/                # crm.get_customer, catalog.search, order.create...
-│   │                          #   (giá/chỉ số PHẢI tính bằng Python thuần, không để LLM tự suy đoán)
-│   ├── eval/                 # script tính RQR, CCR, TSR, HR, WER/CER + baseline
-│   ├── improvement_loop/     # Knowledge Gap Loop / Exemplar Bank
-│   └── api/
-│       └── routers/          # chat.py, calls.py, health.py — tách theo domain, không gộp 1 file
-│
-├── frontend/                 # Streamlit/web UI: chat + Call Brief + timeline
+│   │   ├── working/
+│   │   ├── episodic/
+│   │   ├── profile/
+│   │   └── semantic_rag/ # ingestion → retriever → reranker → generator
+│   ├── harness/          # perceive → resolve → retrieve → plan → act → observe → persist
+│   ├── mcp_servers/      # mcp_memory, mcp_catalog
+│   ├── tools/
+│   ├── eval/
+│   ├── improvement_loop/
+│   └── api/routers/      # chat, calls, health
+├── frontend/             # Next.js UI
 ├── docs/
-│   ├── architecture/         # sơ đồ hệ thống, thiết kế bộ nhớ
-│   └── decisions/            # ghi lại các quyết định thiết kế + lý do
-├── scripts/                  # script sinh dataset, seed catalog, chạy eval
-├── notebooks/                # thử nghiệm nhanh (EDA, thử prompt...)
-└── tests/                    # unit test cho từng module
-
+├── scripts/
+├── notebooks/
+└── tests/
 ```
 
-## Bắt đầu
+## Bắt đầu nhanh
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate          # Windows: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env   # điền API key LLM
-python scripts/seed_catalog.py   # nạp data/catalog/catalog.json vào vector DB
-python -m src.api.main           # chạy backend
+cp .env.example .env               # điền API key
 ```
 
-## `semantic_rag/` — tầng Semantic/KB memory
+### Backend
 
-Đây là RAG trên `data/catalog/catalog.json` (giá, KM còn hiệu lực, chính
-sách đổi trả/ship) — 1 trong 4 tầng bộ nhớ của đề bài (Working/Episodic/
-Profile là M1 bắt buộc, Semantic/RAG là M2 nhưng cần làm sớm vì đây là
-nguồn sự thật để agent không tự bịa giá/khuyến mãi — tránh Hallucination
-Rate). 4 file trong đó chia theo luồng xử lý:
+```bash
+python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-1. `ingestion.py` chuẩn hoá catalog thành document có thể embed.
-2. `retriever.py` tìm các document liên quan tới câu hỏi khách.
-3. `reranker.py` (tuỳ chọn) sắp xếp lại kết quả cho chính xác hơn.
-4. `generator.py` dùng kết quả đó để sinh câu trả lời, luôn kèm SKU nguồn.
+Health check: `curl http://localhost:8000/health`
 
-Tách 4 bước riêng để mỗi phần test được độc lập (ví dụ đo Recall@k chỉ ở
-bước retriever, không lẫn với chất lượng câu trả lời của generator).
+### Frontend
 
-## Quy ước khi mở rộng
+```bash
+cd frontend
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+```
 
-- **Không để LLM tự tính/tự nhớ số liệu.** Giá, tồn kho, KM còn hiệu lực luôn
-  phải đi qua `tools/` hoặc `retrieval/`, không được LLM tự suy đoán trong prompt.
-- **Mọi fact ghi vào Episodic/Profile phải giữ nguồn gốc** (`source_call_id`,
-  `extracted_at`) — để truy vết khi cần xóa hoặc phát hiện memory poisoning.
-- **`services/` chỉ chứa client wrapper thuần** (gọi LLM, đọc/ghi vector DB,
-  đọc/ghi profile store) — không chứa business logic. Logic nghiệp vụ (route,
-  quyết định ghi gì vào bộ nhớ) nằm ở `harness/` và `retrieval/`.
-- **Không để script thử nghiệm rải ở thư mục gốc** — mọi test vào `tests/`,
-  mọi thử nghiệm nhanh vào `notebooks/`.
+- Frontend: http://localhost:3000
+- Backend:  http://localhost:8000
+- Chat API: `POST /api/chat`
+
+
+## Kiểm thử
+
+
+```bash
+python tests/test_pipeline_rag_real.py
+```
+
+Truyền câu hỏi tùy chọn:
+```bash
+python tests/test_pipeline_rag_real.py "Mình muốn mua điện thoại Samsung dưới 10 triệu còn hàng"
+```
+
+Yêu cầu `GEMINI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY`, `HF_TOKEN` trong `.env`.
+
+### Kiểm tra Gemini trước khi build
+
+```bash
+python tests/test_api_external.py
+```
+
+## Docker Compose
+
+```bash
+docker compose up --build
+```
+
+Dừng:
+
+```bash
+docker compose down
+docker compose up -d --build
+```
+
+Không commit `.env`; chỉ commit `.env.example`.
+
+## Biến môi trường chính
+
+| Biến | Mặc định | Mục đích |
+|------|----------|----------|
+| `GEMINI_API_KEY` | — | Embedding + sinh câu trả lời |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Model chính |
+| `GROQ_API_KEY` | — | Fallback LLM |
+| `QDRANT_URL` / `QDRANT_API_KEY` | — | Vector store |
+| `MONGODB_URI` | — | Document store |
+| `HF_TOKEN` | — | Reranker (Hugging Face) |
+| `PORT` | `8000` | Port API |
+| `UVICORN_RELOAD` | `false` | Auto-reload (dev) |
+
+Sao chép `.env.example` → `.env`. Không commit `.env`.
+
+## Quy ước
+
+- **Không để LLM tự tính số liệu** — giá, tồn kho, KM luôn đi qua `tools/` hoặc `retrieval/`.
+- **Mọi fact ghi vào memory phải giữ nguồn** (`source_call_id`, `extracted_at`).
+- **`services/` chỉ chứa client wrapper** — business logic nằm ở `harness/` và `retrieval/`.
+- Test → `tests/`, thử nghiệm nhanh → `notebooks/`.
+```

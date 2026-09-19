@@ -1,15 +1,14 @@
 """
 src/memory/semantic_rag/ingestion.py
-Chịu trách nhiệm chuẩn hóa catalog sản phẩm và chính sách cửa hàng từ data/catalog/catalog.json
-thành các documents có cấu trúc kèm metadata và trường `embedding_text` để tạo vector embeddings.
+Chịu trách nhiệm chuẩn hóa 1 document đọc từ MongoDB Atlas thành document sẵn sàng để embedding và đưa vào Qdrant.
+Input: 1 document Mongo (Dict)
+Output: Document đã được tính toán metadata và sinh trường `embedding_text` chuẩn tiếng Việt.
 """
 
-import os
-import json
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, Optional
 
 
-def format_price(v: int) -> str:
+def format_price(v: Optional[int]) -> str:
     if v is None:
         return "0đ"
     return f"{v:,.0f}đ".replace(",", ".")
@@ -17,24 +16,23 @@ def format_price(v: int) -> str:
 
 def generate_product_embedding_text(p: Dict[str, Any]) -> str:
     """
-    Sinh đoạn văn bản tự nhiên giàu ngữ nghĩa tiếng Việt từ thông tin sản phẩm,
-    tối ưu cho việc tạo vector embedding cho RAG và Hybrid Search.
+    Sinh đoạn văn bản tự nhiên giàu ngữ nghĩa tiếng Việt từ 1 Mongo document sản phẩm.
     """
     name = p.get("name", "")
-    sku = p.get("sku", "")
+    sku = p.get("sku") or p.get("_id", "")
     brand = p.get("brand", "")
     cat = p.get("category", "")
-    
+
     cat_names = {
         "dien_thoai": "Điện thoại",
         "laptop": "Laptop",
         "phu_kien_dien_tu": "Phụ kiện điện tử"
     }
     cat_vn = cat_names.get(cat, cat)
-    
+
     parts = [f"{cat_vn} {name} (Mã SKU: {sku}) của thương hiệu {brand}."]
-    
-    # Specs
+
+    # Thông số kỹ thuật
     specs = p.get("specs", {})
     spec_parts = []
     if "screen_inch" in specs:
@@ -67,11 +65,11 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
         spec_parts.append("có đèn LED" if specs["led"] else "không có LED")
     if "max_laptop_inch" in specs:
         spec_parts.append(f"hỗ trợ laptop tối đa {specs['max_laptop_inch']} inch")
-        
+
     if spec_parts:
         parts.append("Thông số kỹ thuật: " + ", ".join(spec_parts) + ".")
-        
-    # Variants & Pricing
+
+    # Phiên bản & giá bán
     variants = p.get("variants", [])
     if variants:
         variant_desc = []
@@ -89,13 +87,13 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
             desc_item = " ".join(v_info) if v_info else "Bản tiêu chuẩn"
             variant_desc.append(f"{desc_item} giá {price} ({stock_str})")
         parts.append("Các phiên bản lựa chọn: " + "; ".join(variant_desc) + ".")
-        
-    # Warranty
+
+    # Bảo hành
     w = p.get("warranty_months")
     if w:
         parts.append(f"Thời gian bảo hành chính hãng: {w} tháng.")
-        
-    # Installment
+
+    # Trả góp
     inst = p.get("installment", {})
     if inst.get("supported"):
         rate = inst.get("interest_rate", 0)
@@ -107,130 +105,96 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
             parts.append(f"Hỗ trợ trả góp kỳ hạn từ {min_m} đến {max_m} tháng với lãi suất {rate}%.")
     else:
         parts.append("Không áp dụng chính sách trả góp.")
-        
-    # Trade-in
+
+    # Thu cũ đổi mới
     trade = p.get("trade_in", {})
     if trade.get("supported"):
         parts.append("Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy.")
     else:
         parts.append("Không áp dụng chương trình thu cũ đổi mới.")
-        
-    # Promos
+
+    # Khuyến mãi
     promos = [pr for pr in p.get("promos", []) if pr.get("active")]
     if promos:
-        promo_desc = [f"{pr['description']} (Mã: {pr['promo_code']}, giảm {format_price(pr['discount_vnd'])})" for pr in promos]
+        promo_desc = [f"{pr['description']} (Mã: {pr['promo_code']}, giảm {format_price(pr.get('discount_vnd', 0))})" for pr in promos]
         parts.append("Khuyến mãi hiện hành: " + "; ".join(promo_desc) + ".")
-        
+
     return " ".join(parts)
 
 
-def parse_catalog_file(catalog_file_path: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def generate_policy_embedding_text(policy_doc: Dict[str, Any]) -> str:
     """
-    Đọc catalog.json và trả về 2 danh sách:
-    - products_docs: Các documents sản phẩm kèm trường metadata và embedding_text
-    - policies_docs: Các documents chính sách (đổi trả, bảo hành, vận chuyển/COD)
+    Sinh đoạn văn bản tự nhiên từ 1 Mongo document chính sách.
     """
-    with open(catalog_file_path, "r", encoding="utf-8-sig") as f:
-        data = json.load(f)
-        
-    cat_names = {
-        "dien_thoai": "Điện thoại",
-        "laptop": "Laptop",
-        "phu_kien_dien_tu": "Phụ kiện điện tử"
-    }
-    
-    # Chuẩn hóa sản phẩm
-    products_docs = []
-    for p in data.get("products", []):
-        variants = p.get("variants", [])
-        prices = [v.get("price_vnd") for v in variants if v.get("price_vnd") is not None]
-        min_price = min(prices) if prices else 0
-        max_price = max(prices) if prices else 0
-        total_stock = sum(v.get("stock_qty", 0) for v in variants)
-        in_stock = total_stock > 0
-        
-        inst = p.get("installment", {})
-        has_inst = inst.get("supported", False)
-        has_inst_0 = has_inst and (inst.get("interest_rate", 1) == 0)
-        
-        trade = p.get("trade_in", {})
-        active_promos = [pr for pr in p.get("promos", []) if pr.get("active", False)]
-        
-        doc = {
-            "_id": p["sku"],
-            "sku": p["sku"],
-            "name": p["name"],
-            "category": p["category"],
-            "category_name": cat_names.get(p["category"], p["category"]),
-            "brand": p["brand"],
-            "min_price": min_price,
-            "max_price": max_price,
-            "total_stock": total_stock,
-            "in_stock": in_stock,
-            "installment": {
-                **inst,
-                "is_zero_percent": has_inst_0
-            },
-            "trade_in": trade,
-            "warranty_months": p.get("warranty_months"),
-            "specs": p.get("specs", {}),
-            "variants": variants,
-            "promos": p.get("promos", []),
-            "has_active_promos": len(active_promos) > 0,
-            "embedding_text": generate_product_embedding_text(p)
-        }
-        products_docs.append(doc)
-        
-    # Chuẩn hóa chính sách
-    policies = data.get("policies", {})
-    ret_pol = policies.get("return_policy", {})
-    ship_pol = policies.get("shipping_policy", {})
-    war_pol = policies.get("warranty_policy", {})
-    
-    policies_docs = [
-        {
-            "_id": "policy_return",
-            "policy_id": "return_policy",
-            "title": "Chính sách đổi trả sản phẩm",
-            "category": "doi_tra",
-            "details": ret_pol,
-            "embedding_text": (
-                f"Chính sách đổi trả sản phẩm của cửa hàng: Khách hàng được đổi trả trong vòng {ret_pol.get('window_days', 7)} ngày "
-                f"đối với trường hợp đổi ý ({ret_pol.get('defect_vs_change_mind', {}).get('change_mind_window_days', 7)} ngày), "
-                f"và trong vòng {ret_pol.get('defect_vs_change_mind', {}).get('defective_window_days', 30)} ngày đối với trường hợp máy phát sinh lỗi kỹ thuật do nhà sản xuất. "
-                f"Điều kiện đổi trả: {ret_pol.get('conditions', 'còn nguyên hộp, phụ kiện')}. "
-                f"Phí vận chuyển đổi trả: Cửa hàng chịu toàn bộ chi phí vận chuyển ({ret_pol.get('who_pays_shipping', 'shop')})."
-            )
-        },
-        {
-            "_id": "policy_shipping",
-            "policy_id": "shipping_policy",
-            "title": "Chính sách giao hàng và thanh toán COD",
-            "category": "giao_hang",
-            "details": ship_pol,
-            "embedding_text": (
-                "Chính sách giao hàng và thanh toán khi nhận hàng: "
-                "Tại TP.HCM (HCMC), miễn phí giao hàng (0đ), thời gian nhận hàng dự kiến trong 1 ngày. "
-                "Tại các tỉnh thành khác trên toàn quốc, phí giao hàng là 30.000đ, thời gian nhận hàng dự kiến 3 ngày. "
-                f"Cửa hàng có hỗ trợ hình thức thanh toán khi nhận hàng (ship COD: {ship_pol.get('cod_supported')}), "
-                f"áp dụng cho đơn hàng có giá trị tối đa lên đến {format_price(ship_pol.get('cod_max_value_vnd', 15000000))}."
-            )
-        },
-        {
-            "_id": "policy_warranty",
-            "policy_id": "warranty_policy",
-            "title": "Chính sách bảo hành sản phẩm",
-            "category": "bao_hanh",
-            "details": war_pol,
-            "embedding_text": (
-                "Chính sách bảo hành sản phẩm chính hãng: "
-                "Thời hạn bảo hành tiêu chuẩn theo từng ngành hàng: Điện thoại bảo hành 12 tháng, "
-                "Laptop bảo hành 24 tháng, Phụ kiện điện tử bảo hành 6 tháng. "
-                "Ngoài ra, cửa hàng có hỗ trợ cung cấp thêm các gói bảo hành mở rộng (bảo hành nâng cao) "
-                "cho khách hàng có nhu cầu bảo vệ máy toàn diện."
-            )
-        }
-    ]
-    
-    return products_docs, policies_docs
+    # Nếu trong Mongo document đã có embedding_text thì ưu tiên dùng
+    if policy_doc.get("embedding_text"):
+        return policy_doc["embedding_text"]
 
+    pid = policy_doc.get("policy_id") or policy_doc.get("_id", "")
+    details = policy_doc.get("details", policy_doc)
+
+    if "return" in pid or "doi_tra" in str(policy_doc.get("category", "")):
+        return (
+            f"Chính sách đổi trả sản phẩm của cửa hàng: Khách hàng được đổi trả trong vòng {details.get('window_days', 7)} ngày "
+            f"đối với trường hợp đổi ý, và trong vòng {details.get('defect_vs_change_mind', {}).get('defective_window_days', 30)} ngày "
+            f"đối với trường hợp máy phát sinh lỗi kỹ thuật do nhà sản xuất. "
+            f"Điều kiện đổi trả: {details.get('conditions', 'còn nguyên hộp, phụ kiện')}. "
+            f"Phí vận chuyển đổi trả: Cửa hàng chịu toàn bộ chi phí vận chuyển ({details.get('who_pays_shipping', 'shop')})."
+        )
+    elif "shipping" in pid or "giao_hang" in str(policy_doc.get("category", "")):
+        return (
+            "Chính sách giao hàng và thanh toán khi nhận hàng: "
+            "Tại TP.HCM (HCMC), miễn phí giao hàng (0đ), thời gian nhận hàng dự kiến trong 1 ngày. "
+            "Tại các tỉnh thành khác trên toàn quốc, phí giao hàng là 30.000đ, thời gian nhận hàng dự kiến 3 ngày. "
+            f"Cửa hàng có hỗ trợ hình thức thanh toán khi nhận hàng (ship COD: {details.get('cod_supported')}), "
+            f"áp dụng cho đơn hàng có giá trị tối đa lên đến {format_price(details.get('cod_max_value_vnd', 15000000))}."
+        )
+    elif "warranty" in pid or "bao_hanh" in str(policy_doc.get("category", "")):
+        return (
+            "Chính sách bảo hành sản phẩm chính hãng: "
+            "Thời hạn bảo hành tiêu chuẩn theo từng ngành hàng: Điện thoại bảo hành 12 tháng, "
+            "Laptop bảo hành 24 tháng, Phụ kiện điện tử bảo hành 6 tháng. "
+            "Ngoài ra, cửa hàng có hỗ trợ cung cấp thêm các gói bảo hành mở rộng (bảo hành nâng cao) "
+            "cho khách hàng có nhu cầu bảo vệ máy toàn diện."
+        )
+
+    return str(details)
+
+
+def ingest_product_document(mongo_doc: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Chuẩn hóa 1 Mongo document sản phẩm:
+    - Tính toán lại min_price, max_price, total_stock, in_stock (nếu chưa có)
+    - Sinh embedding_text chuẩn tiếng Việt
+    """
+    doc = dict(mongo_doc)
+    doc_id = doc.get("_id") or doc.get("sku")
+    doc["_id"] = str(doc_id)
+    doc["sku"] = doc.get("sku", str(doc_id))
+
+    variants = doc.get("variants", [])
+    prices = [v.get("price_vnd") for v in variants if v.get("price_vnd") is not None]
+
+    if "min_price" not in doc or doc["min_price"] is None:
+        doc["min_price"] = min(prices) if prices else 0
+    if "max_price" not in doc or doc["max_price"] is None:
+        doc["max_price"] = max(prices) if prices else 0
+
+    total_stock = sum(v.get("stock_qty", 0) for v in variants)
+    doc["total_stock"] = total_stock
+    doc["in_stock"] = total_stock > 0
+
+    # Sinh hoặc cập nhật embedding_text
+    doc["embedding_text"] = generate_product_embedding_text(doc)
+    return doc
+
+
+def ingest_policy_document(mongo_doc: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Chuẩn hóa 1 Mongo document chính sách và sinh embedding_text.
+    """
+    doc = dict(mongo_doc)
+    doc_id = doc.get("_id") or doc.get("policy_id")
+    doc["_id"] = str(doc_id)
+    doc["embedding_text"] = generate_policy_embedding_text(doc)
+    return doc
