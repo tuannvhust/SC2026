@@ -1,12 +1,12 @@
 """
 scripts/seed_catalog.py
-Nạp dữ liệu từ data/catalog/catalog.json, chuẩn hóa và xử lý song song (Parallel Processing):
-- Nhánh 1 (Dense Vector): Gửi văn bản qua Gemini API (text-embedding-004) -> Vector 768 chiều.
-- Nhánh 2 (Sparse Vector): Dùng bm25s (chạy trên CPU local) -> Trích xuất chỉ mục từ khóa chính xác.
-- Lưu trữ (Qdrant): Lưu cả 2 loại Vector vào cùng 1 Collection trên Qdrant.
-- Đồng bộ Document Store sang MongoDB Atlas (nếu có MONGODB_URI).
+Load and normalize data from data/catalog/catalog.json, then process it concurrently:
+- Dense vectors: send text to the Gemini API and receive 768-dimensional vectors.
+- Sparse vectors: use bm25s on the local CPU to extract lexical weights.
+- Storage: save both vector types in the same Qdrant collection.
+- Document store: sync to MongoDB Atlas when MONGODB_URI is configured.
 
-Chạy lệnh:
+Run:
     python scripts/seed_catalog.py
 """
 
@@ -17,17 +17,17 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
-# Tải biến môi trường từ .env
+# Load environment variables from .env.
 load_dotenv()
 
-# Hỗ trợ UTF-8 cho Windows console
+# Enable UTF-8 output in the Windows console.
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
-# Thêm đường dẫn project vào sys.path
+# Add the project root to sys.path.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
@@ -44,11 +44,7 @@ def parallel_embed_corpus(
     sparse_embedder: BM25SparseEmbedder,
     save_dir: str
 ) -> tuple[List[List[float]], List[Dict[str, Any]]]:
-    """
-    Xử lý song song 2 nhánh:
-    - Nhánh 1: Gemini API Dense (768 chiều)
-    - Nhánh 2: BM25S Sparse (CPU local)
-    """
+    """Embed the corpus concurrently using Gemini dense and BM25S sparse vectors."""
     with ThreadPoolExecutor(max_workers=2) as executor:
         print("   -> [Nhánh 1] Đang gửi qua Gemini API (text-embedding-004: 768 dims)...")
         future_dense = executor.submit(dense_embedder.embed_batch, texts)
@@ -72,7 +68,7 @@ def main():
     products_docs, policies_docs = parse_catalog_file(catalog_path)
     print(f"   -> Đã chuẩn hóa {len(products_docs)} sản phẩm và {len(policies_docs)} chính sách.")
 
-    # Lưu bản đã xử lý vào data/processed
+    # Save normalized files under data/processed.
     processed_dir = os.path.join(BASE_DIR, "data", "processed")
     os.makedirs(processed_dir, exist_ok=True)
 
@@ -87,7 +83,7 @@ def main():
 
     print(f"[2/4] Đã lưu file chuẩn hóa tại data/processed/.")
 
-    # 3. Đồng bộ MongoDB Atlas (Document Store)
+    # 3. Sync documents to MongoDB Atlas.
     mongo_uri = os.getenv("MONGODB_URI")
     if mongo_uri:
         print("[3/4] Đang đồng bộ tài liệu sang MongoDB Atlas...")
@@ -109,7 +105,7 @@ def main():
     else:
         print("[3/4] Bỏ qua MongoDB (chưa cấu hình MONGODB_URI).")
 
-    # 4. Xử lý song song (Gemini 768 + bm25s) và nạp vào Qdrant
+    # 4. Generate Gemini and BM25S vectors concurrently and upsert them to Qdrant.
     print("[4/4] Bắt đầu xử lý song song và nạp vào Qdrant (Dense 768 + Sparse BM25S)...")
     try:
         dense_embedder = GeminiDenseEmbedder()
@@ -120,7 +116,7 @@ def main():
         bm25_prod_dir = os.path.join(processed_dir, "bm25_products")
         bm25_pol_dir = os.path.join(processed_dir, "bm25_policies")
 
-        # Xử lý Products
+        # Process products.
         print(f"\n--- Xử lý 32 sản phẩm ---")
         prod_texts = [p["embedding_text"] for p in products_docs]
         prod_dense, prod_sparse = parallel_embed_corpus(
@@ -129,7 +125,7 @@ def main():
 
         vector_store.upsert_catalog_documents("products", products_docs, prod_dense, prod_sparse)
 
-        # Xử lý Policies
+        # Process policies.
         print(f"\n--- Xử lý các chính sách ---")
         pol_texts = [pol["embedding_text"] for pol in policies_docs]
         pol_dense, pol_sparse = parallel_embed_corpus(

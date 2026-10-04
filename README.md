@@ -50,7 +50,7 @@ Copy-Item .env.example .env
 | `GEMINI_MODEL` | Model sinh câu trả lời chính |
 | `GROQ_API_KEY` | Provider fallback |
 | `GROQ_MODEL` | Model Groq |
-| `GENERATOR_MAX_TOKENS` | Giới hạn output của generator |
+| `GENERATOR_MAX_TOKENS` | Giới hạn output của generator (mặc định `2048`) |
 | `MONGODB_URI` | Kết nối MongoDB Atlas |
 | `MONGODB_DB_NAME` | Tên database MongoDB |
 | `QDRANT_URL` | URL Qdrant Cloud |
@@ -92,6 +92,10 @@ Invoke-RestMethod `
   -Body '{"customer_id":"demo","message":"Mình muốn mua điện thoại Samsung dưới 10 triệu","channel":"chat","metadata":{}}'
 ```
 
+Để nhận câu trả lời dạng Server-Sent Events (SSE), gửi thêm `"stream":true`.
+Mỗi event `data` chứa một chunk trong trường `text`; event cuối có `"done":true`.
+Request không bật `stream` vẫn nhận response JSON như trước.
+
 ## Chạy frontend local
 
 ```powershell
@@ -102,12 +106,16 @@ npm run dev
 
 Mở `http://localhost:3000`.
 
-Frontend có thể dùng biến:
+Frontend proxies `/api/chat` through a Next.js route handler to the backend.
+When running locally, the default backend URL is `http://127.0.0.1:8000`.
+Set `BACKEND_URL` when the backend runs elsewhere:
 
 ```powershell
-$env:NEXT_PUBLIC_API_URL="http://localhost:8000"
+$env:BACKEND_URL="http://127.0.0.1:8000"
 npm run dev
 ```
+
+In Docker Compose, the frontend uses `http://backend:8000`.
 
 Build production:
 

@@ -1,9 +1,9 @@
 """
 src/memory/semantic_rag/retriever.py
-Wrapper truy vấn cho RAG, sử dụng HybridSearchEngine từ hybrid_search.py:
-- Nhánh 1 (Dense): Gemini text-embedding-004 (768 chiều)
-- Nhánh 2 (Sparse): BM25S (CPU local)
-- Qdrant RRF Hybrid Search & SKU Lookup
+RAG query wrapper built on the HybridSearchEngine:
+- Dense retrieval with Gemini embeddings.
+- Sparse retrieval with BM25S.
+- Qdrant RRF hybrid search and SKU lookup.
 """
 
 from typing import List, Dict, Any, Optional
@@ -23,9 +23,7 @@ class SemanticRetriever:
         min_price: Optional[int] = None,
         max_price: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Tìm kiếm sản phẩm Hybrid (Gemini 768 + BM25S + RRF Fusion).
-        """
+        """Search for products with dense, sparse, and RRF hybrid retrieval."""
         return self.engine.search_products(
             query=query,
             top_k=top_k,
@@ -40,13 +38,9 @@ class SemanticRetriever:
         query: str,
         top_k: int = 2
     ) -> List[Dict[str, Any]]:
-        """
-        Tìm kiếm chính sách cửa hàng (đổi trả, bảo hành, giao hàng).
-        """
+        """Search store policies such as returns, warranty, and delivery."""
         return self.engine.search_policies(query=query, top_k=top_k)
 
     def get_by_sku(self, sku: str) -> Optional[Dict[str, Any]]:
-        """
-        Tra cứu trực tiếp sản phẩm bằng mã SKU trong Qdrant.
-        """
+        """Look up a product in Qdrant by SKU."""
         return self.engine.get_by_sku(sku)

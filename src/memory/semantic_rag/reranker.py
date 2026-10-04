@@ -33,11 +33,11 @@ class Reranker:
 
     def _extract_scores(self, payload: Any, expected_count: int) -> List[float]:
         """Extract scores from direct, dictionary, and nested HF responses."""
-        # 1. TrÆ°á»ng há»£p response dáº¡ng dict {"scores": [...]}
+        # 1. Handle dictionary responses containing a "scores" list.
         if isinstance(payload, dict) and isinstance(payload.get("scores"), list):
             payload = payload["scores"]
 
-        # 2. Xá»­ lÃ½ trÆ°á»ng há»£p Hugging Face bá»c toÃ n bá»™ káº¿t quáº£ trong máº£ng 2 chiá»u [[doc1, doc2, ...]]
+        # 2. Unwrap Hugging Face responses nested in a single outer list.
         if (
             isinstance(payload, list)
             and len(payload) == 1
@@ -46,7 +46,7 @@ class Reranker:
         ):
             payload = payload[0]
 
-        # 3. TrÆ°á»ng há»£p payload Ä‘Ã£ lÃ  máº£ng sá»‘ pháº³ng [0.18, 0.11, ...]
+        # 3. Return payloads that are already flat numeric score lists.
         if (
             isinstance(payload, list)
             and len(payload) == expected_count
@@ -54,14 +54,14 @@ class Reranker:
         ):
             return [float(item) for item in payload]
 
-        # 4. BÃ³c tÃ¡ch Ä‘iá»ƒm sá»‘ tá»« danh sÃ¡ch dictionary
+        # 4. Extract scores from a list of dictionaries.
         scores: List[float] = []
         if isinstance(payload, list):
             for item in payload:
                 candidates = item if isinstance(item, list) else [item]
                 score: Any = None
 
-                # Æ¯u tiÃªn láº¥y Ä‘iá»ƒm tá»« LABEL_1 náº¿u mÃ´ hÃ¬nh lÃ  binary classification
+                # Prefer the LABEL_1 score for binary classification responses.
                 for candidate in candidates:
                     if (
                         isinstance(candidate, dict)
@@ -71,7 +71,7 @@ class Reranker:
                         score = candidate["score"]
                         break
 
-                # Náº¿u khÃ´ng cÃ³ LABEL_1, láº¥y score tá»« dictionary hoáº·c giÃ¡ trá»‹ sá»‘ báº¥t ká»³
+                # Otherwise, use the first numeric score available.
                 if score is None:
                     for candidate in candidates:
                         if isinstance(candidate, dict) and isinstance(
@@ -143,7 +143,7 @@ class Reranker:
             reverse=True,
         )
 
-        # Gáº¯n kÃ¨m score vÃ o dictionary tÃ i liá»‡u Ä‘á»ƒ dá»… theo dÃµi
+        # Attach each score to a copy of its corresponding document.
         reranked_docs = []
         for score, doc in ranked[:top_n]:
             doc_copy = dict(doc)

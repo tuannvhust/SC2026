@@ -1,7 +1,8 @@
 """Generate grounded answers with Gemini and Groq fallback."""
 
+import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from dotenv import load_dotenv
 
@@ -12,6 +13,7 @@ except ImportError:
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 
 SUPPORT_MESSAGE = (
     "Dạ hiện tại hệ thống tư vấn đang gặp sự cố kết nối với các dịch vụ "
@@ -33,7 +35,7 @@ class RAGGenerator:
             else None
         )
         self.groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-        self.max_tokens = int(os.getenv("GENERATOR_MAX_TOKENS", "1000"))
+        self.max_tokens = int(os.getenv("GENERATOR_MAX_TOKENS", "2048"))
 
     def build_prompt(
         self, query: str, context_docs: List[Dict[str, Any]]
@@ -75,50 +77,111 @@ class RAGGenerator:
     def generate(
         self, query: str, context_docs: List[Dict[str, Any]]
     ) -> str:
+        return "".join(self.generate_stream(query, context_docs))
+
+    def generate_stream(
+        self, query: str, context_docs: List[Dict[str, Any]]
+    ) -> Iterator[str]:
         if not context_docs:
-            return (
+            yield (
                 "Dạ hiện tại em chưa tìm thấy thông tin sản phẩm hoặc chính "
                 "sách phù hợp với yêu cầu của anh/chị ạ."
             )
+            return
+
         prompt = self.build_prompt(query, context_docs)
-        if self.llm_client and hasattr(self.llm_client, "generate"):
-            return self.llm_client.generate(prompt)
+        if self.llm_client:
+            stream = getattr(self.llm_client, "generate_stream", None)
+            if stream:
+                yield from stream(prompt)
+                return
+            generate = getattr(self.llm_client, "generate", None)
+            if generate:
+                yield generate(prompt)
+                return
 
         failures: list[str] = []
         if self.client:
+            emitted = False
             try:
-                response = self.client.models.generate_content(
+                chat = self.client.chats.create(
                     model=self.model_name,
-                    contents=prompt,
-                    config={"max_output_tokens": self.max_tokens},
+                    config={
+                        "temperature": 0.3,
+                        "max_output_tokens": self.max_tokens,
+                    },
                 )
-                text = self._response_text(response)
-                if text:
-                    return text
+                for chunk in chat.send_message_stream(prompt):
+                    finish_reason = self._gemini_finish_reason(chunk)
+                    if finish_reason:
+                        logger.debug("Gemini finish_reason=%s", finish_reason)
+                    if finish_reason == "MAX_TOKENS":
+                        logger.warning(
+                            "Gemini response truncated at max_output_tokens"
+                        )
+                        raise RuntimeError(
+                            "Gemini output truncated (finish_reason=MAX_TOKENS)"
+                        )
+                    text = getattr(chunk, "text", None)
+                    if text:
+                        emitted = True
+                        yield text
+                if emitted:
+                    return
                 failures.append("Gemini trả về nội dung rỗng")
             except Exception as exc:
+                if emitted:
+                    raise
                 failures.append(f"Gemini: {exc}")
         else:
             failures.append("Gemini chưa cấu hình GEMINI_API_KEY")
 
         groq_key = os.getenv("GROQ_API_KEY", "").strip()
         if groq_key:
+            emitted = False
             try:
                 from groq import Groq
 
-                response = Groq(api_key=groq_key).chat.completions.create(
+                response_stream = Groq(api_key=groq_key).chat.completions.create(
                     model=self.groq_model,
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=self.max_tokens,
+                    stream=True,
                 )
-                text = self._response_text(response)
-                if text:
-                    return text
+                for chunk in response_stream:
+                    choices = getattr(chunk, "choices", [])
+                    if not choices:
+                        continue
+                    choice = choices[0]
+                    finish_reason = getattr(choice, "finish_reason", None)
+                    if finish_reason == "length":
+                        logger.warning("Groq response truncated at max_tokens")
+                        raise RuntimeError(
+                            "Groq output truncated (finish_reason=length)"
+                        )
+                    text = getattr(getattr(choice, "delta", None), "content", None)
+                    if text:
+                        emitted = True
+                        yield text
+                if emitted:
+                    return
                 failures.append("Groq trả về nội dung rỗng")
             except Exception as exc:
+                if emitted:
+                    raise
                 failures.append(f"Groq: {exc}")
         else:
             failures.append("Groq chưa cấu hình GROQ_API_KEY")
 
-        print("[RAGGenerator] Fallback chain failed: " + " | ".join(failures))
-        return SUPPORT_MESSAGE
+        logger.error("RAG generator fallback chain failed: %s", " | ".join(failures))
+        yield SUPPORT_MESSAGE
+
+    @staticmethod
+    def _gemini_finish_reason(response: Any) -> Optional[str]:
+        candidates = getattr(response, "candidates", None)
+        if not candidates:
+            return None
+        reason = getattr(candidates[0], "finish_reason", None)
+        if reason is None:
+            return None
+        return str(getattr(reason, "name", reason)).rsplit(".", 1)[-1].upper()

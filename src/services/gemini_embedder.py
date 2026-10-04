@@ -1,7 +1,7 @@
 """
 src/services/gemini_embedder.py
-Nhánh 1 (Dense Vector): Gửi văn bản qua Gemini API (text-embedding-004)
--> Nhận về Vector 768 chiều đại diện cho ý nghĩa ngữ nghĩa.
+Dense vector embedding service using the Gemini API.
+Returns a 768-dimensional vector representing the text's semantics.
 """
 
 import os
@@ -24,12 +24,10 @@ class GeminiDenseEmbedder:
             else api_key
         )
         self.dimension = int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768"))
-        self._disabled = False  # Cờ fail-fast nếu key bị lỗi quyền 403
+        self._disabled = False  # Fail fast after an API key receives a 403 response.
 
     def embed_text(self, text: str) -> List[float]:
-        """
-        Sinh Dense Vector 768 chiều cho một đoạn văn bản qua Gemini API.
-        """
+        """Generate a dense vector for a text using the Gemini API."""
         if not self.api_key:
             return [0.0] * self.dimension
 
@@ -58,7 +56,7 @@ class GeminiDenseEmbedder:
                 print(f"[GeminiDenseEmbedder] 403 Permission Denied: Dự án Google Cloud của API Key bị từ chối truy cập. Tạm dừng gọi API.")
                 self._disabled = True
             else:
-                # Thử fallback model gemini-embedding-001
+                # Retry with the gemini-embedding-001 fallback model.
                 fallback_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={self.api_key}"
                 res_fb = requests.post(
                     fallback_endpoint,
@@ -83,13 +81,11 @@ class GeminiDenseEmbedder:
         return [0.0] * self.dimension
 
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
-        """
-        Sinh Dense Vector cho danh sách văn bản (hỗ trợ batchEmbedContents).
-        """
+        """Generate dense vectors for a batch of texts using batchEmbedContents."""
         if not self.api_key or self._disabled:
             return [[0.0] * self.dimension for _ in texts]
 
-        # Thử gọi endpoint batchEmbedContents cho tốc độ nhanh vượt trội
+        # Try the batchEmbedContents endpoint for faster processing.
         endpoint = f"https://generativelanguage.googleapis.com/v1beta/{self.model_name}:batchEmbedContents?key={self.api_key}"
         requests_payload = [
             {
@@ -119,5 +115,5 @@ class GeminiDenseEmbedder:
         except Exception as e:
             print(f"[GeminiDenseEmbedder] Batch embed error: {e}")
 
-        # Fallback tuần tự nếu batch thất bại
+        # Fall back to sequential requests if the batch request fails.
         return [self.embed_text(t) for t in texts]

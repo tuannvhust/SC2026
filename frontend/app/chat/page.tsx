@@ -1,73 +1,64 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { ChatHeader } from '@/components/ChatHeader';
-import { MessageBubble } from '@/components/MessageBubble';
-import { TypingIndicator } from '@/components/TypingIndicator';
-import { FloatingInput } from '@/components/FloatingInput';
-import { Message } from '@/types'; // we'll create a simple type file or define inline
+import { useState } from "react";
+import { SidebarLeft } from "@/components/sidebar-left";
+import { SidebarRight } from "@/components/sidebar-right";
+import { ChatHeader } from "@/components/chat-header";
+import { ChatMessages } from "@/components/chat-messages";
+import { ChatInput } from "@/components/chat-input";
+import { useChatStream } from "@/hooks/use-chat-stream";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Array<Message>>([]);
-  const [loading, setLoading] = useState(false);
-  const [lastUserMessage, setLastUserMessage] = useState('');
-  const [toast, setToast] = useState('');
+  const { messages, loading, sendMessage, clearChat, retryLast } =
+    useChatStream();
+  const [toast, setToast] = useState("");
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim()) return;
-    const userMsg = text.trim();
-    setLastUserMessage(userMsg);
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-    setLoading(true);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(""), 2000);
+  };
+
+  const handleCopy = async (text: string) => {
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer_id: 'anonymous', message: userMsg }),
-      });
-      const data = await res.json();
-      const reply = data.reply ?? 'Không có phản hồi.';
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-    } catch (e) {
-      console.error(e);
-      setMessages(prev => [...prev, { role: 'assistant', text: 'Lỗi khi gọi API.' }]);
-    } finally {
-      setLoading(false);
+      await navigator.clipboard.writeText(text);
+      showToast("Đã sao chép tin nhắn");
+    } catch {
+      showToast("Không thể sao chép");
     }
   };
 
-  const showToast = (message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(''), 2000);
-  };
-
-  const retryLastMessage = () => {
-    if (lastUserMessage && !loading) void sendMessage(lastUserMessage);
-  };
-
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      {/* Sidebar */}
-      <Sidebar />
-      {/* Main chat area */}
-      <main className="relative flex min-h-screen flex-1 flex-col px-4 pb-32 pt-4 md:px-10">
-        <ChatHeader />
-        <div className="mx-auto mb-4 flex w-full max-w-3xl flex-1 flex-col overflow-y-auto pb-28">
-          {messages.map((msg, idx) => (
-            <MessageBubble
-              key={idx}
-              msg={msg}
-              onCopy={() => showToast('Đã sao chép tin nhắn')}
-              onRefresh={retryLastMessage}
-            />
-          ))}
-          {loading && <TypingIndicator />}
-        </div>
-        <FloatingInput onSend={sendMessage} loading={loading} />
-      </main>
+    <div className="chat-app relative flex h-screen w-screen flex-row items-stretch overflow-hidden p-6">
+      <div className="ambient-background" aria-hidden="true">
+        <span className="ambient-orb ambient-orb-one" />
+        <span className="ambient-orb ambient-orb-two" />
+        <span className="ambient-orb ambient-orb-three" />
+      </div>
+
+      <div className="relative z-10 flex h-full min-h-0 w-full flex-row items-stretch">
+        <SidebarLeft onNewChat={clearChat} />
+
+        <main className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="shrink-0">
+            <ChatHeader />
+          </div>
+          <ChatMessages
+            messages={messages}
+            loading={loading}
+            onCopy={handleCopy}
+            onRetry={retryLast}
+          />
+          <ChatInput onSend={sendMessage} loading={loading} />
+        </main>
+
+        <SidebarRight />
+      </div>
+
       {toast && (
-        <div role="status" className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[var(--bg-charcoal)] px-4 py-2 text-sm text-white shadow-lg"
+        >
           {toast}
         </div>
       )}

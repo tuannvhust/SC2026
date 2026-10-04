@@ -1,10 +1,7 @@
 """
-src/services/vector_store.py
-Client wrapper cho Qdrant Vector Database (Cloud / Local), hỗ trợ:
-- Nhánh 1 (Dense): Gemini text-embedding-004 (768 chiều, Cosine distance)
-- Nhánh 2 (Sparse): BM25S lexical weights (indices & values)
-- Thuật toán RRF (Reciprocal Rank Fusion) kết hợp kết quả tự động
-- Metadata Filtering (category, in_stock, min_price, max_price)
+Qdrant vector database client wrapper for cloud and local deployments.
+Supports dense Gemini embeddings, sparse BM25S vectors, RRF fusion, and
+metadata filters for category, stock status, and price range.
 """
 
 import os
@@ -35,12 +32,12 @@ from qdrant_client.models import (
     Range
 )
 
-# Namespace cố định để tạo UUID ổn định từ SKU / document _id
+# Fixed namespace used to generate stable UUIDs from SKUs or document IDs.
 SKU_NAMESPACE = uuid.UUID("12345678-1234-5678-1234-567812345678")
 
 
 def get_deterministic_uuid(key: str) -> str:
-    """Tạo UUIDv5 cố định từ SKU để làm ID trong Qdrant."""
+    """Generate a stable UUIDv5 from a SKU for use as a Qdrant point ID."""
     return str(uuid.uuid5(SKU_NAMESPACE, key))
 
 
@@ -60,7 +57,7 @@ class QdrantVectorStore:
         elif self.path:
             self.client = QdrantClient(path=self.path)
         else:
-            # Mặc định lưu cục bộ vào thư mục data/qdrant_storage nếu chưa có Qdrant server
+            # Use local storage when no Qdrant server or explicit path is configured.
             default_path = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
                 "data", "qdrant_storage"
@@ -73,10 +70,10 @@ class QdrantVectorStore:
         dense_dim: Optional[int] = None,
         recreate: bool = False,
     ):
-        """
-        Khởi tạo collection với cả 2 chỉ mục trong cùng 1 collection:
-        - Dense: 768 chiều (Gemini text-embedding-004)
-        - Sparse: BM25S token indices & scores
+        """Create a collection with dense and sparse vector indexes.
+
+        Dense vectors use Gemini embeddings; sparse vectors use BM25S indices
+        and scores.
         """
         dense_dim = dense_dim or int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768"))
         exists = self.client.collection_exists(collection_name)
@@ -127,9 +124,7 @@ class QdrantVectorStore:
         dense_vectors: List[List[float]],
         sparse_vectors: List[Dict[str, Any]]
     ):
-        """
-        Lưu cả 2 loại Vector (Dense 768 và Sparse BM25S) vào cùng 1 Collection trên Qdrant.
-        """
+        """Store dense and sparse BM25S vectors in the same Qdrant collection."""
         self.init_collection(collection_name)
         points = []
 
@@ -170,10 +165,7 @@ class QdrantVectorStore:
         min_price: Optional[int] = None,
         max_price: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Tìm kiếm Hybrid sử dụng thuật toán RRF (Reciprocal Rank Fusion) trên Qdrant
-        kết hợp bộ lọc metadata.
-        """
+        """Run hybrid RRF search in Qdrant with optional metadata filters."""
         if collection_name == "products":
             self._ensure_product_payload_indexes()
 
@@ -231,7 +223,7 @@ class QdrantVectorStore:
         return results
 
     def get_by_sku(self, collection_name: str, sku: str) -> Optional[Dict[str, Any]]:
-        """Tra cứu sản phẩm theo SKU."""
+        """Look up a product by SKU."""
         point_id = get_deterministic_uuid(sku)
         records = self.client.retrieve(
             collection_name=collection_name,

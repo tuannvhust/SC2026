@@ -1,8 +1,8 @@
 """
 src/services/bm25s_embedder.py
-NhÃ¡nh 2 (Sparse Vector): DÃ¹ng thÆ° viá»‡n bm25s (cháº¡y cá»±c nháº¹ trÃªn CPU local)
--> Chuyá»ƒn vÄƒn báº£n thÃ nh chá»‰ má»¥c cÃ¡c tá»« khÃ³a chÃ­nh xÃ¡c (indices vÃ  values) cho Qdrant Sparse Vector.
--> Há»— trá»£ lÆ°u vÃ  náº¡p tá»« Ä‘iá»ƒn tá»« disk Ä‘á»ƒ Ä‘áº£m báº£o token_id Ä‘á»“ng bá»™ giá»¯a Indexing vÃ  Querying.
+Sparse vector embedding service using bm25s on the local CPU.
+Converts text into lexical indices and values for Qdrant sparse vectors.
+Supports saving and loading the vocabulary to keep token IDs consistent.
 """
 
 import os
@@ -20,9 +20,9 @@ class BM25SparseEmbedder:
             self.load(self.index_dir)
 
     def fit_corpus(self, corpus: List[str], save_dir: Optional[str] = None) -> List[Dict[str, Any]]:
-        """
-        Huáº¥n luyá»‡n mÃ´ hÃ¬nh BM25 trÃªn táº­p vÄƒn báº£n vÃ  trÃ­ch xuáº¥t Sparse Vector cho tá»«ng tÃ i liá»‡u.
-        LÆ°u index vÃ  vocab náº¿u cÃ³ save_dir.
+        """Fit BM25 to a corpus and create a sparse vector for each document.
+
+        Save the index and vocabulary when save_dir is provided.
         """
         corpus_tokens = bm25s.tokenize(corpus, show_progress=False)
         self.retriever = bm25s.BM25()
@@ -58,20 +58,16 @@ class BM25SparseEmbedder:
         return doc_vectors
 
     def load(self, index_dir: str):
-        """
-        Náº¡p index vÃ  tá»« Ä‘iá»ƒn BM25 Ä‘Ã£ huáº¥n luyá»‡n tá»« disk.
-        """
+        """Load a trained BM25 index and vocabulary from disk."""
         try:
             self.retriever = bm25s.BM25.load(index_dir, load_corpus=False)
             self.vocab = self.retriever.vocab_dict
             self.index_dir = index_dir
         except Exception as e:
-            print(f"[BM25SparseEmbedder] Lá»—i khi náº¡p index tá»« {index_dir}: {e}")
+            print(f"[BM25SparseEmbedder] Failed to load index from {index_dir}: {e}")
 
     def encode_query(self, query: str) -> Dict[str, Any]:
-        """
-        MÃ£ hÃ³a cÃ¢u truy váº¥n thÃ nh Sparse Vector theo Ä‘Ãºng token_id cá»§a tá»« Ä‘iá»ƒn.
-        """
+        """Encode a query using token IDs from the fitted vocabulary."""
         if not self.vocab:
             return {"indices": [], "values": []}
 

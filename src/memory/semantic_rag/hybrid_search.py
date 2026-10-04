@@ -1,12 +1,8 @@
 """
 src/memory/semantic_rag/hybrid_search.py
-Logic tÃ¬m kiáº¿m Hybrid Search tÃ¡ch biá»‡t cho táº§ng Semantic RAG:
-1. Xá»­ lÃ½ song song (Parallel Processing):
-   - NhÃ¡nh 1 (Dense): Gá»­i query qua Gemini API (text-embedding-004) -> Vector 768 chiá»u.
-   - NhÃ¡nh 2 (Sparse): DÃ¹ng bm25s (cháº¡y trÃªn CPU local) -> TrÃ­ch xuáº¥t chá»‰ má»¥c tá»« khÃ³a chÃ­nh xÃ¡c.
-2. Truy váº¥n Qdrant:
-   - Gá»­i Ä‘á»“ng thá»i cáº£ 2 vector vÃ o Qdrant.
-   - Qdrant tá»± Ä‘á»™ng trá»™n káº¿t quáº£ báº±ng thuáº­t toÃ¡n RRF (Reciprocal Rank Fusion) Ä‘á»ƒ tráº£ vá» káº¿t quáº£ tá»‘i Æ°u nháº¥t.
+Hybrid search logic for the semantic RAG layer:
+1. Embed queries concurrently using Gemini dense embeddings and BM25S sparse vectors.
+2. Query Qdrant with both vectors and combine results using reciprocal rank fusion (RRF).
 """
 
 import os
@@ -27,12 +23,12 @@ class HybridSearchEngine:
         dense_embedder: Optional[GeminiDenseEmbedder] = None,
         sparse_prod_embedder: Optional[BM25SparseEmbedder] = None,
         sparse_pol_embedder: Optional[BM25SparseEmbedder] = None,
-        sparse_embedder: Optional[BM25SparseEmbedder] = None  # alias cho cáº£ 2 náº¿u truyá»n 1 embedder
+        sparse_embedder: Optional[BM25SparseEmbedder] = None  # Shared alias for both when one embedder is supplied.
     ):
         self.vector_store = vector_store or QdrantVectorStore()
         self.dense_embedder = dense_embedder or GeminiDenseEmbedder()
 
-        # Náº¡p BM25 sparse index Ä‘Ã£ lÆ°u (hoáº·c dÃ¹ng embedder Ä‘Æ°á»£c truyá»n vÃ o)
+        # Load saved BM25 sparse indexes or use the supplied embedders.
         bm25_prod_dir = os.path.join(BASE_DIR, "data", "processed", "bm25_products")
         bm25_pol_dir = os.path.join(BASE_DIR, "data", "processed", "bm25_policies")
 
@@ -44,11 +40,7 @@ class HybridSearchEngine:
         query: str,
         sparse_embedder: BM25SparseEmbedder
     ) -> tuple[List[float], Dict[str, Any]]:
-        """
-        Xá»­ lÃ½ song song 2 nhÃ¡nh:
-        - NhÃ¡nh 1: Gemini Dense (768 chiá»u)
-        - NhÃ¡nh 2: BM25S Sparse
-        """
+        """Encode the query concurrently into dense and sparse vectors."""
         with ThreadPoolExecutor(max_workers=2) as executor:
             future_dense = executor.submit(self.dense_embedder.embed_text, query)
             future_sparse = executor.submit(sparse_embedder.encode_query, query)
@@ -67,9 +59,7 @@ class HybridSearchEngine:
         min_price: Optional[int] = None,
         max_price: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """
-        TÃ¬m kiáº¿m sáº£n pháº©m báº±ng Hybrid Search (Dense 768 + Sparse BM25S + RRF Fusion).
-        """
+        """Search products using dense, sparse, and RRF hybrid retrieval."""
         query_dense, query_sparse = self._encode_query_parallel(query, self.sparse_prod_embedder)
 
         return self.vector_store.hybrid_search_rrf(
@@ -88,9 +78,7 @@ class HybridSearchEngine:
         query: str,
         top_k: int = 2
     ) -> List[Dict[str, Any]]:
-        """
-        TÃ¬m kiáº¿m chÃ­nh sÃ¡ch bÃ¡n hÃ ng (Ä‘á»•i tráº£, báº£o hÃ nh, giao hÃ ng COD) báº±ng RRF Fusion.
-        """
+        """Search store policies using RRF fusion."""
         query_dense, query_sparse = self._encode_query_parallel(query, self.sparse_pol_embedder)
 
         return self.vector_store.hybrid_search_rrf(
@@ -101,7 +89,5 @@ class HybridSearchEngine:
         )
 
     def get_by_sku(self, sku: str) -> Optional[Dict[str, Any]]:
-        """
-        Tra cá»©u chÃ­nh xÃ¡c sáº£n pháº©m theo mÃ£ SKU tá»« Qdrant.
-        """
+        """Look up a product in Qdrant by its exact SKU."""
         return self.vector_store.get_by_sku("products", sku)

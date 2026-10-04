@@ -6,13 +6,16 @@ Provides intent classification and metadata extraction for product/policy search
 import re
 from typing import Dict, Any, Optional
 
-# Simple regex patterns for intents (Vietnamese)
+# Simple regex patterns for Vietnamese-language intents.
 INTENT_PATTERNS = {
-    "product": re.compile(r"\b(mua|tìm|sản phẩm|sku|giá|trong kho)\b", re.IGNORECASE),
+    "product": re.compile(
+        r"\b(mua|tìm|sản phẩm|sku|giá|trong kho|dòng|máy|hãng|bán|có sẵn|mẫu|iphone|samsung|oppo|xiaomi)\b",
+        re.IGNORECASE
+    ),
     "policy": re.compile(r"\b(đổi trả|bảo hành|giao hàng|chính sách)\b", re.IGNORECASE),
     "order_closing": re.compile(r"\b(thanh toán|đặt hàng|đơn hàng|hủy|hoàn tiền)\b", re.IGNORECASE),
     "complaint": re.compile(r"\b(khó|phàn nàn|góp ý|đánh giá|sự cố)\b", re.IGNORECASE),
-    "smalltalk": re.compile(r"\b(chào|xin chào|cám ơn|cảm ơn|hello|hi)\b", re.IGNORECASE),
+    "smalltalk": re.compile(r"^\s*(chào|xin chào|cám ơn|cảm ơn|hello|hi)\s*$", re.IGNORECASE),
 }
 
 def _detect_intent(query: str) -> str:

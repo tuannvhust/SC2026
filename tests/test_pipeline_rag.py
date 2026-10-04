@@ -55,6 +55,11 @@ class FakeGenerator:
         self.calls.append({"query": query, "context_docs": context_docs})
         return f"Tìm thấy {context_docs[0]['name']} ({context_docs[0]['sku']})."
 
+    def generate_stream(self, query: str, context_docs: list[dict[str, Any]]):
+        self.calls.append({"query": query, "context_docs": context_docs})
+        yield "Tìm thấy "
+        yield f"{context_docs[0]['name']} ({context_docs[0]['sku']})."
+
 
 def test_full_product_rag_pipeline(monkeypatch):
     search_engine = FakeSearchEngine()
@@ -84,3 +89,27 @@ def test_full_product_rag_pipeline(monkeypatch):
     assert reranker.calls[0]["top_n"] == 5
     assert reranker.calls[0]["documents"][0]["sku"] == "SKU-PH-A55-128"
     assert generator.calls[0]["context_docs"][0]["category"] == "dien_thoai"
+
+
+def test_streaming_pipeline_forwards_generator_chunks(monkeypatch):
+    search_engine = FakeSearchEngine()
+    reranker = FakeReranker()
+    generator = FakeGenerator()
+    monkeypatch.setattr(
+        orchestrator,
+        "_components",
+        (search_engine, reranker, generator),
+    )
+
+    chunks = list(
+        orchestrator.process_raw_query_stream(
+            "Mình muốn mua điện thoại Samsung giá dưới 10 triệu trong kho"
+        )
+    )
+
+    assert chunks == [
+        "Tìm thấy ",
+        "Samsung Galaxy A55 5G (SKU-PH-A55-128).",
+    ]
+    assert len(search_engine.calls) == 1
+    assert len(reranker.calls) == 1

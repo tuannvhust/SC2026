@@ -3,7 +3,7 @@ High‑level entry point for processing a raw user query.
 It ties together the router, optional rewriter, hybrid search, reranker and generator.
 '''
 from threading import Lock
-from typing import Any, Dict, List, Optional, Protocol, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Protocol, Tuple
 
 from .query_router import route
 from .query_rewriter import rewrite
@@ -98,3 +98,38 @@ def process_raw_query(raw_query: str) -> str:
 
     reranked_docs = reranker.rerank(rewritten_query, docs, top_n=5)
     return generator.generate(rewritten_query, reranked_docs)
+
+
+def process_raw_query_stream(raw_query: str) -> Iterator[str]:
+    """Process a query normally, then stream the generated answer."""
+    route_res = route(raw_query)
+    if route_res.get("early_response"):
+        yield route_res["early_response"]
+        return
+
+    intent = route_res.get("intent")
+    collection = route_res.get("collection")
+    metadata = route_res.get("metadata", {})
+    hybrid_engine, reranker, generator = _get_components()
+    rewritten_query = rewrite(raw_query, intent)
+
+    if collection == "products":
+        docs = hybrid_engine.search_products(
+            rewritten_query,
+            top_k=5,
+            category=metadata.get("category"),
+            in_stock_only=metadata.get("in_stock_only", False),
+            min_price=metadata.get("min_price"),
+            max_price=metadata.get("max_price"),
+        )
+    elif collection == "policies":
+        docs = hybrid_engine.search_policies(rewritten_query, top_k=5)
+    else:
+        docs = []
+
+    reranked_docs = reranker.rerank(rewritten_query, docs, top_n=5)
+    generate_stream = getattr(generator, "generate_stream", None)
+    if generate_stream:
+        yield from generate_stream(rewritten_query, reranked_docs)
+    else:
+        yield generator.generate(rewritten_query, reranked_docs)

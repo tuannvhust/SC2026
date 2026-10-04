@@ -1,8 +1,8 @@
 """
 src/memory/semantic_rag/ingestion.py
-Chịu trách nhiệm chuẩn hóa 1 document đọc từ MongoDB Atlas thành document sẵn sàng để embedding và đưa vào Qdrant.
-Input: 1 document Mongo (Dict)
-Output: Document đã được tính toán metadata và sinh trường `embedding_text` chuẩn tiếng Việt.
+Normalize MongoDB Atlas documents for embedding and storage in Qdrant.
+Input: a MongoDB document.
+Output: a document with derived metadata and a Vietnamese `embedding_text` field.
 """
 
 from typing import Dict, Any, Optional
@@ -15,9 +15,7 @@ def format_price(v: Optional[int]) -> str:
 
 
 def generate_product_embedding_text(p: Dict[str, Any]) -> str:
-    """
-    Sinh đoạn văn bản tự nhiên giàu ngữ nghĩa tiếng Việt từ 1 Mongo document sản phẩm.
-    """
+    """Generate a semantically rich Vietnamese description from a product document."""
     name = p.get("name", "")
     sku = p.get("sku") or p.get("_id", "")
     brand = p.get("brand", "")
@@ -32,7 +30,7 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
 
     parts = [f"{cat_vn} {name} (Mã SKU: {sku}) của thương hiệu {brand}."]
 
-    # Thông số kỹ thuật
+    # Technical specifications.
     specs = p.get("specs", {})
     spec_parts = []
     if "screen_inch" in specs:
@@ -69,7 +67,7 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
     if spec_parts:
         parts.append("Thông số kỹ thuật: " + ", ".join(spec_parts) + ".")
 
-    # Phiên bản & giá bán
+    # Variants and prices.
     variants = p.get("variants", [])
     if variants:
         variant_desc = []
@@ -88,12 +86,12 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
             variant_desc.append(f"{desc_item} giá {price} ({stock_str})")
         parts.append("Các phiên bản lựa chọn: " + "; ".join(variant_desc) + ".")
 
-    # Bảo hành
+    # Warranty.
     w = p.get("warranty_months")
     if w:
         parts.append(f"Thời gian bảo hành chính hãng: {w} tháng.")
 
-    # Trả góp
+    # Installment options.
     inst = p.get("installment", {})
     if inst.get("supported"):
         rate = inst.get("interest_rate", 0)
@@ -106,14 +104,14 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
     else:
         parts.append("Không áp dụng chính sách trả góp.")
 
-    # Thu cũ đổi mới
+    # Trade-in.
     trade = p.get("trade_in", {})
     if trade.get("supported"):
         parts.append("Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy.")
     else:
         parts.append("Không áp dụng chương trình thu cũ đổi mới.")
 
-    # Khuyến mãi
+    # Promotions.
     promos = [pr for pr in p.get("promos", []) if pr.get("active")]
     if promos:
         promo_desc = [f"{pr['description']} (Mã: {pr['promo_code']}, giảm {format_price(pr.get('discount_vnd', 0))})" for pr in promos]
@@ -123,10 +121,8 @@ def generate_product_embedding_text(p: Dict[str, Any]) -> str:
 
 
 def generate_policy_embedding_text(policy_doc: Dict[str, Any]) -> str:
-    """
-    Sinh đoạn văn bản tự nhiên từ 1 Mongo document chính sách.
-    """
-    # Nếu trong Mongo document đã có embedding_text thì ưu tiên dùng
+    """Generate a natural-language description from a policy document."""
+    # Prefer the existing embedding text when the MongoDB document has one.
     if policy_doc.get("embedding_text"):
         return policy_doc["embedding_text"]
 
@@ -162,10 +158,9 @@ def generate_policy_embedding_text(policy_doc: Dict[str, Any]) -> str:
 
 
 def ingest_product_document(mongo_doc: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Chuẩn hóa 1 Mongo document sản phẩm:
-    - Tính toán lại min_price, max_price, total_stock, in_stock (nếu chưa có)
-    - Sinh embedding_text chuẩn tiếng Việt
+    """Normalize a product document and derive missing metadata and embedding text.
+
+    Recalculates min/max price, total stock, and stock status when missing.
     """
     doc = dict(mongo_doc)
     doc_id = doc.get("_id") or doc.get("sku")
@@ -184,15 +179,13 @@ def ingest_product_document(mongo_doc: Dict[str, Any]) -> Dict[str, Any]:
     doc["total_stock"] = total_stock
     doc["in_stock"] = total_stock > 0
 
-    # Sinh hoặc cập nhật embedding_text
+    # Generate or update embedding_text.
     doc["embedding_text"] = generate_product_embedding_text(doc)
     return doc
 
 
 def ingest_policy_document(mongo_doc: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Chuẩn hóa 1 Mongo document chính sách và sinh embedding_text.
-    """
+    """Normalize a policy document and generate its embedding text."""
     doc = dict(mongo_doc)
     doc_id = doc.get("_id") or doc.get("policy_id")
     doc["_id"] = str(doc_id)

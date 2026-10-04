@@ -1,10 +1,10 @@
 """
 tests/test_hybrid_retriever.py
-Kiểm tra kiến trúc mới:
-- Nhánh 1: Dense 768-dim (Gemini text-embedding-004)
-- Nhánh 2: Sparse (bm25s chạy trên CPU local)
-- Qdrant Vector Store lưu cả 2 vector trong 1 collection
-- HybridSearchEngine (src/memory/semantic_rag/hybrid_search.py) sử dụng RRF fusion
+Test the hybrid retrieval architecture:
+- Dense 768-dimensional embeddings from Gemini.
+- Sparse vectors from bm25s on the local CPU.
+- Both vector types stored in one Qdrant collection.
+- HybridSearchEngine uses RRF fusion.
 """
 
 import sys
@@ -25,7 +25,7 @@ class MockGeminiEmbedder:
         self.dimension = dimension
 
     def embed_text(self, text: str):
-        # Tạo vector 768 chiều giả lập có phân biệt theo từ khóa
+        # Create a mock 768-dimensional vector with keyword-specific values.
         vec = [0.0] * self.dimension
         if "samsung" in text.lower() or "a55" in text.lower():
             vec[0] = 0.9
@@ -40,14 +40,14 @@ class MockGeminiEmbedder:
 
 
 def test_gemini_bm25s_hybrid_search():
-    # 1. Khởi tạo Qdrant in-memory
+    # 1. Initialize an in-memory Qdrant instance.
     store = QdrantVectorStore()
     store.client = QdrantClient(":memory:")
 
     collection_name = "products"
     store.init_collection(collection_name, dense_dim=768)
 
-    # 2. Dữ liệu mẫu
+    # 2. Prepare sample documents.
     documents = [
         {
             "_id": "SKU-PH-A55-128",
@@ -73,32 +73,32 @@ def test_gemini_bm25s_hybrid_search():
 
     corpus = [d["embedding_text"] for d in documents]
 
-    # Nhánh 1: Dense 768
+    # Dense vector branch.
     dense_embedder = MockGeminiEmbedder(dimension=768)
     dense_vectors = dense_embedder.embed_batch(corpus)
 
-    # Nhánh 2: BM25S Sparse
+    # BM25S sparse vector branch.
     sparse_embedder = BM25SparseEmbedder()
     sparse_vectors = sparse_embedder.fit_corpus(corpus)
 
-    # Lưu cả 2 vào cùng 1 collection trên Qdrant
+    # Store both vector types in the same Qdrant collection.
     store.upsert_catalog_documents(collection_name, documents, dense_vectors, sparse_vectors)
 
-    # 3. Khởi tạo HybridSearchEngine
+    # 3. Initialize the hybrid search engine.
     search_engine = HybridSearchEngine(
         vector_store=store,
         dense_embedder=dense_embedder,
         sparse_embedder=sparse_embedder
     )
 
-    # 4. Tìm kiếm với RRF
+    # 4. Search with RRF.
     results = search_engine.search_products("Samsung Galaxy A55 pin trâu", top_k=1)
 
     assert len(results) == 1, "Phải tìm thấy 1 kết quả"
     assert results[0]["sku"] == "SKU-PH-A55-128", "Kết quả tìm kiếm phải là Samsung A55"
     assert "_score" in results[0], "Kết quả phải có điểm RRF fusion"
 
-    # 5. Kiểm tra get_by_sku
+    # 5. Test get_by_sku.
     doc = search_engine.get_by_sku("SKU-LT-MBA-M3-256")
     assert doc is not None
     assert doc["name"] == "MacBook Air M3"
