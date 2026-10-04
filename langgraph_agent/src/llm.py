@@ -71,7 +71,7 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
     # 1) Đã có kết quả tool trong lượt này -> trả lời dựa trên kết quả đó
     if results:
         last = results[-1]
-        if last["tool"] == "order_create":
+        if last["tool"] in {"order_create", "order.create"}:
             r = last["result"]
             return {
                 "action": "answer",
@@ -79,10 +79,17 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
                 "draft_response": f"Dạ em đã tạo đơn {r['order_id']} giá {fmt_vnd(r['price_vnd'])}đ cho anh/chị rồi ạ.",
             }
         items = last["result"]
+        if isinstance(items, dict) and "final_price_vnd" in items:
+            items = [{"sku": state.get("profile", {}).get("product_advised"),
+                      "name": state.get("profile", {}).get("product_advised", "sản phẩm"),
+                      "price_vnd": items["final_price_vnd"], "active_promos": []}]
+        if isinstance(items, list):
+            items = [{**it, "price_vnd": it.get("price_vnd", it.get("list_price_vnd", 0)),
+                      "active_promos": it.get("active_promos", [])} for it in items]
         if not items:
             return {"action": "cannot_answer", "facts": facts}
         it = items[0]
-        promo = f" Hiện có ưu đãi {it['active_promos'][0]['desc']}." if it["active_promos"] else ""
+        promo = f" Hiện có ưu đãi {it['active_promos'][0].get('desc', it['active_promos'][0])}." if it.get("active_promos") else ""
         prefix = ""
         if first_turn and state.get("call_brief"):
             prefix = state["call_brief"] + " "
@@ -94,23 +101,25 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
 
     # 2) Khách cũ ở lượt đầu -> gọi tool xác minh lại sản phẩm đã tư vấn
     if first_turn and profile.get("product_advised") and not results:
-        return {
+            return {
             "action": "call_tool",
             "facts": facts,
-            "tool_calls": [{"name": "catalog_search", "args": {"query": profile["product_advised"]}}],
+            "tool_calls": [{"name": "catalog.search", "args": {"sku": profile["product_advised"]}}],
         }
     # 3) Khách chốt mua và đã biết sản phẩm -> tạo đơn hàng
-    if any(k in last_user for k in ["lấy", "chốt", "đặt"]) and profile.get("product_advised"):
+    if any(k in last_user for k in ["lấy", "chốt", "đặt", "lên đơn", "len don"]) and profile.get("product_advised"):
         return {
             "action": "call_tool",
             "facts": facts,
             "tool_calls": [
                 {
-                    "name": "order_create",
+                    "name": "order.create",
                     "args": {
-                        "customer_id": state["customer_id"],
-                        "sku": profile["product_advised"],
-                        "price_vnd": CATALOG[profile["product_advised"]]["price_vnd"],
+                    "customer_phone": state["customer_phone"],
+                    "sku": profile["product_advised"],
+                    "qty": 1,
+                    "price_vnd": CATALOG[profile["product_advised"]]["price_vnd"],
+                    "payment": "COD",
                     },
                 }
             ],
@@ -120,7 +129,7 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
         return {
             "action": "call_tool",
             "facts": facts,
-            "tool_calls": [{"name": "catalog_search", "args": {"query": last_user}}],
+            "tool_calls": [{"name": "catalog.search", "args": {"query": last_user}}],
         }
     # 5) Khách đưa ra lý do cản trở (blocker) hoặc phản hồi xã giao
     if facts:
