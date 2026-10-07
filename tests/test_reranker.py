@@ -8,8 +8,8 @@ def test_reranker_uses_hugging_face_scores():
     response.json.return_value = [0.1, 0.9]
 
     documents = [
-        {"embedding_text": "MacBook", "sku": "macbook"},
-        {"embedding_text": "Samsung Galaxy", "sku": "samsung"},
+        {"embedding_text": "Máy lọc không khí AirPure X", "sku": "SKU-AP-X"},
+        {"embedding_text": "Giày chạy bộ RunLite 1", "sku": "SKU-SN-RUN1"},
     ]
 
     with patch(
@@ -19,7 +19,7 @@ def test_reranker_uses_hugging_face_scores():
         result = Reranker(
             api_url="https://example.test/reranker",
             token="test-token",
-        ).rerank("điện thoại Samsung", documents, top_n=1)
+        ).rerank("Giày RunLite", documents, top_n=1)
 
     assert result == [{**documents[1], "rerank_score": 0.9}]
     post.assert_called_once()

@@ -47,32 +47,20 @@ class RAGGenerator:
             context_texts.append(f"[Nguồn SKU: {sku}]\n{text}")
         context_block = "\n\n".join(context_texts)
         return (
-            "Bạn là Chuyên viên tư vấn bán hàng của SUDOTECH. Khi tư vấn sản phẩm, hãy tuân thủ cấu trúc sau:"
-            "1. Lời chào ngắn gọn (1 câu).\n"
-            "2. Tên sản phẩm nổi bật + Giá bán + Tình trạng kho hàng.\n"
-            "3. Sử dụng Danh sách gạch đầu dòng (Bullet points) cho Thông số kỹ thuật chính (Màn hình, Chip, Pin, Camera).\n"
-            "4. Các chương trình Khuyến mãi/Trả góp nổi bật.\n"
-            "5. Câu hỏi gợi ý bước tiếp theo cho khách hàng.\n\n"
-            "Luôn dùng định dạng Markdown chuẩn (**in đậm**, * gạch đầu dòng) và chèn icon cảm xúc phù hợp."
-            "Dựa trên thông tin nguồn dưới đây, hãy trả lời câu hỏi khách hàng.\n"
+            "Bạn là nhân viên tư vấn của SUDO SHOP. Dựa trên nguồn dưới đây, "
+            "trả lời đúng trọng tâm bằng tiếng Việt.\n"
             "- Không bịa giá, quà tặng hoặc khuyến mãi ngoài nguồn.\n"
-            "- Luôn nêu SKU khi giới thiệu hoặc so sánh sản phẩm.\n\n"
+            "- Khi tư vấn sản phẩm, nêu tên, SKU, giá và tồn kho nếu nguồn có.\n"
+            "- Chỉ nêu thuộc tính và phiên bản có trong nguồn; không giả định "
+            "mọi sản phẩm đều có cùng loại thông số.\n"
+            "- Không khẳng định có trả góp, trade-in hoặc khuyến mãi nếu nguồn "
+            "không ghi nhận.\n"
+            "- Dùng Markdown dễ đọc, không cần thêm lời chào hoặc mục không "
+            "liên quan khi khách chỉ hỏi thông tin cụ thể.\n\n"
             f"THÔNG TIN NGUỒN:\n{context_block}\n\n"
             f"CÂU HỎI KHÁCH HÀNG: {query}\n\n"
             "CÂU TRẢ LỜI CỦA BẠN:"
         )
-
-    @staticmethod
-    def _response_text(response: Any) -> Optional[str]:
-        choices = getattr(response, "choices", [])
-        if choices:
-            text = getattr(choices[0].message, "content", None)
-            if text:
-                return text
-        text = getattr(response, "text", None)
-        if text:
-            return text
-        return None
 
     def generate(
         self, query: str, context_docs: List[Dict[str, Any]]

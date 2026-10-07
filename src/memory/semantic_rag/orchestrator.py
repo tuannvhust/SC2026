@@ -60,6 +60,14 @@ def _get_components() -> Tuple[_SearchEngine, _Reranker, _Generator]:
                 )
     return _components
 
+
+def clear_components() -> None:
+    """Release cached pipeline components before shared clients are closed."""
+    global _components
+    with _components_lock:
+        _components = None
+
+
 def process_raw_query(raw_query: str) -> str:
     """Process a raw user query and return a generated answer.
 

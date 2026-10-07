@@ -1,17 +1,33 @@
 import os
+from contextlib import asynccontextmanager
 
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from src.config import close_shared_connections, get_shared_connections
 from src.api.routers import health, chat, calls
+from src.memory.semantic_rag.orchestrator import clear_components
 
 load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.shared_connections = get_shared_connections()
+    try:
+        yield
+    finally:
+        clear_components()
+        app.state.shared_connections = None
+        close_shared_connections()
+
 
 app = FastAPI(
     title="SC2026 - Telesale Harness Agent API",
     description="Harness Agent hỗ trợ telesale e-commerce đa phiên, đa kênh",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

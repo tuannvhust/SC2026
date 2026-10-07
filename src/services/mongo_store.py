@@ -42,6 +42,12 @@ class MongoStore:
     def policies_col(self):
         return self.db["policies"]
 
+    def close(self) -> None:
+        """Close the MongoDB client if it has been initialized."""
+        if self._client is not None:
+            self._client.close()
+            self._client = None
+
     # =========================================================================
     # PRODUCTS CRUD
     # =========================================================================

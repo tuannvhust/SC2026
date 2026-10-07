@@ -25,12 +25,12 @@ class FakeSearchEngine:
         )
         return [
             {
-                "sku": "SKU-PH-A55-128",
-                "name": "Samsung Galaxy A55 5G",
-                "category": "dien_thoai",
+                "sku": "SKU-AP-X",
+                "name": "Máy lọc không khí AirPure X",
+                "category": "gia-dung/may-loc-khong-khi",
                 "in_stock": True,
-                "min_price": 9_490_000,
-                "embedding_text": "Samsung Galaxy A55 5G",
+                "min_price": 4_890_000,
+                "embedding_text": "Máy lọc không khí AirPure X",
             }
         ]
 
@@ -72,23 +72,23 @@ def test_full_product_rag_pipeline(monkeypatch):
     )
 
     answer = orchestrator.process_raw_query(
-        "Mình muốn mua điện thoại Samsung giá dưới 10 triệu trong kho"
+        "Mình muốn mua máy lọc không khí AirPure giá dưới 10 triệu trong kho"
     )
 
-    assert answer == "Tìm thấy Samsung Galaxy A55 5G (SKU-PH-A55-128)."
+    assert answer == "Tìm thấy Máy lọc không khí AirPure X (SKU-AP-X)."
     assert search_engine.calls == [
         {
-            "query": "Mình muốn mua điện thoại Samsung giá dưới 10 triệu trong kho",
+            "query": "Mình muốn mua máy lọc không khí AirPure giá dưới 10 triệu trong kho",
             "top_k": 5,
-            "category": "dien_thoai",
+            "category": "gia-dung/may-loc-khong-khi",
             "in_stock_only": True,
             "min_price": None,
             "max_price": 10_000_000,
         }
     ]
     assert reranker.calls[0]["top_n"] == 5
-    assert reranker.calls[0]["documents"][0]["sku"] == "SKU-PH-A55-128"
-    assert generator.calls[0]["context_docs"][0]["category"] == "dien_thoai"
+    assert reranker.calls[0]["documents"][0]["sku"] == "SKU-AP-X"
+    assert generator.calls[0]["context_docs"][0]["category"] == "gia-dung/may-loc-khong-khi"
 
 
 def test_streaming_pipeline_forwards_generator_chunks(monkeypatch):
@@ -103,13 +103,13 @@ def test_streaming_pipeline_forwards_generator_chunks(monkeypatch):
 
     chunks = list(
         orchestrator.process_raw_query_stream(
-            "Mình muốn mua điện thoại Samsung giá dưới 10 triệu trong kho"
+            "Mình muốn mua máy lọc không khí AirPure giá dưới 10 triệu trong kho"
         )
     )
 
     assert chunks == [
         "Tìm thấy ",
-        "Samsung Galaxy A55 5G (SKU-PH-A55-128).",
+        "Máy lọc không khí AirPure X (SKU-AP-X).",
     ]
     assert len(search_engine.calls) == 1
     assert len(reranker.calls) == 1

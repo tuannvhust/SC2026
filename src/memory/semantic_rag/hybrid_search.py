@@ -9,6 +9,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Any, Optional
 
+from src.config import get_shared_connections
 from src.services.vector_store import QdrantVectorStore
 from src.services.gemini_embedder import GeminiDenseEmbedder
 from src.services.bm25s_embedder import BM25SparseEmbedder
@@ -23,17 +24,28 @@ class HybridSearchEngine:
         dense_embedder: Optional[GeminiDenseEmbedder] = None,
         sparse_prod_embedder: Optional[BM25SparseEmbedder] = None,
         sparse_pol_embedder: Optional[BM25SparseEmbedder] = None,
-        sparse_embedder: Optional[BM25SparseEmbedder] = None  # Shared alias for both when one embedder is supplied.
     ):
-        self.vector_store = vector_store or QdrantVectorStore()
-        self.dense_embedder = dense_embedder or GeminiDenseEmbedder()
+        self.vector_store = (
+            vector_store
+            if vector_store is not None
+            else get_shared_connections().vector_store
+        )
+        self.dense_embedder = (
+            dense_embedder
+            if dense_embedder is not None
+            else get_shared_connections().dense_embedder
+        )
 
         # Load saved BM25 sparse indexes or use the supplied embedders.
         bm25_prod_dir = os.path.join(BASE_DIR, "data", "processed", "bm25_products")
         bm25_pol_dir = os.path.join(BASE_DIR, "data", "processed", "bm25_policies")
 
-        self.sparse_prod_embedder = sparse_prod_embedder or sparse_embedder or BM25SparseEmbedder(index_dir=bm25_prod_dir)
-        self.sparse_pol_embedder = sparse_pol_embedder or sparse_embedder or BM25SparseEmbedder(index_dir=bm25_pol_dir)
+        self.sparse_prod_embedder = sparse_prod_embedder or BM25SparseEmbedder(
+            index_dir=bm25_prod_dir
+        )
+        self.sparse_pol_embedder = sparse_pol_embedder or BM25SparseEmbedder(
+            index_dir=bm25_pol_dir
+        )
 
     def _encode_query_parallel(
         self,

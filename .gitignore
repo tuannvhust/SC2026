@@ -14,6 +14,7 @@ build/
 # Local service state and generated runtime files
 data/qdrant_storage/
 data/processed/
+data/memory/
 
 # Local development and editor files
 .vscode/

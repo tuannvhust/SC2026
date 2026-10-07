@@ -64,6 +64,10 @@ class QdrantVectorStore:
             )
             self.client = QdrantClient(path=default_path)
 
+    def close(self) -> None:
+        """Close the underlying Qdrant client."""
+        self.client.close()
+
     def init_collection(
         self,
         collection_name: str,

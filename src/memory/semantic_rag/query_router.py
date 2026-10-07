@@ -9,7 +9,13 @@ from typing import Dict, Any, Optional
 # Simple regex patterns for Vietnamese-language intents.
 INTENT_PATTERNS = {
     "product": re.compile(
-        r"\b(mua|tìm|sản phẩm|sku|giá|trong kho|dòng|máy|hãng|bán|có sẵn|mẫu|iphone|samsung|oppo|xiaomi)\b",
+        r"\b(mua|tìm|sản phẩm|sku|giá|trong kho|dòng|máy|hãng|bán|có sẵn|mẫu|"
+        r"samsung|xiaomi|airpure|karofi|kangaroo|sunhouse|panasonic|senko|"
+        r"lock&lock|philips|runlite|urban|hikepro|windbreak|warmly|spectra|"
+        r"medela|joie|combi|fatz|moaz|pigeon|chicco|sunmum|"
+        r"quạt|giày|áo khoác|áo phao|nồi chiên|máy lọc|xe đẩy|bình sữa|"
+        r"màng lọc|tất|combo|mẹ bé|mẹ và bé|máy hút sữa|máy hâm sữa|"
+        r"máy tiệt trùng|ghế ngồi ô tô|túi trữ sữa)\b",
         re.IGNORECASE
     ),
     "policy": re.compile(r"\b(đổi trả|bảo hành|giao hàng|chính sách)\b", re.IGNORECASE),
@@ -46,12 +52,21 @@ def _extract_stock_filter(query: str) -> bool:
 def _extract_category(query: str) -> Optional[str]:
     # Values must match the normalized category stored in Qdrant payloads.
     categories = {
-        "điện thoại": "dien_thoai",
-        "tivi": "tivi",
-        "máy tính": "laptop",
-        "laptop": "laptop",
-        "tablet": "tablet",
-        "tai nghe": "tai_nghe",
+        "máy lọc không khí": "gia-dung/may-loc-khong-khi",
+        "máy lọc nước": "gia-dung/may-loc-nuoc",
+        "nồi chiên": "gia-dung/noi-chien",
+        "màng lọc": "gia-dung/phu-kien",
+        "phụ kiện gia dụng": "gia-dung/phu-kien",
+        "quạt": "gia-dung/quat",
+        "combo": "gia-dung/combo",
+        "mẹ và bé": "me-be",
+        "mẹ bé": "me-be",
+        "xe đẩy": "me-be",
+        "bình sữa": "me-be",
+        "giày": "thoi-trang/giay",
+        "áo khoác": "thoi-trang/ao-khoac",
+        "áo phao": "thoi-trang/ao-khoac",
+        "tất": "thoi-trang/phu-kien",
     }
     query_lower = query.lower()
     for label, payload_value in categories.items():

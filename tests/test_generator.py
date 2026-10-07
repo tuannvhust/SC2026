@@ -30,6 +30,17 @@ def test_generator_includes_source_sku_in_prompt():
     assert "Samsung Galaxy A55" in prompt
 
 
+def test_generator_does_not_require_electronics_specs_or_invent_promotions():
+    prompt = RAGGenerator().build_prompt(
+        "Thông tin sản phẩm này?",
+        [{"sku": "SKU-AP-X", "embedding_text": "Máy lọc không khí AirPure X"}],
+    )
+
+    assert "không giả định" in prompt
+    assert "Không khẳng định có trả góp" in prompt
+    assert "Màn hình, Chip, Pin, Camera" not in prompt
+
+
 def test_generator_returns_llm_answer_from_retrieved_context():
     llm = FakeLLM()
     generator = RAGGenerator(llm_client=llm)

@@ -10,6 +10,7 @@ SC2026/
 ├── scripts/                     # Seed/sync dữ liệu
 ├── src/
 │   ├── api/                     # FastAPI app và API routers
+│   ├── config.py                # Kết nối dịch vụ dùng chung, theo vòng đời ứng dụng
 │   ├── memory/semantic_rag/     # Router, rewrite, retrieval, rerank, generate
 │   └── services/                # Gemini, MongoDB, Qdrant, BM25 clients
 ├── tests/                       # Unit, integration và smoke tests
@@ -57,6 +58,10 @@ Copy-Item .env.example .env
 | `QDRANT_API_KEY` | API key Qdrant Cloud |
 | `GEMINI_EMBEDDING_MODEL` | Model embedding Gemini |
 | `GEMINI_EMBEDDING_DIMENSION` | Kích thước vector, mặc định `768` |
+| `MEMORY_SQLITE_PATH` | SQLite Event Log và Episodic Memory |
+| `MEM0_VECTOR_PATH` | Thư mục Qdrant local cho Profile Memory |
+| `MEM0_HISTORY_DB_PATH` | SQLite history của Mem0 |
+| `MEM0_LLM_MODEL` | Model Gemini dùng để trích xuất Profile Memory |
 | `HF_TOKEN` | Token Hugging Face reranker |
 | `HF_RERANKER_API_URL` | Endpoint reranker |
 | `HF_RERANKER_TIMEOUT` | Timeout request reranker |
@@ -64,6 +69,22 @@ Copy-Item .env.example .env
 
 Không commit `.env`, không ghi API key vào source code và không in toàn bộ
 environment trong log. Chỉ commit `.env.example`.
+
+Backend dùng chung client MongoDB, Qdrant và Gemini embedding trong một process.
+Các client được tạo khi ứng dụng khởi động và được đóng khi ứng dụng dừng.
+
+## Graph session memory
+
+StateGraph ghi mỗi lượt vào SQLite Working Memory/Event Log. Khi kết thúc một
+phiên, `session_ended` phải được đặt thành `true`; khi gọi tiếp cùng phiên, gửi
+lại `session_id` (và `session_started_at`) từ state trước đó. Chỉ lúc đó graph
+mới tổng hợp Episode Memory và chuyển các fact hồ sơ được ghi rõ ràng qua
+`memory.write` sang Mem0 Profile Memory. Hội thoại thường, giá và tồn kho không
+tự động được lưu thành Profile Memory.
+
+Mặc định SQLite và vector store nằm dưới `data/memory/`. Compose mount thư mục
+này thành volume để dữ liệu còn tồn tại khi container được tạo lại. Các file
+runtime trong thư mục này không được commit.
 
 ## Chạy backend local
 

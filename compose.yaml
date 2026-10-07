@@ -10,6 +10,8 @@ services:
       PORT: 8000
     ports:
       - "8000:8000"
+    volumes:
+      - ./data/memory:/app/data/memory
     restart: unless-stopped
 
   frontend:

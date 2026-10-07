@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from typing import Any
 
 import requests
@@ -13,6 +12,10 @@ from dotenv import load_dotenv
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_MODEL = "gemini-embedding-001"
 DEFAULT_DIMENSION = 768
+
+
+def normalize_model_name(model: str) -> str:
+    return model.strip().removeprefix("models/")
 
 
 def error_summary(response: requests.Response) -> str:
@@ -33,7 +36,9 @@ def error_summary(response: requests.Response) -> str:
 def main() -> int:
     load_dotenv()
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    model = os.getenv("GEMINI_EMBEDDING_MODEL", DEFAULT_MODEL).strip()
+    model = normalize_model_name(
+        os.getenv("GEMINI_EMBEDDING_MODEL", DEFAULT_MODEL)
+    )
     dimension = int(os.getenv("GEMINI_EMBEDDING_DIMENSION", str(DEFAULT_DIMENSION)))
 
     print(f"GEMINI_API_KEY: {'configured' if api_key else 'missing'}")
@@ -51,7 +56,7 @@ def main() -> int:
             timeout=20,
         )
     except requests.RequestException as exc:
-        print(f"Model listing failed: {exc}")
+        print(f"Model listing failed ({type(exc).__name__}).")
         return 1
 
     print(f"GET /models: HTTP {models_response.status_code}")
@@ -61,11 +66,22 @@ def main() -> int:
 
     available_models = models_response.json().get("models", [])
     embedding_models = [
-        item.get("name")
+        normalize_model_name(item.get("name", ""))
         for item in available_models
         if "embedContent" in item.get("supportedGenerationMethods", [])
     ]
     print(f"Embedding models visible to this key: {embedding_models}")
+    if model not in embedding_models:
+        print(
+            f"Configured model '{model}' is not available for embedContent "
+            "with this API key."
+        )
+        if "gemini-embedding-001" in embedding_models:
+            print(
+                "Set GEMINI_EMBEDDING_MODEL=models/gemini-embedding-001 "
+                "in .env and retry."
+            )
+        return 1
 
     payload = {
         "model": f"models/{model}",
@@ -80,7 +96,7 @@ def main() -> int:
             timeout=20,
         )
     except requests.RequestException as exc:
-        print(f"Embedding request failed: {exc}")
+        print(f"Embedding request failed ({type(exc).__name__}).")
         return 1
 
     print(f"POST /models/{model}:embedContent: HTTP {embedding_response.status_code}")

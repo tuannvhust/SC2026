@@ -77,7 +77,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "query", nargs="?",
-        default="Mình muốn mua điện thoại Samsung dưới 10 triệu còn hàng",
+        default="Mình muốn mua máy lọc không khí dưới 10 triệu còn hàng",
     )
     args = parser.parse_args()
     try:

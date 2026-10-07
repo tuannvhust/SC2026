@@ -8,8 +8,8 @@ def test_process_raw_query_returns_early_response_without_initializing_search():
 def test_product_query_is_routed_to_products():
     from src.memory.semantic_rag.query_router import route
 
-    result = route("Mình muốn mua điện thoại Samsung")
+    result = route("Mình muốn mua máy lọc không khí AirPure")
 
     assert result["intent"] == "product"
     assert result["collection"] == "products"
-    assert result["metadata"]["category"] == "dien_thoai"
+    assert result["metadata"]["category"] == "gia-dung/may-loc-khong-khi"
