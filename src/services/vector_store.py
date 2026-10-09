@@ -1,7 +1,7 @@
 """
 Qdrant vector database client wrapper for cloud and local deployments.
 Supports dense Gemini embeddings, sparse BM25S vectors, RRF fusion, and
-metadata filters for category, stock status, and price range.
+static metadata filters for product category.
 """
 
 import os
@@ -29,7 +29,6 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
-    Range
 )
 
 # Fixed namespace used to generate stable UUIDs from SKUs or document IDs.
@@ -103,14 +102,10 @@ class QdrantVectorStore:
             self._ensure_product_payload_indexes()
 
     def _ensure_product_payload_indexes(self) -> None:
-        """Create the payload indexes required by product query filters."""
+        """Index only static product metadata used by Qdrant filters."""
         collection_name = "products"
         payload_schema = self.client.get_collection(collection_name).payload_schema
-        indexes = (
-            ("category", models.PayloadSchemaType.KEYWORD),
-            ("in_stock", models.PayloadSchemaType.BOOL),
-            ("min_price", models.PayloadSchemaType.INTEGER),
-        )
+        indexes = (("category", models.PayloadSchemaType.KEYWORD),)
 
         for field_name, field_schema in indexes:
             if field_name not in payload_schema:
@@ -131,8 +126,13 @@ class QdrantVectorStore:
         """Store dense and sparse BM25S vectors in the same Qdrant collection."""
         self.init_collection(collection_name)
         points = []
+        if collection_name == "products":
+            from src.memory.semantic_rag.payload import sanitize_product_payload
 
         for doc, dense, sparse in zip(documents, dense_vectors, sparse_vectors):
+            payload = doc
+            if collection_name == "products":
+                payload = sanitize_product_payload(doc)
             doc_id = doc.get("_id") or doc.get("sku")
             point_id = get_deterministic_uuid(str(doc_id))
 
@@ -148,7 +148,7 @@ class QdrantVectorStore:
                 PointStruct(
                     id=point_id,
                     vector=vector_dict,
-                    payload=doc
+                    payload=payload
                 )
             )
 
@@ -169,7 +169,19 @@ class QdrantVectorStore:
         min_price: Optional[int] = None,
         max_price: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Run hybrid RRF search in Qdrant with optional metadata filters."""
+        """Run hybrid RRF search using only static Qdrant metadata filters.
+
+        Price and inventory filters must be applied using their live data source;
+        they are deliberately not represented in product Qdrant payloads.
+        """
+        if collection_name == "products" and (
+            in_stock_only or min_price is not None or max_price is not None
+        ):
+            raise ValueError(
+                "Qdrant product payloads do not contain live stock or price data; "
+                "apply these filters through the inventory and pricing services."
+            )
+
         if collection_name == "products":
             self._ensure_product_payload_indexes()
 
@@ -178,20 +190,6 @@ class QdrantVectorStore:
             must_conditions.append(
                 FieldCondition(key="category", match=MatchValue(value=category))
             )
-        if in_stock_only:
-            must_conditions.append(
-                FieldCondition(key="in_stock", match=MatchValue(value=True))
-            )
-        if min_price is not None or max_price is not None:
-            price_range = {}
-            if min_price is not None:
-                price_range["gte"] = min_price
-            if max_price is not None:
-                price_range["lte"] = max_price
-            must_conditions.append(
-                FieldCondition(key="min_price", range=Range(**price_range))
-            )
-
         query_filter = Filter(must=must_conditions) if must_conditions else None
         sparse_vector = SparseVector(
             indices=query_sparse["indices"],

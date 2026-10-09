@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 
 from src.memory.semantic_rag.chunker import MarkdownChunker
 from src.memory.semantic_rag.ingestion import ingest_product_document
+from src.memory.semantic_rag.payload import sanitize_product_payload
 from src.services.vector_store import QdrantVectorStore
 from src.services.gemini_embedder import GeminiDenseEmbedder
 from src.services.bm25s_embedder import BM25SparseEmbedder
@@ -51,7 +52,7 @@ def _load_product(path: Path) -> List[Dict[str, Any]]:
         sku = enriched_product["sku"]
         name = str(enriched_product.get("name") or sku)
 
-        meta = {
+        meta = sanitize_product_payload({
             **_build_base_meta(path, "product"),
             **enriched_product,
             "sku": sku,
@@ -62,7 +63,7 @@ def _load_product(path: Path) -> List[Dict[str, Any]]:
                     "discontinued", False
                 )
             ),
-        }
+        })
         raw_text = f"# {name} (SKU: {sku})\n\n{enriched_product['embedding_text']}"
         documents.append({"text": raw_text, "meta": meta})
 
@@ -96,12 +97,15 @@ def _index_collection(
                     if collection_name == "products"
                     else ch["id"]
                 )
-                payloads.append({
+                payload = {
                     **chunk_meta,
                     "_id": point_key,
                     "chunk_id": chunk_meta["chunk_id"],
                     "embedding_text": ch["text"],
-                })
+                }
+                if collection_name == "products":
+                    payload = sanitize_product_payload(payload)
+                payloads.append(payload)
                 dense_vectors.append(dense_embedder.embed_text(ch["text"]))
 
     if payloads:

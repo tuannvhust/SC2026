@@ -15,7 +15,7 @@ from src.services.vector_store import QdrantVectorStore
 load_dotenv()
 
 llm = ChatGoogleGenerativeAI(
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
     google_api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"),
     temperature=0.3,
 )

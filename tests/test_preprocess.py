@@ -1,6 +1,7 @@
 import json
 
 from src.memory.semantic_rag.chunker import MarkdownChunker
+from src.memory.semantic_rag.payload import PRODUCT_PAYLOAD_FIELDS
 from src.memory.semantic_rag.preprocess import _index_collection, _load_product
 
 
@@ -48,11 +49,21 @@ def test_load_product_creates_full_document_per_catalog_entry(tmp_path):
 
     assert len(documents) == 2
     assert documents[0]["meta"]["sku"] == "SKU-1"
-    assert documents[0]["meta"]["min_price"] == 1000
-    assert documents[0]["meta"]["max_price"] == 1050
-    assert documents[0]["meta"]["total_stock"] == 3
     assert documents[0]["meta"]["attributes"]["features"] == "HEPA filter"
+    assert documents[0]["meta"]["variants"] == [
+        {"variant_sku": "SKU-1-RED", "color": "red"}
+    ]
+    assert not {
+        "list_price_vnd",
+        "min_price",
+        "max_price",
+        "stock",
+        "total_stock",
+        "in_stock",
+    } & documents[0]["meta"].keys()
     assert "SKU-1-RED" in documents[0]["text"]
+    assert "price" not in documents[0]["text"].lower()
+    assert "stock" not in documents[0]["text"].lower()
     assert "Bảo hành: 12 tháng" in documents[0]["text"]
     assert documents[1]["meta"]["sku"] == "SKU-2"
 
@@ -90,6 +101,19 @@ def test_index_collection_upserts_each_product_with_stable_sku_id(tmp_path):
     assert store.collection == "products"
     assert [document["_id"] for document in store.documents] == ["SKU-1", "SKU-2"]
     assert all(document["embedding_text"].startswith("# Product") for document in store.documents)
+    assert all(
+        document.keys() <= PRODUCT_PAYLOAD_FIELDS
+        and not {
+            "list_price_vnd",
+            "min_price",
+            "max_price",
+            "stock",
+            "total_stock",
+            "in_stock",
+            "price_delta_vnd",
+        } & document.keys()
+        for document in store.documents
+    )
     assert len(store.documents) == len(store.dense) == len(store.sparse)
 
 
@@ -113,13 +137,24 @@ def test_real_catalog_products_are_normalized_for_current_schema():
         product for product in normalized if product["sku"] == "SKU-SN-RUN1"
     )
     assert len(normalized) == 40
-    assert airpure["min_price"] == airpure["max_price"] == 4_890_000
-    assert airpure["total_stock"] == 40
     assert "HEPA H13" in airpure["embedding_text"]
     assert "Bảo hành: 24 tháng" in airpure["embedding_text"]
-    assert sneaker["min_price"] == 1_290_000
-    assert sneaker["max_price"] == 1_340_000
-    assert sneaker["total_stock"] == 48
+    assert not {
+        "list_price_vnd",
+        "min_price",
+        "max_price",
+        "stock",
+        "total_stock",
+        "in_stock",
+    } & airpure.keys()
+    assert not {
+        "list_price_vnd",
+        "min_price",
+        "max_price",
+        "stock",
+        "total_stock",
+        "in_stock",
+    } & sneaker.keys()
     assert "size 43" in sneaker["embedding_text"]
     assert "SKU-SN-RUN1-43-DEN" in sneaker["embedding_text"]
 

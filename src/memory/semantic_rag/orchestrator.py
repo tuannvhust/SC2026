@@ -25,6 +25,9 @@ class _SearchEngine(Protocol):
 
 
 class _Reranker(Protocol):
+    def warmup(self) -> None:
+        ...
+
     def rerank(
         self,
         query: str,
@@ -40,12 +43,13 @@ class _Generator(Protocol):
 
 
 _components: Optional[Tuple[_SearchEngine, _Reranker, _Generator]] = None
+_reranker: Optional[_Reranker] = None
 _components_lock = Lock()
 
 
 def _get_components() -> Tuple[_SearchEngine, _Reranker, _Generator]:
     """Create the search, reranking and generation components on first search."""
-    global _components
+    global _components, _reranker
     if _components is None:
         with _components_lock:
             if _components is None:
@@ -53,19 +57,33 @@ def _get_components() -> Tuple[_SearchEngine, _Reranker, _Generator]:
                 from .hybrid_search import HybridSearchEngine
                 from .reranker import Reranker
 
+                if _reranker is None:
+                    _reranker = Reranker()
                 _components = (
                     HybridSearchEngine(),
-                    Reranker(),
+                    _reranker,
                     RAGGenerator(),
                 )
     return _components
 
 
+def warmup_reranker() -> None:
+    """Load and warm the shared reranker before the API starts serving requests."""
+    global _reranker
+    with _components_lock:
+        if _reranker is None:
+            from .reranker import Reranker
+
+            _reranker = Reranker()
+        _reranker.warmup()
+
+
 def clear_components() -> None:
     """Release cached pipeline components before shared clients are closed."""
-    global _components
+    global _components, _reranker
     with _components_lock:
         _components = None
+        _reranker = None
 
 
 def process_raw_query(raw_query: str) -> str:

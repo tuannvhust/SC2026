@@ -26,7 +26,7 @@ class RAGGenerator:
     def __init__(self, llm_client=None, model_name: Optional[str] = None):
         self.llm_client = llm_client
         self.model_name = model_name or os.getenv(
-            "GEMINI_MODEL", "gemini-2.5-flash"
+            "GEMINI_MODEL", "gemini-3.6-flash"
         )
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self.client = (

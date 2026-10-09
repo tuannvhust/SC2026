@@ -166,7 +166,13 @@ def plan_step_node(state: AgentState) -> Dict[str, Any]:
             + feedback_context
         )
     )
+    prompt_messages = list(messages)
+    if guardrail_feedback and prompt_messages and isinstance(
+        prompt_messages[-1], AIMessage
+    ):
+        prompt_messages.pop()
+
     response: AIMessage = planner_llm.invoke(
-        [SystemMessage(content=PLANNER_SYSTEM_PROMPT), context, *messages]
+        [SystemMessage(content=PLANNER_SYSTEM_PROMPT), context, *prompt_messages]
     )
     return {"messages": [response]}

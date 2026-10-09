@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from src.graph.state import AgentState
-from src.memory.profile.mem0_store import get_profile_store
-from src.memory.working.sqlite_store import SQLiteMemoryStore
+from src.memory.profile.profile_store import get_profile_store
+from src.memory.working.postgres_store import get_postgres_memory_store
 from src.tools.tool_repository import crm_get_customer
 
 
@@ -313,7 +313,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         else {}
     )
     episodes = (
-        SQLiteMemoryStore().get_recent_episodes(customer_id)
+        get_postgres_memory_store().get_recent_episodes(customer_id)
         if customer_id
         else []
     )

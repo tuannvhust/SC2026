@@ -58,13 +58,8 @@ Copy-Item .env.example .env
 | `QDRANT_API_KEY` | API key Qdrant Cloud |
 | `GEMINI_EMBEDDING_MODEL` | Model embedding Gemini |
 | `GEMINI_EMBEDDING_DIMENSION` | Kích thước vector, mặc định `768` |
-| `MEMORY_SQLITE_PATH` | SQLite Event Log và Episodic Memory |
-| `MEM0_VECTOR_PATH` | Thư mục Qdrant local cho Profile Memory |
-| `MEM0_HISTORY_DB_PATH` | SQLite history của Mem0 |
-| `MEM0_LLM_MODEL` | Model Gemini dùng để trích xuất Profile Memory |
-| `HF_TOKEN` | Token Hugging Face reranker |
-| `HF_RERANKER_API_URL` | Endpoint reranker |
-| `HF_RERANKER_TIMEOUT` | Timeout request reranker |
+| `SUPABASE_DATABASE_URL` | URL PostgreSQL của Supabase (bắt buộc cho working, episodic và profile facts) |
+| `HF_RERANKER_MODEL` | Model CrossEncoder chạy local/offline, mặc định `BAAI/bge-reranker-base`; model phải có sẵn trong cache Hugging Face |
 | `HOST` / `PORT` | Địa chỉ và port backend |
 
 Không commit `.env`, không ghi API key vào source code và không in toàn bộ
@@ -72,19 +67,27 @@ environment trong log. Chỉ commit `.env.example`.
 
 Backend dùng chung client MongoDB, Qdrant và Gemini embedding trong một process.
 Các client được tạo khi ứng dụng khởi động và được đóng khi ứng dụng dừng.
+Product payloads trong Qdrant chỉ chứa metadata tĩnh; giá và tồn kho phải được
+lấy từ dịch vụ catalog/pricing/inventory hiện hành, không dùng làm bộ lọc Qdrant.
+Chạy lại bước đồng bộ catalog để ghi đè payload cũ đã chứa trường biến động.
+Reranker chạy local bằng Sentence Transformers, không gọi Hugging Face Inference
+API và không cần `HF_TOKEN`. Chế độ offline yêu cầu model đã được tải và có sẵn
+trong cache Hugging Face trên máy. FastAPI nạp model và chạy warmup trong
+`lifespan` trước khi nhận request; server sẽ báo lỗi khởi động nếu model không
+có sẵn trong cache.
 
 ## Graph session memory
 
-StateGraph ghi mỗi lượt vào SQLite Working Memory/Event Log. Khi kết thúc một
-phiên, `session_ended` phải được đặt thành `true`; khi gọi tiếp cùng phiên, gửi
-lại `session_id` (và `session_started_at`) từ state trước đó. Chỉ lúc đó graph
-mới tổng hợp Episode Memory và chuyển các fact hồ sơ được ghi rõ ràng qua
-`memory.write` sang Mem0 Profile Memory. Hội thoại thường, giá và tồn kho không
-tự động được lưu thành Profile Memory.
-
-Mặc định SQLite và vector store nằm dưới `data/memory/`. Compose mount thư mục
-này thành volume để dữ liệu còn tồn tại khi container được tạo lại. Các file
-runtime trong thư mục này không được commit.
+StateGraph ghi từng lượt, episode đã hoàn tất và profile facts vào Supabase
+PostgreSQL qua SQLAlchemy. Profile facts được ghi đồng thời vào collection
+`customer_profile_memories` trên Qdrant Cloud: PostgreSQL là nguồn dữ liệu có
+cấu trúc, Qdrant lưu vector và payload của profile facts. Cấu hình
+`QDRANT_URL`, `QDRANT_API_KEY`, `GEMINI_API_KEY` và `SUPABASE_DATABASE_URL`
+trước khi dùng tính năng memory. Khi kết thúc phiên (`session_ended=true`), graph
+mới tổng hợp Episode Memory và chuyển các facts được ghi rõ ràng qua
+`memory.write`; hội thoại thường, giá và tồn kho không tự động được lưu thành
+Profile Memory. Dữ liệu đã có trong SQLite cũ không được tự động chuyển sang
+PostgreSQL.
 
 ## Chạy backend local
 

@@ -54,8 +54,11 @@ def test_gemini_bm25s_hybrid_search():
             "sku": "SKU-AP-X",
             "name": "Máy lọc không khí AirPure X",
             "category": "gia-dung/may-loc-khong-khi",
+            "list_price_vnd": 4_890_000,
             "min_price": 4_890_000,
             "max_price": 4_890_000,
+            "stock": 40,
+            "total_stock": 40,
             "in_stock": True,
             "embedding_text": "Máy lọc không khí AirPure X bộ lọc HEPA H13"
         },
@@ -64,9 +67,21 @@ def test_gemini_bm25s_hybrid_search():
             "sku": "SKU-SN-RUN1",
             "name": "Giày chạy bộ RunLite 1",
             "category": "thoi-trang/giay",
+            "list_price_vnd": 1_290_000,
             "min_price": 1_290_000,
             "max_price": 1_340_000,
+            "stock": 48,
+            "total_stock": 48,
             "in_stock": True,
+            "variants": [
+                {
+                    "variant_sku": "SKU-SN-RUN1-42-DEN",
+                    "size": 42,
+                    "color": "đen",
+                    "stock": 4,
+                    "price_delta_vnd": 50_000,
+                }
+            ],
             "embedding_text": "Giày chạy bộ RunLite 1 size 42 màu đen"
         }
     ]
@@ -102,6 +117,31 @@ def test_gemini_bm25s_hybrid_search():
     doc = search_engine.get_by_sku("SKU-SN-RUN1")
     assert doc is not None
     assert doc["name"] == "Giày chạy bộ RunLite 1"
+    assert not {
+        "list_price_vnd",
+        "min_price",
+        "max_price",
+        "stock",
+        "total_stock",
+        "in_stock",
+    } & doc.keys()
+    assert doc["variants"] == [
+        {
+            "variant_sku": "SKU-SN-RUN1-42-DEN",
+            "size": 42,
+            "color": "đen",
+        }
+    ]
+
+    try:
+        search_engine.search_products(
+            "RunLite",
+            in_stock_only=True,
+        )
+    except ValueError as exc:
+        assert "live stock or price data" in str(exc)
+    else:
+        raise AssertionError("Qdrant must not filter against absent live payload fields.")
 
     print(" Tất cả các test cho kiến trúc Gemini 768 Dense + BM25S Sparse + Qdrant RRF đều ĐẠT!")
 

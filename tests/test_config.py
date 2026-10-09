@@ -18,6 +18,16 @@ def test_api_lifespan_initializes_and_closes_shared_connections(monkeypatch):
     )
     monkeypatch.setattr(
         main,
+        "warmup_reranker",
+        lambda: lifecycle_calls.append("warmup_reranker"),
+    )
+    monkeypatch.setattr(
+        main,
+        "close_working_memory_store",
+        lambda: lifecycle_calls.append("close_working_memory_store"),
+    )
+    monkeypatch.setattr(
+        main,
         "close_shared_connections",
         lambda: lifecycle_calls.append("close"),
     )
@@ -25,7 +35,13 @@ def test_api_lifespan_initializes_and_closes_shared_connections(monkeypatch):
     with TestClient(main.app) as client:
         assert client.get("/health").status_code == 200
 
-    assert lifecycle_calls == ["initialize", "clear_components", "close"]
+    assert lifecycle_calls == [
+        "initialize",
+        "warmup_reranker",
+        "clear_components",
+        "close_working_memory_store",
+        "close",
+    ]
 
 
 def test_shared_connections_are_created_once_and_closed(monkeypatch):

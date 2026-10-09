@@ -11,18 +11,29 @@ from typing import Any, Dict, List, Optional
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage, messages_to_dict
 
 from src.graph.state import AgentState
-from src.memory.profile.mem0_store import get_profile_store
-from src.memory.working.sqlite_store import SQLiteMemoryStore
+from src.memory.profile.profile_store import get_profile_store
+from src.memory.working.postgres_store import (
+    PostgresMemoryStore,
+    close_postgres_memory_store,
+    get_postgres_memory_store,
+)
 
-_store: Optional[SQLiteMemoryStore] = None
+_store: Optional[PostgresMemoryStore] = None
 
 
-def get_working_memory_store() -> SQLiteMemoryStore:
-    """Return the process-wide SQLite event and episode store."""
+def get_working_memory_store() -> PostgresMemoryStore:
+    """Return the process-wide PostgreSQL event and episode store."""
     global _store
     if _store is None:
-        _store = SQLiteMemoryStore()
+        _store = get_postgres_memory_store()
     return _store
+
+
+def close_working_memory_store() -> None:
+    """Close the shared SQLAlchemy engine during application shutdown."""
+    global _store
+    _store = None
+    close_postgres_memory_store()
 
 
 def _json_safe(value: Any) -> Any:
@@ -103,7 +114,7 @@ def _identity_snapshot(state: AgentState) -> Dict[str, Any]:
 
 
 def persist_turn_node(state: AgentState) -> Dict[str, Any]:
-    """Append this turn's transcript, tool activity, identity, and status to SQLite."""
+    """Append this turn's transcript, tool activity, identity, and status to PostgreSQL."""
     now = datetime.now(timezone.utc).isoformat()
     session_id = state.get("session_id") or str(uuid.uuid4())
     turn_id = state.get("turn_id") or str(uuid.uuid4())

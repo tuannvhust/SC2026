@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from src.graph.graph import (
@@ -12,6 +14,7 @@ from src.graph.nodes.input_nodes import (
     resolve_identity_node,
 )
 from src.graph.nodes import input_nodes, persistence_nodes
+from src.graph.nodes import planner as planner_node
 from src.graph.nodes.safety_nodes import (
     _get_current_tool_results,
     handoff_to_human_node,
@@ -20,7 +23,7 @@ from src.graph.nodes.safety_nodes import (
     route_after_retry,
 )
 from src.graph.state import AgentState
-from src.memory.working.sqlite_store import SQLiteMemoryStore
+from src.memory.working.postgres_store import PostgresMemoryStore
 from src.tools.tool_repository import memory_write
 
 
@@ -56,6 +59,27 @@ def test_planner_routes_answer_and_clarification_to_output_guardrail():
         }
 
 
+def test_planner_retry_omits_rejected_trailing_ai_message(monkeypatch):
+    user_message = HumanMessage(content="Giá sản phẩm là bao nhiêu?")
+    rejected_answer = AIMessage(content="Giá là 1.000.000đ.")
+    response = AIMessage(content="Em sẽ kiểm tra giá hiện tại ạ.")
+    invoke = Mock(return_value=response)
+    monkeypatch.setattr(planner_node, "planner_llm", Mock(invoke=invoke))
+
+    result = planner_node.plan_step_node(
+        {
+            "messages": [user_message, rejected_answer],
+            "guardrail_feedback": "The response price was not verified.",
+        }
+    )
+
+    prompt_messages = invoke.call_args.args[0]
+    assert prompt_messages[-1] is user_message
+    assert all(message is not rejected_answer for message in prompt_messages)
+    assert "The response price was not verified." in prompt_messages[1].content
+    assert result == {"messages": [response]}
+
+
 def test_graph_sends_tool_results_back_to_planner():
     edges = {
         (edge.source, edge.target)
@@ -78,7 +102,7 @@ def test_invalid_input_ends_without_undeclared_state_fields(tmp_path, monkeypatc
     monkeypatch.setattr(
         persistence_nodes,
         "_store",
-        SQLiteMemoryStore(tmp_path / "memory.sqlite3"),
+        PostgresMemoryStore(f"sqlite+pysqlite:///{tmp_path / 'memory.sqlite3'}"),
     )
     result = build_graph().invoke({"messages": [HumanMessage(content="x")]})
 
@@ -93,13 +117,17 @@ def test_input_nodes_only_update_declared_agent_state_fields(monkeypatch):
             assert _customer_id
             return {}
 
-    class FakeSQLiteStore:
+    class FakePostgresStore:
         def get_recent_episodes(self, _customer_id):
             assert _customer_id
             return []
 
     monkeypatch.setattr(input_nodes, "get_profile_store", FakeProfileStore)
-    monkeypatch.setattr(input_nodes, "SQLiteMemoryStore", FakeSQLiteStore)
+    monkeypatch.setattr(
+        input_nodes,
+        "get_postgres_memory_store",
+        FakePostgresStore,
+    )
     state = {"messages": [HumanMessage(content="sp 2tr")]}
     normalized = normalize_input_node(state)
     state.update(normalized)
@@ -119,7 +147,7 @@ def test_session_lifecycle_routes_ongoing_turn_to_end_and_ended_turn_to_commit()
 
 
 def test_persist_turn_stores_only_current_turn_and_tool_activity(tmp_path, monkeypatch):
-    store = SQLiteMemoryStore(tmp_path / "memory.sqlite3")
+    store = PostgresMemoryStore(f"sqlite+pysqlite:///{tmp_path / 'memory.sqlite3'}")
     monkeypatch.setattr(persistence_nodes, "_store", store)
     messages = [
         HumanMessage(content="Previous turn."),
@@ -183,7 +211,7 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
     tmp_path,
     monkeypatch,
 ):
-    store = SQLiteMemoryStore(tmp_path / "memory.sqlite3")
+    store = PostgresMemoryStore(f"sqlite+pysqlite:///{tmp_path / 'memory.sqlite3'}")
     monkeypatch.setattr(persistence_nodes, "_store", store)
 
     class FakeProfileStore:
@@ -274,7 +302,7 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
 
 
 def test_ongoing_turn_does_not_write_episode_or_profile(tmp_path, monkeypatch):
-    store = SQLiteMemoryStore(tmp_path / "memory.sqlite3")
+    store = PostgresMemoryStore(f"sqlite+pysqlite:///{tmp_path / 'memory.sqlite3'}")
     monkeypatch.setattr(persistence_nodes, "_store", store)
 
     class FakeProfileStore:
@@ -297,25 +325,46 @@ def test_ongoing_turn_does_not_write_episode_or_profile(tmp_path, monkeypatch):
     assert store.get_episode("SESSION-ONGOING") is None
 
 
-def test_mem0_profile_fact_records_session_provenance(monkeypatch):
-    from src.memory.profile import mem0_store
+def test_profile_fact_is_written_to_qdrant_and_postgres():
+    from types import SimpleNamespace
 
-    class FakeMemory:
-        calls = []
+    from src.memory.profile.profile_store import ProfileStore, PROFILE_COLLECTION
 
-        def add(self, content, **kwargs):
-            self.calls.append((content, kwargs))
+    class FakePostgresStore:
+        def save_profile_facts(self, **kwargs):
+            self.saved = kwargs
 
-    memory = FakeMemory()
-    monkeypatch.setattr(mem0_store, "_get_memory", lambda: memory)
+    class FakeVectorStore:
+        def init_collection(self, collection_name, dense_dim):
+            self.initialized = (collection_name, dense_dim)
 
-    mem0_store.Mem0ProfileStore().add_profile_facts(
+        class Client:
+            def upsert(self, **kwargs):
+                self.upserted = kwargs
+
+        client = Client()
+
+    vector_store = FakeVectorStore()
+    postgres_store = FakePostgresStore()
+    connections = SimpleNamespace(
+        vector_store=vector_store,
+        dense_embedder=SimpleNamespace(embed_text=lambda _text: [0.1, 0.2]),
+    )
+    ProfileStore(postgres_store, connections).add_profile_facts(
         "CUST-4",
         [{"key": "preferred_category", "value": "air purifier"}],
         "SESSION-4",
     )
 
-    assert memory.calls[0][1]["metadata"]["provenance_session_id"] == "SESSION-4"
+    assert vector_store.initialized == (PROFILE_COLLECTION, 768)
+    point = vector_store.client.upserted["points"][0]
+    assert point.payload["provenance_session_id"] == "SESSION-4"
+    assert point.payload["profile_key"] == "preferred_category"
+    assert postgres_store.saved["customer_id"] == "CUST-4"
+    assert postgres_store.saved["session_id"] == "SESSION-4"
+    assert postgres_store.saved["facts"] == [
+        {"key": "preferred_category", "value": "air purifier"}
+    ]
 
 
 def test_memory_write_queues_profile_fact_until_session_commit():

@@ -1,4 +1,4 @@
-﻿# src/tools/tool_repository.py
+# src/tools/tool_repository.py
 
 from typing import Any, Dict, List, Literal, Optional
 
@@ -80,8 +80,8 @@ def crm_get_customer(
     return {
         "found": bool(phone or zalo_id or fb_id),
         "customer_id": "CUST-1029" if phone else None,
-        "name": "KhÃ¡ch hÃ ng",
-        "honorific": "Anh/Chá»‹",
+        "name": "Khách hàng",
+        "honorific": "Anh/Chị",
         "phone": phone,
         "identities": {
             "zalo_id": zalo_id,
@@ -139,7 +139,7 @@ def catalog_search(
         "items": [
             {
                 "sku": sku or "SKU-AIR-PRO",
-                "name": "MÃ¡y lá»c khÃ´ng khÃ­ Pro",
+                "name": "Máy lọc không khí Pro",
                 "list_price_vnd": 4_890_000,
                 "attributes": {
                     "coverage_m2": 30,

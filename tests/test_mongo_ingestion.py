@@ -26,10 +26,23 @@ def test_ingest_product_document_uses_catalog_schema():
     prepared = ingest_product_document(product)
 
     assert prepared["_id"] == "SKU-SN-TEST"
-    assert prepared["min_price"] == 1_290_000
-    assert prepared["max_price"] == 1_340_000
-    assert prepared["total_stock"] == 12
-    assert prepared["in_stock"] is True
-    assert "1.340.000đ" in prepared["embedding_text"]
+    assert prepared["variants"] == [
+        {
+            "variant_sku": "SKU-SN-TEST-42-DEN",
+            "size": 42,
+            "color": "đen",
+        }
+    ]
+    assert not {
+        "list_price_vnd",
+        "min_price",
+        "max_price",
+        "stock",
+        "total_stock",
+        "in_stock",
+    } & prepared.keys()
+    assert "1.290.000đ" not in prepared["embedding_text"]
+    assert "tồn kho" not in prepared["embedding_text"]
     assert "SKU-SN-TEST-42-DEN" in prepared["embedding_text"]
     assert "vải lưới" in prepared["embedding_text"]
+    assert not {"price_delta_vnd", "stock"} & prepared["variants"][0].keys()

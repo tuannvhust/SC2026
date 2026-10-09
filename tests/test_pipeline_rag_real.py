@@ -30,7 +30,7 @@ def _print_stage(name: str, value: Any) -> None:
 
 
 def run(query: str) -> int:
-    for name in ("GEMINI_API_KEY", "QDRANT_URL", "QDRANT_API_KEY", "HF_TOKEN"):
+    for name in ("GEMINI_API_KEY", "QDRANT_URL", "QDRANT_API_KEY"):
         _configured(name)
 
     from src.memory.semantic_rag.generator import RAGGenerator
@@ -62,7 +62,7 @@ def run(query: str) -> int:
     _print_stage("3. GEMINI + QDRANT RETRIEVAL", documents)
 
     reranked = Reranker().rerank(rewritten, documents, top_n=5)
-    _print_stage("4. HUGGING FACE RERANKING", reranked)
+    _print_stage("4. LOCAL RERANKING", reranked)
     generator = RAGGenerator()
     answer = generator.generate(rewritten, reranked)
     _print_stage("5. GENERATOR ANSWER", answer)
