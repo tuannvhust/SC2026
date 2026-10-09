@@ -4,8 +4,10 @@ import json
 from pathlib import Path
 
 from data_gen import auto_check
+from data_gen.assemble_scenario import assemble_scenario
 from data_gen.facts import build_fact_pack
 from data_gen.lint_briefs import btc_data, lint_one
+from data_gen.run_batch import raw_requires_regeneration
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -61,3 +63,21 @@ def test_generated_scenarios_are_idempotent_inputs():
     first = json.loads((ROOT / "data_gen/scenarios_dryrun/SC-DEMO-01.json").read_text(encoding="utf-8"))
     second = json.loads((ROOT / "data_gen/scenarios_dryrun/SC-DEMO-01.json").read_text(encoding="utf-8"))
     assert first == second
+
+
+def test_assembled_scenario_preserves_customer_id():
+    b = brief("SC-DEMO-01")
+    packs = {call["call_index"]: build_fact_pack(b, call["call_index"]) for call in b["calls"]}
+    raw = {call["call_index"]: {"dialogue": [{"role": "customer", "text": "Tôi muốn hỏi thêm."}]} for call in b["calls"]}
+    scenario = assemble_scenario(b, raw, packs)
+    assert scenario["customer_id"] == b["customer_id"]
+
+
+def test_batch_does_not_reuse_dry_run_raw_for_production():
+    raw = ROOT / "data_gen" / "tests" / "_raw_mode_compat.json"
+    raw.write_text(json.dumps({"generation_meta": {"provider": "dry-run", "model": "dry-run", "prompt_version": "dialogue_v2", "seed": 7, "dry_run": True}}), encoding="utf-8")
+    try:
+        assert raw_requires_regeneration(raw, dry_run=False, seed=7)
+        assert not raw_requires_regeneration(raw, dry_run=True, seed=7)
+    finally:
+        raw.unlink(missing_ok=True)

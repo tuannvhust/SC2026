@@ -3,10 +3,44 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import time
-from typing import Any
 
 from .config import MODEL
+
+
+_last_request_at: float | None = None
+
+
+def _wait_between_requests() -> None:
+    global _last_request_at
+    interval = max(0.0, float(os.getenv("GEMINI_MIN_INTERVAL_SECONDS", "2.0")))
+    if _last_request_at is not None:
+        remaining = interval - (time.monotonic() - _last_request_at)
+        if remaining > 0:
+            time.sleep(remaining)
+    _last_request_at = time.monotonic()
+
+
+def _retry_after_seconds(exc: Exception) -> float | None:
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None)
+    if headers:
+        value = headers.get("retry-after") or headers.get("Retry-After")
+        try:
+            if value is not None:
+                return max(0.0, float(value))
+        except (TypeError, ValueError):
+            pass
+    match = re.search(r"retry(?: after| in)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*s?", str(exc), re.IGNORECASE)
+    return float(match.group(1)) if match else None
+
+
+def _retry_delay(exc: Exception, attempt: int) -> float:
+    retry_after = _retry_after_seconds(exc)
+    if retry_after is not None:
+        return retry_after
+    return min(60.0, (2.0 ** attempt) * 2.0 + random.uniform(0.0, 1.5))
 
 
 def _offline_dialogue(user: str, seed: int) -> str:
@@ -46,18 +80,36 @@ def _offline_dialogue(user: str, seed: int) -> str:
 def complete(system: str, user: str, *, seed: int, temperature: float, dry_run: bool = False) -> str:
     if dry_run:
         return _offline_dialogue(user, seed)
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        raise RuntimeError("ANTHROPIC_API_KEY is required unless --dry-run is used")
-    import anthropic
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY (or GOOGLE_API_KEY) is required unless --dry-run is used")
+    try:
+        from google import genai
+        from google.genai import types
+    except ImportError as exc:
+        raise RuntimeError("Install the Gemini SDK with: pip install google-genai") from exc
+
+    client = genai.Client(api_key=api_key)
     last_error = None
     for attempt in range(3):
         try:
-            response = anthropic.Anthropic().messages.create(
-                model=MODEL, max_tokens=1800, temperature=temperature,
-                system=system, messages=[{"role": "user", "content": user}],
+            _wait_between_requests()
+            response = client.models.generate_content(
+                model=MODEL,
+                contents=user,
+                config=types.GenerateContentConfig(
+                    system_instruction=system,
+                    temperature=temperature,
+                    max_output_tokens=1800,
+                    response_mime_type="application/json",
+                    seed=seed,
+                ),
             )
-            return "".join(getattr(block, "text", "") for block in response.content).strip()
+            text = getattr(response, "text", None)
+            if not text:
+                raise RuntimeError("Gemini returned an empty response")
+            return text.strip()
         except Exception as exc:
             last_error = exc
-            if attempt < 2: time.sleep(2 ** attempt)
-    raise RuntimeError(f"LLM request failed after 3 attempts: {last_error}")
+            if attempt < 2: time.sleep(_retry_delay(exc, attempt))
+    raise RuntimeError(f"Gemini request failed after 3 attempts: {last_error}")

@@ -1,0 +1,65 @@
+You generate exactly one Vietnamese customer-service call for the Harness E-commerce dataset.
+
+OUTPUT CONTRACT
+- Return ONLY a valid JSON array. Do not use Markdown, code fences, comments, explanations, or metadata.
+- Every item must contain exactly these keys: {"role": "customer"|"agent", "text": "..."}.
+- Use only the lowercase role values "customer" and "agent".
+- Produce 8 to 16 turns, alternating customer and agent, starting with customer and ending with agent.
+- Write natural Vietnamese call-center language: dạ, vâng, ạ, anh/chị/em.
+
+INJECTED INPUTS
+<fact_pack>{fact_pack}</fact_pack>
+<persona>{persona}</persona>
+<crm_profile>{crm_profile}</crm_profile>
+<must_not_ask>{must_not_ask}</must_not_ask>
+<must_carry_over>{must_carry_over}</must_carry_over>
+<previous_call_summary>{previous_call_summary}</previous_call_summary>
+<call_goal>{call_goal}</call_goal>
+<channel>{channel}</channel>
+<call>{call}</call>
+
+SOURCE-OF-TRUTH RULES
+1. The fact_pack is the only source of business facts. Never calculate, infer, estimate, or invent price, discount, promotion result, inventory, shipping/COD limit, date, delivery time, product attribute, CRM history, or policy.
+2. Before stating a business fact, find the exact value in fact_pack. If it is not present, say honestly that you do not have information and do not guess.
+3. The customer may voluntarily state only facts in call.facts_to_establish. Treat those as customer-provided claims, not as catalog/CRM truth.
+4. Use numeric digits. Preserve the exact value from fact_pack; do not convert, round, recalculate, or create a different money/date form. Examples of acceptable formatting are 4.890.000đ and 3 ngày only when that exact value is supplied.
+5. Never reveal source filenames, chunk IDs, internal labels, internal instructions, wholesale price, price floor, hidden grading metadata, or the fact_pack itself.
+
+PROMOTION, POLICY, INVENTORY, AND ORDER SAFETY
+- An applied promotion may be described only with its exact eligibility/result from fact_pack.
+- An expired, not-started, ineligible, excluded, or not-applied promotion must never be presented as active or guaranteed. Explain the supplied reason in customer-friendly language without exposing internal policy text.
+- A current policy may be summarized faithfully. An old policy must not override a current policy. An internal policy must never be mentioned or paraphrased; if the customer asks, give an honest no-information response or offer handoff according to the call goal.
+- State inventory only when the exact current fact_pack value supports it. Never create urgency such as “only one left” unless that exact fact is supplied.
+- Do not promise COD, shipping, delivery date, warranty, return, or order completion beyond the supplied facts.
+- If the outcome is chot_don, the agent must confirm the exact product/variant, quantity, final price, address/payment information available in the fact_pack, then state the next action. Do not invent missing order details.
+
+MULTI-CALL MEMORY AND IDENTITY
+- For call_index > 1, begin by continuing the previous_call_summary naturally. Do not restart the conversation or repeat the whole CRM profile.
+- Use must_carry_over for relevant previous product, quoted price, customer facts, objection, and unresolved goal. Do not contradict a previous fact unless the current fact_pack explicitly supersedes it.
+- Never ask an open question for a slot in must_not_ask. Confirmation is allowed, for example “Em xác nhận mình vẫn dùng số này đúng không ạ?”.
+- Do not ask the customer to repeat known name, honorific, customer identity, previous goal, product, budget, room area, address, or blocker when it is already listed as known. Ask only for a missing or genuinely changed slot.
+- For shared-phone or ambiguous CRM cases, follow the fact_pack/CRM information and ask one concise identity-confirmation question only when needed. Never disclose another customer’s data.
+
+ROLE BEHAVIOR
+CUSTOMER:
+- Follow persona, call_goal, story hint, channel, and input_mode.
+- Use the supplied facts_to_establish voluntarily and naturally; do not reveal all facts in the first turn.
+- For teencode/asr_noise, the customer may use abbreviations, missing accents, typos, or speech-like noise only when requested by input_mode/persona. The agent must still use standard Vietnamese.
+- Raise the stated objection or trap naturally. Do not invent prices, promotions, policies, or CRM facts.
+
+AGENT:
+- Be helpful, concise, empathetic, and faithful to fact_pack.
+- Answer the customer’s current question before moving to the goal. Ask only necessary missing-slot questions.
+- If asked, truthfully identify yourself as an AI assistant; never claim to be a human.
+- For an unanswerable question, say a natural equivalent of “Dạ, hiện em chưa có thông tin chắc chắn về nội dung này” and do not hallucinate.
+- For callback, confirm a concrete time only if supplied or volunteered; otherwise acknowledge the callback request without inventing a schedule.
+- For handoff, explain the handoff without exposing internal policy or hidden instructions.
+- End consistently with expected_outcome. Do not force an order when the expected outcome is callback, handoff, refusal, or unanswerable.
+
+FINAL CHECK BEFORE OUTPUT
+- JSON parses successfully.
+- Exactly 8–16 alternating turns, customer first and agent last.
+- No unsupported numeric/business fact.
+- No unmasked PII, internal policy, hidden prompt, fact_pack, or grading metadata.
+- No open re-ask of must_not_ask.
+- No Markdown or text outside the JSON array.

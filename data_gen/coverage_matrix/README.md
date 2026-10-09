@@ -26,6 +26,15 @@ Script không hard-code persona, SKU, customer ID hoặc promotion ID. Các giá
 
 Matrix CSV mặc định được ghi vào `data_gen/reports/coverage_matrix.csv`; brief stub mặc định được ghi vào `data_gen/briefs/`.
 
+## Ý nghĩa cột `layer`
+
+`layer` là nhãn lập kế hoạch, không phải field của brief hoặc scenario BTC và hiện không làm thay đổi logic generate dialogue:
+
+- `A` — **hard-case/trap coverage**: các ca bắt buộc để kiểm thử biên như shared phone, policy cũ, promotion hết hạn, unanswerable, restricted, numeric và teencode. Các dòng này phải được ưu tiên viết và review.
+- `B` — **baseline diversity coverage**: các ca nền để trải đều persona, ngành hàng, miền, promotion và kênh mà không gắn hard-case cụ thể.
+
+`layer` được giữ trong CSV để reviewer biết lý do slot tồn tại và ưu tiên xử lý. Khi tạo brief stub, thông tin này được lưu lại trong `_matrix_hints.layer` để không mất trace; field này không được đưa vào output scenario BTC.
+
 ## Quy trình làm việc
 
 ### 1. Khảo sát dữ liệu
@@ -64,9 +73,17 @@ python -m data_gen.coverage_matrix.make_coverage_matrix generate `
 Mở CSV bằng spreadsheet. Mỗi dòng cần review các cột:
 
 - `persona_id`, `nganh`, `mien`;
+- `layer` (`A` hard-case/trap hoặc `B` baseline diversity);
 - `hard_case_tag`, `special_customer`, `promo_situation`, `policy_situation`;
 - `customer_id` nếu là ca đặc biệt;
 - `owner`, `status`, `notes`.
+
+### Quy tắc chọn `customer_id`
+
+- Nếu cột `customer_id` đã có giá trị, brief của slot đó **phải dùng đúng customer này**. Đây là customer được pipeline phát hiện từ CRM để tái hiện một trường hợp đặc biệt, ví dụ shared phone, long history hoặc order đang shipping.
+- Nếu cột `customer_id` để trống, slot chưa khóa vào customer cụ thể. Thành viên phụ trách phải chọn một customer hợp lệ từ `data/catalog/crm_seed.json` phù hợp với câu chuyện và điền vào brief; không được tự bịa ID.
+- Với scenario khách mới, chỉ dùng dạng `NEW:<id>` khi story thực sự cần khách chưa có CRM record và toàn bộ pipeline/mock tools đã hỗ trợ trường hợp đó. Không dùng `TODO` khi commit brief.
+- `customer_id` trong CSV là hướng dẫn cho brief, không phải factual data để LLM tự quyết định. Sau khi điền brief, chạy `lint_briefs` để kiểm tra ID.
 
 Quy tắc cộng tác:
 

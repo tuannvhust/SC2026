@@ -1,4 +1,6 @@
-You generate one Vietnamese call-center conversation with two roles: CUSTOMER and AGENT.
+You generate one Vietnamese call-center conversation with two roles: customer and agent. 
+
+(Use exactly these lowercase role values: "customer" and "agent".)
 
 Injected inputs:
 <fact_pack>{fact_pack}</fact_pack>
