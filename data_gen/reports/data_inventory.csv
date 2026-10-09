@@ -1,0 +1,45 @@
+file,type,chunk_count,chunk_ids
+changelog.md,current,5,## [CL-01];## [CL-02];## [CL-03];## [CL-04];## [CL-05]
+chinh-sach-bao-hanh.md,current,5,## [BH-01];## [BH-02];## [BH-03];## [BH-04];## [BH-05]
+chinh-sach-doi-tra-v2026-06-HET-HIEU-LUC.md,old,5,## [DT-OLD-01];## [DT-OLD-02];## [DT-OLD-03];## [DT-OLD-04];## [DT-OLD-05]
+chinh-sach-doi-tra.md,current,7,## [DT-01];## [DT-02];## [DT-03];## [DT-04];## [DT-05];## [DT-06];## [DT-07]
+chinh-sach-van-chuyen-thanh-toan.md,current,7,## [VC-01];## [VC-02];## [VC-03];## [VC-04];## [VC-05];## [VC-06];## [VC-07]
+dieu-khoan-khuyen-mai.md,current,9,## [KM-01];## [KM-02];## [KM-03];## [KM-04];## [KM-05];## [KM-06];## [KM-07];## [KM-08];## [KM-09]
+faq.md,current,19,## [FAQ-01];## [FAQ-02];## [FAQ-03];## [FAQ-04];## [FAQ-05];## [FAQ-06];## [FAQ-07];## [FAQ-08];## [FAQ-09];## [FAQ-10];## [FAQ-11];## [FAQ-12];## [FAQ-13];## [FAQ-14];## [FAQ-16];## [FAQ-17];## [FAQ-18];## [FAQ-19];## [FAQ-15]
+ghi-chu-nhap-hang-NOI-BO.md,internal,4,## [NB-01];## [NB-02];## [NB-03];## [NB-04]
+noi-quy-nhan-vien.md,other,5,## [NQ-01];## [NQ-02];## [NQ-03];## [NQ-04];## [NQ-05]
+playbook-telesale.md,other,11,## [PB-01];## [PB-02];## [PB-03];## [PB-04];## [PB-05];## [PB-06];## [PB-07];## [PB-08];## [PB-09];## [PB-10];## [PB-11]
+quy-trinh-cod-hoan-hang.md,current,6,## [QT-01];## [QT-02];## [QT-03];## [QT-04];## [QT-05];## [QT-06]
+spec-gia-dung.md,other,7,## [SP-AIR-01];## [SP-AIR-02];## [SP-AIR-03];## [SP-WF-01];## [SP-WF-02];## [SP-FAN-01];## [SP-AF-01]
+spec-thoi-trang-me-be.md,other,6,## [SP-SN-01];## [SP-SN-02];## [SP-JK-01];## [SP-MB-01];## [SP-MB-02];## [SP-MB-03]
+thong-bao-lich-nghi.md,other,3,## [LN-01];## [LN-02];## [LN-03]
+catalog/promotions.json,promotion,1,GIFT-FILTER:active
+catalog/promotions.json,promotion,1,AIR-OCT:active
+catalog/promotions.json,promotion,1,XM-COMBO:active
+catalog/promotions.json,promotion,1,RUN-10:active
+catalog/promotions.json,promotion,1,AIR-2ND-50:active
+catalog/promotions.json,promotion,1,NAM-SHIP0:active
+catalog/promotions.json,promotion,1,TRADE-IN-AP:active
+catalog/promotions.json,promotion,1,MOM-FREESHIP:active
+catalog/promotions.json,promotion,1,COD-0:active
+catalog/promotions.json,promotion,1,AP-SEP:expired
+catalog/promotions.json,promotion,1,RUN2-SALE:expired
+catalog/promotions.json,promotion,1,PUMP-GIFT:expired
+catalog/promotions.json,promotion,1,11-11:not_started
+catalog/crm_seed.json,customer_special,1,C031:orders:sessions
+catalog/crm_seed.json,customer_special,1,C032:orders
+catalog/crm_seed.json,customer_special,1,C033:sessions
+catalog/crm_seed.json,customer_special,1,C034:shared_phone:sessions
+catalog/crm_seed.json,customer_special,1,C035:shared_phone
+simulator/personas.json,persona,1,"khach_do_du_hoi_nguoi_nha:lịch sự, hỏi kỹ, hay nói 'để hỏi người nhà'"
+simulator/personas.json,persona,1,"khach_so_gia:thực dụng, nhắc giá đối thủ, đòi giảm"
+simulator/personas.json,persona,1,"khach_da_mua_doi_size:đã là khách, mong được nhớ"
+simulator/personas.json,persona,1,"khach_hoi_nhieu_khong_mua:hỏi nhiều chi tiết, chưa quyết"
+simulator/personas.json,persona,1,"khach_goi_lan_3_het_kien_nhan:cộc, muốn xong nhanh"
+simulator/personas.json,persona,1,"khach_da_kenh_fb_hotline:nhắn tin teencode, gọi thì bình thường"
+simulator/personas.json,persona,1,"khach_ngoai_pham_vi_chuyen_may:lo lắng, hỏi câu y tế"
+simulator/personas.json,persona,1,"khach_hoi_ngoai_tai_lieu:tò mò, hỏi thứ lạ"
+simulator/personas.json,persona,1,khach_da_kenh_mau_thuan:bực vì mỗi kênh báo một giá
+simulator/personas.json,persona,1,hai_nguoi_chung_sdt:hai người khác nhau dùng chung số
+simulator/personas.json,persona,1,"khach_quay_lai_sau_8_thang:khách cũ, nhớ mang máng"
+simulator/personas.json,persona,1,"khach_mua_nhieu_mon:nói nhiều, lan man, nhiều yêu cầu"

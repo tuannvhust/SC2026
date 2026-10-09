@@ -1,0 +1,13 @@
+{
+  "owners": ["SV1", "SV2"],
+  "base_slots": 40,
+  "quotas": {
+    "total_calls_min": 150,
+    "multi_session_min": 35,
+    "multichannel_min": 12,
+    "per_persona_min": 4,
+    "per_nganh_min": 20,
+    "per_mien_min": 15,
+    "per_tag_min": 2
+  }
+}

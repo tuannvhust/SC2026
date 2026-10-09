@@ -1,0 +1,31 @@
+{
+  "brief_id": "SC-DEMO-01",
+  "persona_id": "khach_do_du_hoi_nguoi_nha",
+  "customer_id": "C031",
+  "channel": "hotline",
+  "hard_case_tags": ["conditional_promotion", "multi_call"],
+  "calls": [
+    {
+      "call_index": 1,
+      "days_later": 0,
+      "customer_goal": "Tìm máy lọc không khí cho phòng khoảng 25m2, cần hỏi người nhà trước khi mua.",
+      "products": [{"sku": "SKU-AP-PRO", "qty": 1}],
+      "promo_codes_in_play": ["TRADE-IN-AP"],
+      "policy_chunk_ids": ["PB-03", "KM-09"],
+      "facts_to_establish": {"room_area_m2": 25, "budget_vnd": 8000000, "blocker": "can hoi nguoi nha"},
+      "expected_outcome": "hen_goi_lai",
+      "story_hint": "Khách hỏi kỹ và chưa chốt vì cần trao đổi với người nhà. Agent phải kiểm tra nhu cầu và chỉ nói ưu đãi nếu điều kiện CRM phù hợp."
+    },
+    {
+      "call_index": 2,
+      "days_later": 2,
+      "customer_goal": "Quay lại sau khi gia đình đồng ý và đặt sản phẩm qua COD.",
+      "products": [{"sku": "SKU-AP-PRO", "qty": 1}],
+      "promo_codes_in_play": ["TRADE-IN-AP"],
+      "policy_chunk_ids": ["PB-01", "PB-09", "VC-03"],
+      "facts_to_establish": {"address_confirmed": true},
+      "expected_outcome": "chot_don",
+      "story_hint": "Khách mở đầu bằng việc nối tiếp cuộc trước, không hỏi lại diện tích. Khách xác nhận mua và yêu cầu COD; giá và ưu đãi phải lấy lại từ fact pack."
+    }
+  ]
+}

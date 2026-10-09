@@ -1,0 +1,32 @@
+{
+  "brief_id": "SC-DEMO-02",
+  "persona_id": "khach_so_gia",
+  "customer_id": "C033",
+  "channel": "hotline",
+  "hard_case_tags": ["expired_promotion", "multi_call"],
+  "calls": [
+    {
+      "call_index": 1,
+      "call_date": "2026-09-25",
+      "days_later": 0,
+      "customer_goal": "Hỏi AirPure X trong thời gian khách nghĩ chương trình giảm giá còn hiệu lực.",
+      "products": [{"sku": "SKU-AP-X", "qty": 1}],
+      "promo_codes_in_play": ["AP-SEP"],
+      "policy_chunk_ids": ["KM-01", "PB-02"],
+      "facts_to_establish": {"competitor_context": "đang so sánh giá", "blocker": "so sanh gia"},
+      "expected_outcome": "hen_goi_lai",
+      "story_hint": "Khách hỏi giá và nhắc chương trình cũ. Cuộc đầu chỉ ghi nhận nhu cầu; không đưa kết quả khuyến mãi thủ công vào brief."
+    },
+    {
+      "call_index": 2,
+      "days_later": 20,
+      "customer_goal": "Quay lại và vẫn kỳ vọng chương trình AP-SEP, nhưng chấp nhận giá hiện hành sau khi được giải thích.",
+      "products": [{"sku": "SKU-AP-X", "qty": 1}],
+      "promo_codes_in_play": ["AP-SEP", "GIFT-FILTER"],
+      "policy_chunk_ids": ["KM-01", "KM-07", "PB-04", "PB-09"],
+      "facts_to_establish": {"old_promotion_mentioned": true},
+      "expected_outcome": "chot_don",
+      "story_hint": "Khách nối tiếp lời hứa giá cũ. Agent phải kiểm tra theo ngày gọi, nói rõ chương trình đã hết và chỉ nêu ưu đãi hiện hành nếu fact pack xác nhận."
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+scenario_id,call_index,error_code,description,excerpt,hard
+*,*,BTC_VALIDATOR_MISSING,BTC validator is absent from checkout,D:\02-uni\05-2627-thesis\sudo-code\SC2026\data\eval\validate_scenarios.py,False

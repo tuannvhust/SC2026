@@ -1,0 +1,121 @@
+{
+  "brief_id": "SC-DEMO-02",
+  "call_index": 1,
+  "call_date": "2026-09-25",
+  "reference_date": "2026-10-15",
+  "persona_id": "khach_so_gia",
+  "channel": "hotline",
+  "customer": {
+    "customer_id": "C033",
+    "name": null,
+    "honorific": null,
+    "crm": {
+      "found": true,
+      "ambiguous": false,
+      "customer_id": "C033",
+      "name": "Loan",
+      "honorific": "chị",
+      "sessions": [
+        {
+          "session_id": "S-OLD-2",
+          "date": "2026-03-29",
+          "channel": "zalo_oa",
+          "outcome": "hen_goi_lai"
+        }
+      ]
+    }
+  },
+  "customer_facts": {
+    "competitor_context": "đang so sánh giá",
+    "blocker": "so sanh gia"
+  },
+  "products": [
+    {
+      "requested_sku": "SKU-AP-X",
+      "sku": "SKU-AP-X",
+      "variant_id": null,
+      "qty": 1,
+      "catalog": {
+        "items": [
+          {
+            "sku": "SKU-AP-X",
+            "name": "Máy lọc không khí AirPure X",
+            "category": "gia-dung/may-loc-khong-khi",
+            "list_price_vnd": 4890000,
+            "attributes": {
+              "room_area_m2": 25,
+              "features": "HEPA H13, cảm biến PM2.5, chế độ ngủ",
+              "warranty_months": 24,
+              "child_safe_lock": false
+            },
+            "variants": []
+          }
+        ],
+        "total": 1
+      },
+      "quote": {
+        "sku": "SKU-AP-X",
+        "list_price_vnd": 4890000,
+        "final_price_vnd": 4390000,
+        "applied_promos": [
+          {
+            "promo_code": "COD-0",
+            "type": "freecod",
+            "discount_vnd": 0
+          },
+          {
+            "promo_code": "AP-SEP",
+            "type": "fixed",
+            "discount_vnd": 500000
+          }
+        ],
+        "expired_promos": [],
+        "ineligible_promos": [
+          {
+            "promo_code": "TRADE-IN-AP",
+            "reason": "requires_owned_sku"
+          }
+        ],
+        "not_applied_exclusive": [
+          "GIFT-FILTER"
+        ],
+        "freeship": true,
+        "_internal_price_floor_vnd": 4401000
+      },
+      "inventory": {
+        "sku": "SKU-AP-X",
+        "in_stock": true,
+        "qty": 40
+      },
+      "source": {
+        "catalog": "eval.mock_tools.catalog_search + catalog/products.json",
+        "quote": "eval.mock_tools.pricing_get_quote",
+        "inventory": "eval.mock_tools.inventory_check"
+      }
+    }
+  ],
+  "policy": [
+    {
+      "chunk_id": "KM-01",
+      "file": "policy\\dieu-khoan-khuyen-mai.md",
+      "type": "current",
+      "text": "Khuyến mãi chỉ áp dụng khi ngày **tạo đơn** nằm trong khoảng `start`–`end`. Giá đã báo trong một phiên trước không giữ được nếu chương trình đã hết hạn tại ngày tạo đơn; nhân viên xin lỗi và giới thiệu chương trình hiện hành. Ngoại lệ duy nhất: đơn đã tạo (có mã đơn) trước ngày hết hạn thì giữ giá.",
+      "source": "policy:dieu-khoan-khuyen-mai.md#KM-01"
+    },
+    {
+      "chunk_id": "PB-02",
+      "file": "policy\\playbook-telesale.md",
+      "type": "other",
+      "text": "Không so giá với đối thủ, không xác nhận hay phủ nhận giá đối thủ khách nêu. Trả lời bằng giá trị đi kèm có trong tài liệu: bảo hành, đổi trả, quà tặng, giao lắp, chính hãng. Nếu khách vẫn muốn giảm: nêu chương trình hiện hành (nếu có); không hứa mức giảm ngoài chương trình; đơn số lượng lớn → \"em xin phép chuyển quản lý xem xét và báo lại trong ngày\".",
+      "source": "policy:playbook-telesale.md#PB-02"
+    }
+  ],
+  "internal_policy_ids": [],
+  "promo_codes_in_play": [
+    "AP-SEP"
+  ],
+  "sources": {
+    "crm": "eval.mock_tools.crm_get_customer + catalog/crm_seed.json",
+    "policy": "data/policy/*.md"
+  }
+}

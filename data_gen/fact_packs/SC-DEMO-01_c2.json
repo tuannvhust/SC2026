@@ -1,0 +1,140 @@
+{
+  "brief_id": "SC-DEMO-01",
+  "call_index": 2,
+  "call_date": "2026-10-17",
+  "reference_date": "2026-10-15",
+  "persona_id": "khach_do_du_hoi_nguoi_nha",
+  "channel": "hotline",
+  "customer": {
+    "customer_id": "C031",
+    "name": null,
+    "honorific": null,
+    "crm": {
+      "found": true,
+      "ambiguous": false,
+      "customer_id": "C031",
+      "name": "Oanh",
+      "honorific": "chị",
+      "orders": [
+        {
+          "order_id": "OD188213",
+          "sku": "SKU-AP-X-2024",
+          "price_vnd": 4290000,
+          "date": "2026-02-17",
+          "status": "delivered"
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "S-OLD-1",
+          "date": "2026-02-17",
+          "channel": "hotline",
+          "outcome": "chot_don"
+        }
+      ]
+    }
+  },
+  "customer_facts": {
+    "address_confirmed": true
+  },
+  "products": [
+    {
+      "requested_sku": "SKU-AP-PRO",
+      "sku": "SKU-AP-PRO",
+      "variant_id": null,
+      "qty": 1,
+      "catalog": {
+        "items": [
+          {
+            "sku": "SKU-AP-PRO",
+            "name": "Máy lọc không khí AirPure Pro",
+            "category": "gia-dung/may-loc-khong-khi",
+            "list_price_vnd": 7990000,
+            "attributes": {
+              "room_area_m2": 45,
+              "features": "HEPA H13, UV, diệt khuẩn",
+              "warranty_months": 24,
+              "child_safe_lock": true
+            },
+            "variants": []
+          }
+        ],
+        "total": 1
+      },
+      "quote": {
+        "sku": "SKU-AP-PRO",
+        "list_price_vnd": 7990000,
+        "final_price_vnd": 7590000,
+        "applied_promos": [
+          {
+            "promo_code": "COD-0",
+            "type": "freecod",
+            "discount_vnd": 0
+          },
+          {
+            "promo_code": "TRADE-IN-AP",
+            "type": "fixed",
+            "discount_vnd": 400000
+          }
+        ],
+        "expired_promos": [],
+        "ineligible_promos": [
+          {
+            "promo_code": "AIR-2ND-50",
+            "reason": "min_qty"
+          },
+          {
+            "promo_code": "NAM-SHIP0",
+            "reason": "region"
+          }
+        ],
+        "not_applied_exclusive": [
+          "AIR-OCT"
+        ],
+        "freeship": true,
+        "_internal_price_floor_vnd": 7191000
+      },
+      "inventory": {
+        "sku": "SKU-AP-PRO",
+        "in_stock": true,
+        "qty": 5
+      },
+      "source": {
+        "catalog": "eval.mock_tools.catalog_search + catalog/products.json",
+        "quote": "eval.mock_tools.pricing_get_quote",
+        "inventory": "eval.mock_tools.inventory_check"
+      }
+    }
+  ],
+  "policy": [
+    {
+      "chunk_id": "VC-03",
+      "file": "policy\\chinh-sach-van-chuyen-thanh-toan.md",
+      "type": "current",
+      "text": "Chấp nhận COD toàn quốc với đơn dưới 10.000.000đ. Phí thu hộ: **0đ** (chương trình COD-0). Khách được kiểm tra ngoại quan hàng trước khi thanh toán nhưng không được dùng thử. Đơn COD bị từ chối nhận không lý do 2 lần sẽ yêu cầu chuyển khoản trước cho các đơn sau.",
+      "source": "policy:chinh-sach-van-chuyen-thanh-toan.md#VC-03"
+    },
+    {
+      "chunk_id": "PB-01",
+      "file": "policy\\playbook-telesale.md",
+      "type": "other",
+      "text": "Chào bằng tên và xưng hô đã lưu; nhắc lại tối đa **2 thông tin** liên quan nhất của phiên trước (sản phẩm + rào cản) dưới dạng câu xác nhận; không đọc lại toàn bộ hồ sơ. Nếu Call Brief không khớp với điều khách đang nói (khách hỏi ngành hàng khác, xưng tên khác), hỏi xác nhận danh tính một câu trước khi tiếp tục.",
+      "source": "policy:playbook-telesale.md#PB-01"
+    },
+    {
+      "chunk_id": "PB-09",
+      "file": "policy\\playbook-telesale.md",
+      "type": "other",
+      "text": "Trước khi gọi `order.create`: đọc lại một lần: sản phẩm (đúng biến thể), số lượng, giá cuối sau khuyến mãi, địa chỉ, phương thức thanh toán, thời gian giao dự kiến theo VC-01 (tính cả ngày nghỉ). Đơn trên 10 triệu không COD.",
+      "source": "policy:playbook-telesale.md#PB-09"
+    }
+  ],
+  "internal_policy_ids": [],
+  "promo_codes_in_play": [
+    "TRADE-IN-AP"
+  ],
+  "sources": {
+    "crm": "eval.mock_tools.crm_get_customer + catalog/crm_seed.json",
+    "policy": "data/policy/*.md"
+  }
+}

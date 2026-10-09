@@ -1,0 +1,44 @@
+{
+  "brief_id": "SC-DEMO-02",
+  "call_index": 1,
+  "dialogue": [
+    {
+      "role": "customer",
+      "text": "Alo, anh/chị cho hỏi Máy lọc không khí AirPure X giá bao nhiêu ạ?"
+    },
+    {
+      "role": "agent",
+      "text": "Dạ em kiểm tra theo ngày gọi, Máy lọc không khí AirPure X hiện có giá 4.390.000đ ạ."
+    },
+    {
+      "role": "customer",
+      "text": "Sản phẩm này dùng có ổn không em?"
+    },
+    {
+      "role": "agent",
+      "text": "Dạ em sẽ tư vấn theo thông tin sản phẩm trong hệ thống ạ."
+    },
+    {
+      "role": "customer",
+      "text": "Nếu có chương trình phù hợp thì em nói rõ điều kiện giúp anh/chị nhé."
+    },
+    {
+      "role": "agent",
+      "text": "Dạ chương trình và điều kiện áp dụng sẽ được kiểm tra theo ngày, sản phẩm và hồ sơ khách hàng ạ."
+    },
+    {
+      "role": "customer",
+      "text": "Để anh/chị trao đổi thêm với gia đình rồi gọi lại em nhé."
+    },
+    {
+      "role": "agent",
+      "text": "Dạ vâng, em ghi nhận và hỗ trợ mình khi gọi lại ạ."
+    }
+  ],
+  "generation_meta": {
+    "prompt_version": "dialogue_v1",
+    "model": "dry-run",
+    "seed": 7,
+    "dry_run": true
+  }
+}

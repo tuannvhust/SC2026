@@ -1,0 +1,135 @@
+{
+  "brief_id": "SC-DEMO-01",
+  "call_index": 1,
+  "call_date": "2026-10-15",
+  "reference_date": "2026-10-15",
+  "persona_id": "khach_do_du_hoi_nguoi_nha",
+  "channel": "hotline",
+  "customer": {
+    "customer_id": "C031",
+    "name": null,
+    "honorific": null,
+    "crm": {
+      "found": true,
+      "ambiguous": false,
+      "customer_id": "C031",
+      "name": "Oanh",
+      "honorific": "chị",
+      "orders": [
+        {
+          "order_id": "OD188213",
+          "sku": "SKU-AP-X-2024",
+          "price_vnd": 4290000,
+          "date": "2026-02-17",
+          "status": "delivered"
+        }
+      ],
+      "sessions": [
+        {
+          "session_id": "S-OLD-1",
+          "date": "2026-02-17",
+          "channel": "hotline",
+          "outcome": "chot_don"
+        }
+      ]
+    }
+  },
+  "customer_facts": {
+    "room_area_m2": 25,
+    "budget_vnd": 8000000,
+    "blocker": "can hoi nguoi nha"
+  },
+  "products": [
+    {
+      "requested_sku": "SKU-AP-PRO",
+      "sku": "SKU-AP-PRO",
+      "variant_id": null,
+      "qty": 1,
+      "catalog": {
+        "items": [
+          {
+            "sku": "SKU-AP-PRO",
+            "name": "Máy lọc không khí AirPure Pro",
+            "category": "gia-dung/may-loc-khong-khi",
+            "list_price_vnd": 7990000,
+            "attributes": {
+              "room_area_m2": 45,
+              "features": "HEPA H13, UV, diệt khuẩn",
+              "warranty_months": 24,
+              "child_safe_lock": true
+            },
+            "variants": []
+          }
+        ],
+        "total": 1
+      },
+      "quote": {
+        "sku": "SKU-AP-PRO",
+        "list_price_vnd": 7990000,
+        "final_price_vnd": 7590000,
+        "applied_promos": [
+          {
+            "promo_code": "COD-0",
+            "type": "freecod",
+            "discount_vnd": 0
+          },
+          {
+            "promo_code": "TRADE-IN-AP",
+            "type": "fixed",
+            "discount_vnd": 400000
+          }
+        ],
+        "expired_promos": [],
+        "ineligible_promos": [
+          {
+            "promo_code": "AIR-2ND-50",
+            "reason": "min_qty"
+          },
+          {
+            "promo_code": "NAM-SHIP0",
+            "reason": "region"
+          }
+        ],
+        "not_applied_exclusive": [
+          "AIR-OCT"
+        ],
+        "freeship": true,
+        "_internal_price_floor_vnd": 7191000
+      },
+      "inventory": {
+        "sku": "SKU-AP-PRO",
+        "in_stock": true,
+        "qty": 5
+      },
+      "source": {
+        "catalog": "eval.mock_tools.catalog_search + catalog/products.json",
+        "quote": "eval.mock_tools.pricing_get_quote",
+        "inventory": "eval.mock_tools.inventory_check"
+      }
+    }
+  ],
+  "policy": [
+    {
+      "chunk_id": "KM-09",
+      "file": "policy\\dieu-khoan-khuyen-mai.md",
+      "type": "current",
+      "text": "TRADE-IN-AP: khách có đơn đã giao chứa SKU-AP-X-2024 trong CRM được trừ 400.000đ khi mua AirPure X/Y/Pro; máy cũ do đơn vị vận chuyển thu khi giao máy mới; không yêu cầu máy cũ còn hoạt động. Không cộng với AIR-OCT.",
+      "source": "policy:dieu-khoan-khuyen-mai.md#KM-09"
+    },
+    {
+      "chunk_id": "PB-03",
+      "file": "policy\\playbook-telesale.md",
+      "type": "other",
+      "text": "Xác nhận thời điểm gọi lại cụ thể (ngày + khung giờ), ghi lịch bằng `schedule.callback`; nhắc thời hạn khuyến mãi nếu có (chỉ chương trình đang hiệu lực). Không tạo áp lực giả (\"chỉ còn 1 máy\") khi tồn kho không xác nhận điều đó.",
+      "source": "policy:playbook-telesale.md#PB-03"
+    }
+  ],
+  "internal_policy_ids": [],
+  "promo_codes_in_play": [
+    "TRADE-IN-AP"
+  ],
+  "sources": {
+    "crm": "eval.mock_tools.crm_get_customer + catalog/crm_seed.json",
+    "policy": "data/policy/*.md"
+  }
+}

@@ -26,48 +26,65 @@ Hội thoại telesales đòi hỏi thông tin sản phẩm theo thời gian th�
 ## 2. Kiến trúc Graph
 
 ```mermaid
-flowchart TD
-    START(["START — lượt khách hàng"])
+flowchart TB
+ subgraph INPUT["1. INPUT & SESSION CONTINUITY"]
+        IG{{"<b>input_guardrail</b><br>Kiểm tra đầu vào<br>"}}
+        N["<b>normalize_input</b><br>Chuẩn hóa đầu vào<br>"]
+        S["<b>resolve_identity</b><br>Xác định khách hàng theo customer_id<br>"]
+        B["<b>build_call_brief<br></b>Tạo call brief nếu là khách cũ"]
+        IM["Từ chối trả lời"]
+  end
+ subgraph TOOL["THỰC THI TOOL"]
+        T["<b>call_tool</b><br>crm.get_customer<br>catalog.search<br>order.create<br>...."]
+        RAG["<b>RAG Tool</b><br>policy_kb.search<br>"]
+        RE["<b>collect_tool_results</b><br>Tổng hợp kết quả"]
+  end
+ subgraph AGENT["2. AGENT LOOP"]
+        P{{"<b>plan_step</b><br>answer / clarify / tool / handoff / RAG"}}
+        TOOL
+  end
+ subgraph SAFETY["3. OUTPUT SAFETY"]
+        OG{{"<b>output_guardrail<br></b>Kiểm tra giá, KM khớp với tool_result<br>"}}
+        R["Thử lại"]
+        H["<b>handoff_to_human</b><br>Tạo handoff brief, chuyển máy cho nhân viên"]
+  end
+ subgraph MEMORY["4. MEMORY"]
+        WM["<b>persist_turn</b><br>Lưu hội thoại<br>Working Memory/Event Log"]
+        LM["<b>persist_call</b><br>Bộ nhớ cuộc gọi<br>Trích xuất → Kiểm tra → Lưu"]
+  end
+    START(["<b>START<br></b>Khách gửi tin nhắn / cuộc gọi"]) --> IG
+    IG -- Không hợp lệ /<br>ngoài phạm vi --> IM
+    IM --> WM
+    IG -- Hợp lệ --> N
+    N --> S
+    S --> B
+    B --> P
+    P -- trả lời / làm rõ --> OG
+    P -- gọi tool --> T
+    T --> RE
+    RAG --> RE
+    P -- không trả lời được<br>(ngoài phạm vi tài liệu) --> H
+    P -- cần thông tin từ KB --> RAG
+    RE --> P
+    OG -- đạt --> WM
+    OG -- không đạt --> R
+    R -- còn lượt thử lại --> P
+    R -- hết lượt thử lại --> H
+    H --> WM
+    WM -- input không hợp lệ --> END(["<b>END</b><br>Chờ lượt tiếp"])
+    WM -. cuộc gọi kết thúc .-> LM
+    LM --> END
 
-    A["resolve_identity<br/>Tra CRM theo số điện thoại / định danh kênh<br/>Nạp hồ sơ và bộ nhớ phiên trước"]
-    B["build_call_brief<br/>Tạo Call Brief đúng schema<br/>cho khách hàng quay lại"]
-    C["input_normalize<br/>Chuẩn hóa ASR / teencode<br/>Giữ lại nội dung gốc của khách"]
-    D["retrieve_context<br/>Điểm móc truy xuất ngữ cảnh<br/>cho RAG chính sách / catalog"]
-
-    subgraph PA["LẬP KẾ HOẠCH & THỰC THI — vòng lặp ReAct"]
-        E{{"plan_step<br/>Trả lời / gọi tool / hỏi làm rõ / không thể trả lời"}}
-        F["call_tool<br/>Gọi tool BTC với on=call_date<br/>Ghi lại lời gọi và kết quả tool"]
-    end
-
-    subgraph GF["GUARDRAIL & PHƯƠNG ÁN DỰ PHÒNG"]
-        G{{"guardrail_check<br/>Kiểm tra giá có căn cứ,<br/>PII, dữ liệu nội bộ và nhận là người thật"}}
-        H["handle_guardrail_failure<br/>Tăng retry_count lên 1"]
-        I["handoff_to_human<br/>Tạo HandoffBrief<br/>Gọi handoff.transfer"]
-    end
-
-    J["persist_turn<br/>Ghi fact và câu trả lời vào hồ sơ<br/>Cập nhật kết quả cuộc gọi"]
-    K["trace_emit<br/>Xuất trace JSONL gồm:<br/>câu hỏi, claim, tool, memory và latency"]
-    END(["END — trả lời khách hàng"])
-
-    START --> A --> B --> C --> D --> E
-
-    E -- "gọi tool" --> F
-    E -- "trả lời / hỏi làm rõ" --> G
-    E -- "không thể trả lời" --> I
-
-    F -- "tool lỗi / timeout" --> I
-    F -- "cần gọi thêm tool" --> E
-    F -- "đã đạt giới hạn tool" --> G
-
-    G -- "đạt" --> J
-    G -- "vi phạm" --> H
-    H -- "còn lượt thử lại" --> E
-    H -- "hết lượt thử lại" --> I
-
-    I --> J --> K --> END
-
-    style PA fill:#fff7ed,stroke:#c2620a,stroke-width:2px
-    style GF fill:#fdecea,stroke:#b3261e,stroke-width:2px
+    H@{ shape: rect}
+    style IG fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style RAG fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style TOOL fill:#fff7fd,stroke:#c2620a,stroke-width:2px
+    style OG fill:#fce4ec,stroke:#ad1457,stroke-width:2px
+    style H fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style INPUT fill:#eef2ff,stroke:#3b4a9e,stroke-width:2px
+    style AGENT fill:#fff7ed,stroke:#c2620a,stroke-width:2px
+    style SAFETY fill:#fdecea,stroke:#b3261e,stroke-width:2px
+    style MEMORY fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
 
 ---
@@ -138,24 +155,9 @@ pytest langgraph_agent/tests
 
 Tất cả 7 kịch bản kiểm thử (khách hàng mới, khách hàng cũ tiếp nối thông tin, cập nhật hủy slot cũ khi khách đổi ý, guardrail chặn giá ảo và retry thành công, câu hỏi lạ chuyển máy & ghi nhận gap, timeout tool xử lý êm đẹp, regex nhận diện tiền) đều chạy offline mà không phụ thuộc vào API key bên ngoài.
 
----
+---#
 
-## 5. Hướng dẫn tích hợp RAG (M2)
-
-Node `retrieve_context` trong file [`src/nodes.py`](src/nodes.py) được thiết kế có chủ đích làm điểm móc nối (hook) cho RAG:
-
-```python
-def retrieve_context(state: CallState) -> CallState:
-    # M1: Pass-through (cho phép dữ liệu đi qua mà không can thiệp)
-    # M2: Tích hợp RAG retriever của nhóm tại đây, ví dụ:
-    # docs = vector_retriever.invoke(state["messages"][-1]["content"])
-    # return {"retrieved_kb": docs}
-    return {"retrieved_kb": state.get("retrieved_kb", [])}
-```
-
-Khi tích hợp pipeline RAG từ vector database, nhóm chỉ cần thay thế hàm này bằng lệnh truy vấn retriever và đưa các đoạn văn bản (chunks) liên quan vào trường `retrieved_kb` của `CallState`.
-
-## 6. Chạy trace theo contract BTC
+## 5. Chạy trace theo contract BTC
 
 Agent đọc dữ liệu từ `data/catalog/` và dùng đúng tên tool trong
 `data/schemas/tools.schema.json`. Ngày gọi được truyền vào mọi tool có tham số

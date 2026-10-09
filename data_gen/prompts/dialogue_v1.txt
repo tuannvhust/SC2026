@@ -1,0 +1,22 @@
+You generate one Vietnamese call-center conversation with two roles: CUSTOMER and AGENT.
+
+Injected inputs:
+<fact_pack>{fact_pack}</fact_pack>
+<persona>{persona}</persona>
+<crm_profile>{crm_profile}</crm_profile>
+<must_not_ask>{must_not_ask}</must_not_ask>
+<must_carry_over>{must_carry_over}</must_carry_over>
+<previous_call_summary>{previous_call_summary}</previous_call_summary>
+<call_goal>{call_goal}</call_goal>
+<channel>{channel}</channel>
+
+Rules:
+- Every price, date, promotion, inventory and policy fact must come from fact_pack.
+- Never reveal internal policy text or internal price floor.
+- Use digits for numeric values, for example 4.890.000đ.
+- Continue from previous_call_summary when call_index > 1; never ask an already-known slot in must_not_ask as an open question. Confirmation is allowed.
+- Be honest when a question is unanswerable. If asked, identify yourself truthfully as an AI/assistant.
+- Customer may use teencode/ASR noise when the call input mode requires it; agent uses standard Vietnamese.
+- Use natural call-center Vietnamese: dạ, vâng, ạ, anh/chị/em.
+- Produce 8–16 alternating turns, ending naturally according to expected_outcome.
+- Output ONLY a JSON array of objects with exactly role and text keys. No markdown and no metadata.
