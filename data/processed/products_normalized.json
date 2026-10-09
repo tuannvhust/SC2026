@@ -1,0 +1,1561 @@
+[
+  {
+    "_id": "SKU-PH-A55-128",
+    "sku": "SKU-PH-A55-128",
+    "name": "Samsung Galaxy A55 5G",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "Samsung",
+    "min_price": 9490000,
+    "max_price": 10490000,
+    "total_stock": 49,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0,
+      "is_zero_percent": true
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.6,
+      "battery_mah": 5000,
+      "chipset": "Exynos 1480",
+      "camera_mp": 50,
+      "os": "Android 14"
+    },
+    "variants": [
+      {
+        "variant_id": "128GB-8GB",
+        "storage_gb": 128,
+        "ram_gb": 8,
+        "color": "đen",
+        "price_vnd": 9490000,
+        "stock_qty": 34
+      },
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "xanh lam",
+        "price_vnd": 10490000,
+        "stock_qty": 15
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "TRA-GOP-0",
+        "description": "Trả góp 0% 6 tháng",
+        "discount_vnd": 0,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      },
+      {
+        "promo_code": "TRADE-IN-500K",
+        "description": "Trợ giá thu cũ thêm 500.000đ",
+        "discount_vnd": 500000,
+        "valid_from": "2026-08-15",
+        "valid_to": "2026-09-15",
+        "active": false
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Điện thoại Samsung Galaxy A55 5G (Mã SKU: SKU-PH-A55-128) của thương hiệu Samsung. Thông số kỹ thuật: màn hình 6.6 inch, pin 5000 mAh, vi xử lý chip Exynos 1480, camera 50 MP, hệ điều hành Android 14. Các phiên bản lựa chọn: bộ nhớ 128GB RAM 8GB màu đen giá 9.490.000đ (còn 34 máy); bộ nhớ 256GB RAM 8GB màu xanh lam giá 10.490.000đ (còn 15 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp lãi suất 0% kỳ hạn linh hoạt từ 3 đến 12 tháng. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy. Khuyến mãi hiện hành: Trả góp 0% 6 tháng (Mã: TRA-GOP-0, giảm 0đ)."
+  },
+  {
+    "_id": "SKU-PH-S24-256",
+    "sku": "SKU-PH-S24-256",
+    "name": "Samsung Galaxy S24",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "Samsung",
+    "min_price": 18990000,
+    "max_price": 21990000,
+    "total_stock": 13,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0,
+      "is_zero_percent": true
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.2,
+      "battery_mah": 4000,
+      "chipset": "Snapdragon 8 Gen 3",
+      "camera_mp": 50,
+      "os": "Android 14"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "tím",
+        "price_vnd": 18990000,
+        "stock_qty": 9
+      },
+      {
+        "variant_id": "512GB-8GB",
+        "storage_gb": 512,
+        "ram_gb": 8,
+        "color": "đen",
+        "price_vnd": 21990000,
+        "stock_qty": 4
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "S24-GIFT-EARBUDS",
+        "description": "Tặng tai nghe Galaxy Buds FE",
+        "discount_vnd": 1290000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Điện thoại Samsung Galaxy S24 (Mã SKU: SKU-PH-S24-256) của thương hiệu Samsung. Thông số kỹ thuật: màn hình 6.2 inch, pin 4000 mAh, vi xử lý chip Snapdragon 8 Gen 3, camera 50 MP, hệ điều hành Android 14. Các phiên bản lựa chọn: bộ nhớ 256GB RAM 8GB màu tím giá 18.990.000đ (còn 9 máy); bộ nhớ 512GB RAM 8GB màu đen giá 21.990.000đ (còn 4 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp lãi suất 0% kỳ hạn linh hoạt từ 3 đến 12 tháng. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy. Khuyến mãi hiện hành: Tặng tai nghe Galaxy Buds FE (Mã: S24-GIFT-EARBUDS, giảm 1.290.000đ)."
+  },
+  {
+    "_id": "SKU-PH-IP15-128",
+    "sku": "SKU-PH-IP15-128",
+    "name": "iPhone 15",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "Apple",
+    "min_price": 19990000,
+    "max_price": 22990000,
+    "total_stock": 33,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0,
+      "is_zero_percent": true
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.1,
+      "battery_mah": 3349,
+      "chipset": "A16 Bionic",
+      "camera_mp": 48,
+      "os": "iOS 18"
+    },
+    "variants": [
+      {
+        "variant_id": "128GB",
+        "storage_gb": 128,
+        "ram_gb": 6,
+        "color": "xanh dương",
+        "price_vnd": 19990000,
+        "stock_qty": 22
+      },
+      {
+        "variant_id": "256GB",
+        "storage_gb": 256,
+        "ram_gb": 6,
+        "color": "hồng",
+        "price_vnd": 22990000,
+        "stock_qty": 11
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "IP15-TRA-GOP",
+        "description": "Trả góp 0% qua thẻ tín dụng",
+        "discount_vnd": 0,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-10-31",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Điện thoại iPhone 15 (Mã SKU: SKU-PH-IP15-128) của thương hiệu Apple. Thông số kỹ thuật: màn hình 6.1 inch, pin 3349 mAh, vi xử lý chip A16 Bionic, camera 48 MP, hệ điều hành iOS 18. Các phiên bản lựa chọn: bộ nhớ 128GB RAM 6GB màu xanh dương giá 19.990.000đ (còn 22 máy); bộ nhớ 256GB RAM 6GB màu hồng giá 22.990.000đ (còn 11 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp lãi suất 0% kỳ hạn linh hoạt từ 3 đến 12 tháng. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy. Khuyến mãi hiện hành: Trả góp 0% qua thẻ tín dụng (Mã: IP15-TRA-GOP, giảm 0đ)."
+  },
+  {
+    "_id": "SKU-PH-IP14PM-256",
+    "sku": "SKU-PH-IP14PM-256",
+    "name": "iPhone 14 Pro Max",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "Apple",
+    "min_price": 24990000,
+    "max_price": 24990000,
+    "total_stock": 6,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0,
+      "is_zero_percent": true
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.7,
+      "battery_mah": 4323,
+      "chipset": "A16 Bionic",
+      "camera_mp": 48,
+      "os": "iOS 18"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB",
+        "storage_gb": 256,
+        "ram_gb": 6,
+        "color": "tím đậm",
+        "price_vnd": 24990000,
+        "stock_qty": 6
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Điện thoại iPhone 14 Pro Max (Mã SKU: SKU-PH-IP14PM-256) của thương hiệu Apple. Thông số kỹ thuật: màn hình 6.7 inch, pin 4323 mAh, vi xử lý chip A16 Bionic, camera 48 MP, hệ điều hành iOS 18. Các phiên bản lựa chọn: bộ nhớ 256GB RAM 6GB màu tím đậm giá 24.990.000đ (còn 6 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp lãi suất 0% kỳ hạn linh hoạt từ 3 đến 12 tháng. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy."
+  },
+  {
+    "_id": "SKU-PH-XM14-256",
+    "sku": "SKU-PH-XM14-256",
+    "name": "Xiaomi 14",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "Xiaomi",
+    "min_price": 15990000,
+    "max_price": 15990000,
+    "total_stock": 18,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 9,
+      "interest_rate": 1.2,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 18,
+    "specs": {
+      "screen_inch": 6.36,
+      "battery_mah": 4610,
+      "chipset": "Snapdragon 8 Gen 3",
+      "camera_mp": 50,
+      "os": "Android 14 (HyperOS)"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-12GB",
+        "storage_gb": 256,
+        "ram_gb": 12,
+        "color": "đen",
+        "price_vnd": 15990000,
+        "stock_qty": 18
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "XM14-SALE-10",
+        "description": "Giảm 10% flash sale cuối tuần",
+        "discount_vnd": 1599000,
+        "valid_from": "2026-09-13",
+        "valid_to": "2026-09-14",
+        "active": false
+      }
+    ],
+    "has_active_promos": false,
+    "embedding_text": "Điện thoại Xiaomi 14 (Mã SKU: SKU-PH-XM14-256) của thương hiệu Xiaomi. Thông số kỹ thuật: màn hình 6.36 inch, pin 4610 mAh, vi xử lý chip Snapdragon 8 Gen 3, camera 50 MP, hệ điều hành Android 14 (HyperOS). Các phiên bản lựa chọn: bộ nhớ 256GB RAM 12GB màu đen giá 15.990.000đ (còn 18 máy). Thời gian bảo hành chính hãng: 18 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 9 tháng với lãi suất 1.2%. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-PH-REDNOTE13-128",
+    "sku": "SKU-PH-REDNOTE13-128",
+    "name": "Xiaomi Redmi Note 13",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "Xiaomi",
+    "min_price": 4690000,
+    "max_price": 5490000,
+    "total_stock": 72,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 6,
+      "interest_rate": 1.2,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 18,
+    "specs": {
+      "screen_inch": 6.67,
+      "battery_mah": 5000,
+      "chipset": "Snapdragon 685",
+      "camera_mp": 108,
+      "os": "Android 13 (HyperOS)"
+    },
+    "variants": [
+      {
+        "variant_id": "128GB-6GB",
+        "storage_gb": 128,
+        "ram_gb": 6,
+        "color": "xanh mint",
+        "price_vnd": 4690000,
+        "stock_qty": 45
+      },
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "đen",
+        "price_vnd": 5490000,
+        "stock_qty": 27
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "STUDENT-BACK2SCHOOL",
+        "description": "Giảm 200.000đ cho học sinh sinh viên",
+        "discount_vnd": 200000,
+        "valid_from": "2026-08-20",
+        "valid_to": "2026-09-20",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Điện thoại Xiaomi Redmi Note 13 (Mã SKU: SKU-PH-REDNOTE13-128) của thương hiệu Xiaomi. Thông số kỹ thuật: màn hình 6.67 inch, pin 5000 mAh, vi xử lý chip Snapdragon 685, camera 108 MP, hệ điều hành Android 13 (HyperOS). Các phiên bản lựa chọn: bộ nhớ 128GB RAM 6GB màu xanh mint giá 4.690.000đ (còn 45 máy); bộ nhớ 256GB RAM 8GB màu đen giá 5.490.000đ (còn 27 máy). Thời gian bảo hành chính hãng: 18 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 6 tháng với lãi suất 1.2%. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Giảm 200.000đ cho học sinh sinh viên (Mã: STUDENT-BACK2SCHOOL, giảm 200.000đ)."
+  },
+  {
+    "_id": "SKU-PH-P8P-256",
+    "sku": "SKU-PH-P8P-256",
+    "name": "OPPO Reno12 Pro",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "OPPO",
+    "min_price": 11990000,
+    "max_price": 11990000,
+    "total_stock": 13,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0.9,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.7,
+      "battery_mah": 5000,
+      "chipset": "Dimensity 8350",
+      "camera_mp": 50,
+      "os": "Android 14 (ColorOS 14)"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-12GB",
+        "storage_gb": 256,
+        "ram_gb": 12,
+        "color": "vàng",
+        "price_vnd": 11990000,
+        "stock_qty": 13
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "OPPO-GIFT-CASE",
+        "description": "Tặng ốp lưng chính hãng",
+        "discount_vnd": 350000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Điện thoại OPPO Reno12 Pro (Mã SKU: SKU-PH-P8P-256) của thương hiệu OPPO. Thông số kỹ thuật: màn hình 6.7 inch, pin 5000 mAh, vi xử lý chip Dimensity 8350, camera 50 MP, hệ điều hành Android 14 (ColorOS 14). Các phiên bản lựa chọn: bộ nhớ 256GB RAM 12GB màu vàng giá 11.990.000đ (còn 13 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 12 tháng với lãi suất 0.9%. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy. Khuyến mãi hiện hành: Tặng ốp lưng chính hãng (Mã: OPPO-GIFT-CASE, giảm 350.000đ)."
+  },
+  {
+    "_id": "SKU-PH-A3PRO-256",
+    "sku": "SKU-PH-A3PRO-256",
+    "name": "OPPO A3 Pro",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "OPPO",
+    "min_price": 6490000,
+    "max_price": 6490000,
+    "total_stock": 31,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 9,
+      "interest_rate": 0.9,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.67,
+      "battery_mah": 5800,
+      "chipset": "Snapdragon 6 Gen 1",
+      "camera_mp": 64,
+      "os": "Android 14 (ColorOS 14)"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "xanh",
+        "price_vnd": 6490000,
+        "stock_qty": 31
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Điện thoại OPPO A3 Pro (Mã SKU: SKU-PH-A3PRO-256) của thương hiệu OPPO. Thông số kỹ thuật: màn hình 6.67 inch, pin 5800 mAh, vi xử lý chip Snapdragon 6 Gen 1, camera 64 MP, hệ điều hành Android 14 (ColorOS 14). Các phiên bản lựa chọn: bộ nhớ 256GB RAM 8GB màu xanh giá 6.490.000đ (còn 31 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 9 tháng với lãi suất 0.9%. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-PH-VX200-256",
+    "sku": "SKU-PH-VX200-256",
+    "name": "vivo X200",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "vivo",
+    "min_price": 19990000,
+    "max_price": 19990000,
+    "total_stock": 8,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0,
+      "is_zero_percent": true
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.67,
+      "battery_mah": 5800,
+      "chipset": "Dimensity 9400",
+      "camera_mp": 50,
+      "os": "Android 15 (Funtouch OS 15)"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-12GB",
+        "storage_gb": 256,
+        "ram_gb": 12,
+        "color": "đen",
+        "price_vnd": 19990000,
+        "stock_qty": 8
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "VX200-PRE-ORDER",
+        "description": "Ưu đãi đặt trước, tặng sạc nhanh 80W",
+        "discount_vnd": 690000,
+        "valid_from": "2026-09-05",
+        "valid_to": "2026-09-25",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Điện thoại vivo X200 (Mã SKU: SKU-PH-VX200-256) của thương hiệu vivo. Thông số kỹ thuật: màn hình 6.67 inch, pin 5800 mAh, vi xử lý chip Dimensity 9400, camera 50 MP, hệ điều hành Android 15 (Funtouch OS 15). Các phiên bản lựa chọn: bộ nhớ 256GB RAM 12GB màu đen giá 19.990.000đ (còn 8 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp lãi suất 0% kỳ hạn linh hoạt từ 3 đến 12 tháng. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy. Khuyến mãi hiện hành: Ưu đãi đặt trước, tặng sạc nhanh 80W (Mã: VX200-PRE-ORDER, giảm 690.000đ)."
+  },
+  {
+    "_id": "SKU-PH-Y19S-128",
+    "sku": "SKU-PH-Y19S-128",
+    "name": "vivo Y19s",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "vivo",
+    "min_price": 3490000,
+    "max_price": 3490000,
+    "total_stock": 52,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.68,
+      "battery_mah": 5500,
+      "chipset": "Unisoc T612",
+      "camera_mp": 50,
+      "os": "Android 14 (Funtouch OS 14)"
+    },
+    "variants": [
+      {
+        "variant_id": "128GB-4GB",
+        "storage_gb": 128,
+        "ram_gb": 4,
+        "color": "trắng",
+        "price_vnd": 3490000,
+        "stock_qty": 52
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "Y19S-COMBO-SIM",
+        "description": "Tặng gói data 4G 1 năm khi mua kèm SIM",
+        "discount_vnd": 240000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Điện thoại vivo Y19s (Mã SKU: SKU-PH-Y19S-128) của thương hiệu vivo. Thông số kỹ thuật: màn hình 6.68 inch, pin 5500 mAh, vi xử lý chip Unisoc T612, camera 50 MP, hệ điều hành Android 14 (Funtouch OS 14). Các phiên bản lựa chọn: bộ nhớ 128GB RAM 4GB màu trắng giá 3.490.000đ (còn 52 máy). Thời gian bảo hành chính hãng: 12 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Tặng gói data 4G 1 năm khi mua kèm SIM (Mã: Y19S-COMBO-SIM, giảm 240.000đ)."
+  },
+  {
+    "_id": "SKU-PH-EDGE50-256",
+    "sku": "SKU-PH-EDGE50-256",
+    "name": "Motorola Edge 50 Fusion",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "Motorola",
+    "min_price": 8990000,
+    "max_price": 8990000,
+    "total_stock": 5,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 6,
+      "interest_rate": 1.5,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.7,
+      "battery_mah": 5000,
+      "chipset": "Snapdragon 7s Gen 2",
+      "camera_mp": 50,
+      "os": "Android 14"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "hồng",
+        "price_vnd": 8990000,
+        "stock_qty": 5
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Điện thoại Motorola Edge 50 Fusion (Mã SKU: SKU-PH-EDGE50-256) của thương hiệu Motorola. Thông số kỹ thuật: màn hình 6.7 inch, pin 5000 mAh, vi xử lý chip Snapdragon 7s Gen 2, camera 50 MP, hệ điều hành Android 14. Các phiên bản lựa chọn: bộ nhớ 256GB RAM 8GB màu hồng giá 8.990.000đ (còn 5 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 6 tháng với lãi suất 1.5%. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-PH-NORD4-256",
+    "sku": "SKU-PH-NORD4-256",
+    "name": "OnePlus Nord 4",
+    "category": "dien_thoai",
+    "category_name": "Điện thoại",
+    "brand": "OnePlus",
+    "min_price": 10990000,
+    "max_price": 10990000,
+    "total_stock": 0,
+    "in_stock": false,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 9,
+      "interest_rate": 0.9,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "screen_inch": 6.74,
+      "battery_mah": 5500,
+      "chipset": "Snapdragon 7+ Gen 3",
+      "camera_mp": 50,
+      "os": "Android 14 (OxygenOS 14)"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-12GB",
+        "storage_gb": 256,
+        "ram_gb": 12,
+        "color": "xám titan",
+        "price_vnd": 10990000,
+        "stock_qty": 0
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "NORD4-EARLYBIRD",
+        "description": "Ưu đãi giảm 500.000đ đợt hàng đầu",
+        "discount_vnd": 500000,
+        "valid_from": "2026-07-01",
+        "valid_to": "2026-07-31",
+        "active": false
+      }
+    ],
+    "has_active_promos": false,
+    "embedding_text": "Điện thoại OnePlus Nord 4 (Mã SKU: SKU-PH-NORD4-256) của thương hiệu OnePlus. Thông số kỹ thuật: màn hình 6.74 inch, pin 5500 mAh, vi xử lý chip Snapdragon 7+ Gen 3, camera 50 MP, hệ điều hành Android 14 (OxygenOS 14). Các phiên bản lựa chọn: bộ nhớ 256GB RAM 12GB màu xám titan giá 10.990.000đ (hết hàng). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 9 tháng với lãi suất 0.9%. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy."
+  },
+  {
+    "_id": "SKU-LT-X14-512",
+    "sku": "SKU-LT-X14-512",
+    "name": "Lenovo ThinkPad X14 Gen 5",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Lenovo",
+    "min_price": 28900000,
+    "max_price": 28900000,
+    "total_stock": 7,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 1.5,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 24,
+    "specs": {
+      "cpu": "Intel Core Ultra 7",
+      "gpu": "Intel Iris Xe",
+      "screen_inch": 14,
+      "weight_kg": 1.36,
+      "os": "Windows 11"
+    },
+    "variants": [
+      {
+        "variant_id": "512GB-16GB",
+        "storage_gb": 512,
+        "ram_gb": 16,
+        "color": "đen",
+        "price_vnd": 28900000,
+        "stock_qty": 7
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "STUDENT-10",
+        "description": "Giảm 10% cho sinh viên",
+        "discount_vnd": 2890000,
+        "valid_from": "2026-08-01",
+        "valid_to": "2026-10-15",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Laptop Lenovo ThinkPad X14 Gen 5 (Mã SKU: SKU-LT-X14-512) của thương hiệu Lenovo. Thông số kỹ thuật: màn hình 14 inch, CPU Intel Core Ultra 7, GPU card đồ họa Intel Iris Xe, hệ điều hành Windows 11, trọng lượng 1.36 kg. Các phiên bản lựa chọn: bộ nhớ 512GB RAM 16GB màu đen giá 28.900.000đ (còn 7 máy). Thời gian bảo hành chính hãng: 24 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 12 tháng với lãi suất 1.5%. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Giảm 10% cho sinh viên (Mã: STUDENT-10, giảm 2.890.000đ)."
+  },
+  {
+    "_id": "SKU-LT-MBA-M3-256",
+    "sku": "SKU-LT-MBA-M3-256",
+    "name": "MacBook Air M3",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Apple",
+    "min_price": 27990000,
+    "max_price": 32990000,
+    "total_stock": 15,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0,
+      "is_zero_percent": true
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "cpu": "Apple M3",
+      "gpu": "8-core GPU",
+      "screen_inch": 13.6,
+      "weight_kg": 1.24,
+      "os": "macOS"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "bạc",
+        "price_vnd": 27990000,
+        "stock_qty": 10
+      },
+      {
+        "variant_id": "512GB-8GB",
+        "storage_gb": 512,
+        "ram_gb": 8,
+        "color": "xám",
+        "price_vnd": 32990000,
+        "stock_qty": 5
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "MBA-BACK2SCHOOL",
+        "description": "Tặng balo laptop chính hãng",
+        "discount_vnd": 890000,
+        "valid_from": "2026-08-15",
+        "valid_to": "2026-09-20",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Laptop MacBook Air M3 (Mã SKU: SKU-LT-MBA-M3-256) của thương hiệu Apple. Thông số kỹ thuật: màn hình 13.6 inch, CPU Apple M3, GPU card đồ họa 8-core GPU, hệ điều hành macOS, trọng lượng 1.24 kg. Các phiên bản lựa chọn: bộ nhớ 256GB RAM 8GB màu bạc giá 27.990.000đ (còn 10 máy); bộ nhớ 512GB RAM 8GB màu xám giá 32.990.000đ (còn 5 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp lãi suất 0% kỳ hạn linh hoạt từ 3 đến 12 tháng. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy. Khuyến mãi hiện hành: Tặng balo laptop chính hãng (Mã: MBA-BACK2SCHOOL, giảm 890.000đ)."
+  },
+  {
+    "_id": "SKU-LT-ROG-STRIX-1TB",
+    "sku": "SKU-LT-ROG-STRIX-1TB",
+    "name": "Asus ROG Strix G16",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Asus",
+    "min_price": 34990000,
+    "max_price": 34990000,
+    "total_stock": 4,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 1.2,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 24,
+    "specs": {
+      "cpu": "Intel Core i7-13650HX",
+      "gpu": "RTX 4060 8GB",
+      "screen_inch": 16,
+      "weight_kg": 2.5,
+      "os": "Windows 11",
+      "refresh_rate_hz": 165
+    },
+    "variants": [
+      {
+        "variant_id": "1TB-16GB",
+        "storage_gb": 1000,
+        "ram_gb": 16,
+        "color": "đen",
+        "price_vnd": 34990000,
+        "stock_qty": 4
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "ROG-GAMING-COMBO",
+        "description": "Tặng chuột + túi chống sốc gaming",
+        "discount_vnd": 1200000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Laptop Asus ROG Strix G16 (Mã SKU: SKU-LT-ROG-STRIX-1TB) của thương hiệu Asus. Thông số kỹ thuật: màn hình 16 inch, CPU Intel Core i7-13650HX, GPU card đồ họa RTX 4060 8GB, hệ điều hành Windows 11, trọng lượng 2.5 kg. Các phiên bản lựa chọn: bộ nhớ 1000GB RAM 16GB màu đen giá 34.990.000đ (còn 4 máy). Thời gian bảo hành chính hãng: 24 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 12 tháng với lãi suất 1.2%. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Tặng chuột + túi chống sốc gaming (Mã: ROG-GAMING-COMBO, giảm 1.200.000đ)."
+  },
+  {
+    "_id": "SKU-LT-VIVOBOOK-512",
+    "sku": "SKU-LT-VIVOBOOK-512",
+    "name": "Asus Vivobook 15",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Asus",
+    "min_price": 15990000,
+    "max_price": 15990000,
+    "total_stock": 20,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 9,
+      "interest_rate": 0.9,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 24,
+    "specs": {
+      "cpu": "Intel Core i5-1235U",
+      "gpu": "Intel Iris Xe",
+      "screen_inch": 15.6,
+      "weight_kg": 1.7,
+      "os": "Windows 11"
+    },
+    "variants": [
+      {
+        "variant_id": "512GB-8GB",
+        "storage_gb": 512,
+        "ram_gb": 8,
+        "color": "xanh",
+        "price_vnd": 15990000,
+        "stock_qty": 20
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Laptop Asus Vivobook 15 (Mã SKU: SKU-LT-VIVOBOOK-512) của thương hiệu Asus. Thông số kỹ thuật: màn hình 15.6 inch, CPU Intel Core i5-1235U, GPU card đồ họa Intel Iris Xe, hệ điều hành Windows 11, trọng lượng 1.7 kg. Các phiên bản lựa chọn: bộ nhớ 512GB RAM 8GB màu xanh giá 15.990.000đ (còn 20 máy). Thời gian bảo hành chính hãng: 24 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 9 tháng với lãi suất 0.9%. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-LT-DELL-XPS13-512",
+    "sku": "SKU-LT-DELL-XPS13-512",
+    "name": "Dell XPS 13",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Dell",
+    "min_price": 31990000,
+    "max_price": 31990000,
+    "total_stock": 6,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 1.0,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "cpu": "Intel Core Ultra 7",
+      "gpu": "Intel Arc Graphics",
+      "screen_inch": 13.4,
+      "weight_kg": 1.23,
+      "os": "Windows 11"
+    },
+    "variants": [
+      {
+        "variant_id": "512GB-16GB",
+        "storage_gb": 512,
+        "ram_gb": 16,
+        "color": "bạc",
+        "price_vnd": 31990000,
+        "stock_qty": 6
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "XPS13-VOUCHER",
+        "description": "Voucher 1.000.000đ mua phụ kiện",
+        "discount_vnd": 1000000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-15",
+        "active": false
+      }
+    ],
+    "has_active_promos": false,
+    "embedding_text": "Laptop Dell XPS 13 (Mã SKU: SKU-LT-DELL-XPS13-512) của thương hiệu Dell. Thông số kỹ thuật: màn hình 13.4 inch, CPU Intel Core Ultra 7, GPU card đồ họa Intel Arc Graphics, hệ điều hành Windows 11, trọng lượng 1.23 kg. Các phiên bản lựa chọn: bộ nhớ 512GB RAM 16GB màu bạc giá 31.990.000đ (còn 6 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 12 tháng với lãi suất 1.0%. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-LT-LEGION5-512",
+    "sku": "SKU-LT-LEGION5-512",
+    "name": "Lenovo Legion 5",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Lenovo",
+    "min_price": 26990000,
+    "max_price": 26990000,
+    "total_stock": 8,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 1.1,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 24,
+    "specs": {
+      "cpu": "AMD Ryzen 7 7840HS",
+      "gpu": "RTX 4050 6GB",
+      "screen_inch": 15.6,
+      "weight_kg": 2.4,
+      "os": "Windows 11",
+      "refresh_rate_hz": 144
+    },
+    "variants": [
+      {
+        "variant_id": "512GB-16GB",
+        "storage_gb": 512,
+        "ram_gb": 16,
+        "color": "xanh navy",
+        "price_vnd": 26990000,
+        "stock_qty": 8
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "LEGION5-GAMER",
+        "description": "Tặng bàn phím cơ gaming",
+        "discount_vnd": 590000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Laptop Lenovo Legion 5 (Mã SKU: SKU-LT-LEGION5-512) của thương hiệu Lenovo. Thông số kỹ thuật: màn hình 15.6 inch, CPU AMD Ryzen 7 7840HS, GPU card đồ họa RTX 4050 6GB, hệ điều hành Windows 11, trọng lượng 2.4 kg. Các phiên bản lựa chọn: bộ nhớ 512GB RAM 16GB màu xanh navy giá 26.990.000đ (còn 8 máy). Thời gian bảo hành chính hãng: 24 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 12 tháng với lãi suất 1.1%. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Tặng bàn phím cơ gaming (Mã: LEGION5-GAMER, giảm 590.000đ)."
+  },
+  {
+    "_id": "SKU-LT-HP-PAV14-256",
+    "sku": "SKU-LT-HP-PAV14-256",
+    "name": "HP Pavilion 14",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "HP",
+    "min_price": 13990000,
+    "max_price": 13990000,
+    "total_stock": 16,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 9,
+      "interest_rate": 0.9,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "cpu": "Intel Core i5-1335U",
+      "gpu": "Intel Iris Xe",
+      "screen_inch": 14,
+      "weight_kg": 1.4,
+      "os": "Windows 11"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "bạc",
+        "price_vnd": 13990000,
+        "stock_qty": 16
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Laptop HP Pavilion 14 (Mã SKU: SKU-LT-HP-PAV14-256) của thương hiệu HP. Thông số kỹ thuật: màn hình 14 inch, CPU Intel Core i5-1335U, GPU card đồ họa Intel Iris Xe, hệ điều hành Windows 11, trọng lượng 1.4 kg. Các phiên bản lựa chọn: bộ nhớ 256GB RAM 8GB màu bạc giá 13.990.000đ (còn 16 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 9 tháng với lãi suất 0.9%. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-LT-MACBOOKPRO14-M3PRO-512",
+    "sku": "SKU-LT-MACBOOKPRO14-M3PRO-512",
+    "name": "MacBook Pro 14 M3 Pro",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Apple",
+    "min_price": 54990000,
+    "max_price": 54990000,
+    "total_stock": 3,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 12,
+      "interest_rate": 0,
+      "is_zero_percent": true
+    },
+    "trade_in": {
+      "supported": true,
+      "estimator_tool": "trade_in.get_quote"
+    },
+    "warranty_months": 12,
+    "specs": {
+      "cpu": "Apple M3 Pro",
+      "gpu": "14-core GPU",
+      "screen_inch": 14.2,
+      "weight_kg": 1.55,
+      "os": "macOS"
+    },
+    "variants": [
+      {
+        "variant_id": "512GB-18GB",
+        "storage_gb": 512,
+        "ram_gb": 18,
+        "color": "đen không gian",
+        "price_vnd": 54990000,
+        "stock_qty": 3
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Laptop MacBook Pro 14 M3 Pro (Mã SKU: SKU-LT-MACBOOKPRO14-M3PRO-512) của thương hiệu Apple. Thông số kỹ thuật: màn hình 14.2 inch, CPU Apple M3 Pro, GPU card đồ họa 14-core GPU, hệ điều hành macOS, trọng lượng 1.55 kg. Các phiên bản lựa chọn: bộ nhớ 512GB RAM 18GB màu đen không gian giá 54.990.000đ (còn 3 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp lãi suất 0% kỳ hạn linh hoạt từ 3 đến 12 tháng. Có chương trình thu cũ đổi mới (Trade-in) trợ giá lên đời máy."
+  },
+  {
+    "_id": "SKU-LT-ACER-ASPIRE3-256",
+    "sku": "SKU-LT-ACER-ASPIRE3-256",
+    "name": "Acer Aspire 3",
+    "category": "laptop",
+    "category_name": "Laptop",
+    "brand": "Acer",
+    "min_price": 10990000,
+    "max_price": 10990000,
+    "total_stock": 25,
+    "in_stock": true,
+    "installment": {
+      "supported": true,
+      "min_months": 3,
+      "max_months": 6,
+      "interest_rate": 0.9,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "cpu": "Intel Core i3-1215U",
+      "gpu": "Intel UHD",
+      "screen_inch": 15.6,
+      "weight_kg": 1.7,
+      "os": "Windows 11"
+    },
+    "variants": [
+      {
+        "variant_id": "256GB-8GB",
+        "storage_gb": 256,
+        "ram_gb": 8,
+        "color": "bạc",
+        "price_vnd": 10990000,
+        "stock_qty": 25
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "ASPIRE3-COMBO-MOUSE",
+        "description": "Tặng chuột không dây",
+        "discount_vnd": 150000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Laptop Acer Aspire 3 (Mã SKU: SKU-LT-ACER-ASPIRE3-256) của thương hiệu Acer. Thông số kỹ thuật: màn hình 15.6 inch, CPU Intel Core i3-1215U, GPU card đồ họa Intel UHD, hệ điều hành Windows 11, trọng lượng 1.7 kg. Các phiên bản lựa chọn: bộ nhớ 256GB RAM 8GB màu bạc giá 10.990.000đ (còn 25 máy). Thời gian bảo hành chính hãng: 12 tháng. Hỗ trợ trả góp kỳ hạn từ 3 đến 6 tháng với lãi suất 0.9%. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Tặng chuột không dây (Mã: ASPIRE3-COMBO-MOUSE, giảm 150.000đ)."
+  },
+  {
+    "_id": "SKU-AC-BUDS3",
+    "sku": "SKU-AC-BUDS3",
+    "name": "Tai nghe không dây SoundPro Buds 3",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 1290000,
+    "max_price": 1290000,
+    "total_stock": 98,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 6,
+    "specs": {
+      "connectivity": "Bluetooth 5.3",
+      "battery_life_hours": 6,
+      "case_battery_hours": 24,
+      "noise_cancelling": true
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "đen",
+        "price_vnd": 1290000,
+        "stock_qty": 58
+      },
+      {
+        "variant_id": "std-white",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "trắng",
+        "price_vnd": 1290000,
+        "stock_qty": 40
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "COMBO-PHONE-BUDS",
+        "description": "Giảm 300.000đ khi mua kèm điện thoại",
+        "discount_vnd": 300000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Phụ kiện điện tử Tai nghe không dây SoundPro Buds 3 (Mã SKU: SKU-AC-BUDS3) của thương hiệu SoundPro. Thông số kỹ thuật: kết nối Bluetooth 5.3, thời lượng pin 6 giờ. Các phiên bản lựa chọn: màu đen giá 1.290.000đ (còn 58 máy); màu trắng giá 1.290.000đ (còn 40 máy). Thời gian bảo hành chính hãng: 6 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Giảm 300.000đ khi mua kèm điện thoại (Mã: COMBO-PHONE-BUDS, giảm 300.000đ)."
+  },
+  {
+    "_id": "SKU-AC-CHARGER65W",
+    "sku": "SKU-AC-CHARGER65W",
+    "name": "Sạc nhanh GaN 65W SoundPro",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 490000,
+    "max_price": 490000,
+    "total_stock": 90,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "output_watt": 65,
+      "ports": "2x USB-C, 1x USB-A"
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "trắng",
+        "price_vnd": 490000,
+        "stock_qty": 90
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Phụ kiện điện tử Sạc nhanh GaN 65W SoundPro (Mã SKU: SKU-AC-CHARGER65W) của thương hiệu SoundPro. Thông số kỹ thuật: cổng kết nối 2x USB-C, 1x USB-A. Các phiên bản lựa chọn: màu trắng giá 490.000đ (còn 90 máy). Thời gian bảo hành chính hãng: 12 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-AC-CASE-A55",
+    "sku": "SKU-AC-CASE-A55",
+    "name": "Ốp lưng chống sốc Galaxy A55",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "Generic",
+    "min_price": 99000,
+    "max_price": 99000,
+    "total_stock": 120,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 1,
+    "specs": {
+      "material": "TPU chống sốc",
+      "compatible_sku": "SKU-PH-A55-128"
+    },
+    "variants": [
+      {
+        "variant_id": "clear",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "trong suốt",
+        "price_vnd": 99000,
+        "stock_qty": 120
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Phụ kiện điện tử Ốp lưng chống sốc Galaxy A55 (Mã SKU: SKU-AC-CASE-A55) của thương hiệu Generic. Các phiên bản lựa chọn: màu trong suốt giá 99.000đ (còn 120 máy). Thời gian bảo hành chính hãng: 1 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-AC-POWERBANK20K",
+    "sku": "SKU-AC-POWERBANK20K",
+    "name": "Pin dự phòng 20.000mAh SoundPro",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 690000,
+    "max_price": 690000,
+    "total_stock": 65,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "capacity_mah": 20000,
+      "output_watt": 22.5,
+      "ports": "2x USB-A, 1x USB-C"
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "đen",
+        "price_vnd": 690000,
+        "stock_qty": 65
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "POWERBANK-SALE",
+        "description": "Giảm 100.000đ trong tháng 9",
+        "discount_vnd": 100000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Phụ kiện điện tử Pin dự phòng 20.000mAh SoundPro (Mã SKU: SKU-AC-POWERBANK20K) của thương hiệu SoundPro. Thông số kỹ thuật: cổng kết nối 2x USB-A, 1x USB-C. Các phiên bản lựa chọn: màu đen giá 690.000đ (còn 65 máy). Thời gian bảo hành chính hãng: 12 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Giảm 100.000đ trong tháng 9 (Mã: POWERBANK-SALE, giảm 100.000đ)."
+  },
+  {
+    "_id": "SKU-AC-MOUSE-WL",
+    "sku": "SKU-AC-MOUSE-WL",
+    "name": "Chuột không dây văn phòng SoundPro M1",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 259000,
+    "max_price": 259000,
+    "total_stock": 80,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 6,
+    "specs": {
+      "connectivity": "2.4GHz + Bluetooth",
+      "battery_type": "AA"
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "đen",
+        "price_vnd": 259000,
+        "stock_qty": 80
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Phụ kiện điện tử Chuột không dây văn phòng SoundPro M1 (Mã SKU: SKU-AC-MOUSE-WL) của thương hiệu SoundPro. Thông số kỹ thuật: kết nối 2.4GHz + Bluetooth. Các phiên bản lựa chọn: màu đen giá 259.000đ (còn 80 máy). Thời gian bảo hành chính hãng: 6 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-AC-KEYBOARD-MECH",
+    "sku": "SKU-AC-KEYBOARD-MECH",
+    "name": "Bàn phím cơ gaming SoundPro K7",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 890000,
+    "max_price": 890000,
+    "total_stock": 22,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "switch_type": "Blue switch",
+      "backlight": "RGB",
+      "connectivity": "USB-C có dây"
+    },
+    "variants": [
+      {
+        "variant_id": "blue-switch",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "đen RGB",
+        "price_vnd": 890000,
+        "stock_qty": 22
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "KEYBOARD-GAMER-COMBO",
+        "description": "Giảm 10% khi mua kèm laptop gaming",
+        "discount_vnd": 89000,
+        "valid_from": "2026-09-01",
+        "valid_to": "2026-09-30",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Phụ kiện điện tử Bàn phím cơ gaming SoundPro K7 (Mã SKU: SKU-AC-KEYBOARD-MECH) của thương hiệu SoundPro. Thông số kỹ thuật: kết nối USB-C có dây. Các phiên bản lựa chọn: màu đen RGB giá 890.000đ (còn 22 máy). Thời gian bảo hành chính hãng: 12 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Giảm 10% khi mua kèm laptop gaming (Mã: KEYBOARD-GAMER-COMBO, giảm 89.000đ)."
+  },
+  {
+    "_id": "SKU-AC-LAPTOPBAG",
+    "sku": "SKU-AC-LAPTOPBAG",
+    "name": "Balo laptop chống nước SoundPro 15.6inch",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 390000,
+    "max_price": 390000,
+    "total_stock": 55,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 6,
+    "specs": {
+      "max_laptop_inch": 15.6,
+      "material": "vải chống nước"
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "xám",
+        "price_vnd": 390000,
+        "stock_qty": 55
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Phụ kiện điện tử Balo laptop chống nước SoundPro 15.6inch (Mã SKU: SKU-AC-LAPTOPBAG) của thương hiệu SoundPro. Thông số kỹ thuật: hỗ trợ laptop tối đa 15.6 inch. Các phiên bản lựa chọn: màu xám giá 390.000đ (còn 55 máy). Thời gian bảo hành chính hãng: 6 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-AC-SCREENPROTECT",
+    "sku": "SKU-AC-SCREENPROTECT",
+    "name": "Kính cường lực full màn hình",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "Generic",
+    "min_price": 89000,
+    "max_price": 89000,
+    "total_stock": 150,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 1,
+    "specs": {
+      "hardness": "9H",
+      "compatible_sku": "SKU-PH-IP15-128"
+    },
+    "variants": [
+      {
+        "variant_id": "iphone15",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "trong suốt",
+        "price_vnd": 89000,
+        "stock_qty": 150
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Phụ kiện điện tử Kính cường lực full màn hình (Mã SKU: SKU-AC-SCREENPROTECT) của thương hiệu Generic. Các phiên bản lựa chọn: màu trong suốt giá 89.000đ (còn 150 máy). Thời gian bảo hành chính hãng: 1 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-AC-USBHUB",
+    "sku": "SKU-AC-USBHUB",
+    "name": "Hub chuyển đổi USB-C 7-in-1",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 590000,
+    "max_price": 590000,
+    "total_stock": 38,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 12,
+    "specs": {
+      "ports": "HDMI, 2x USB-A, SD, microSD, USB-C PD, Ethernet"
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "xám không gian",
+        "price_vnd": 590000,
+        "stock_qty": 38
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "USBHUB-MACBOOK-COMBO",
+        "description": "Giảm 15% khi mua kèm MacBook",
+        "discount_vnd": 88500,
+        "valid_from": "2026-08-15",
+        "valid_to": "2026-09-20",
+        "active": true
+      }
+    ],
+    "has_active_promos": true,
+    "embedding_text": "Phụ kiện điện tử Hub chuyển đổi USB-C 7-in-1 (Mã SKU: SKU-AC-USBHUB) của thương hiệu SoundPro. Thông số kỹ thuật: cổng kết nối HDMI, 2x USB-A, SD, microSD, USB-C PD, Ethernet. Các phiên bản lựa chọn: màu xám không gian giá 590.000đ (còn 38 máy). Thời gian bảo hành chính hãng: 12 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới. Khuyến mãi hiện hành: Giảm 15% khi mua kèm MacBook (Mã: USBHUB-MACBOOK-COMBO, giảm 88.500đ)."
+  },
+  {
+    "_id": "SKU-AC-COOLINGPAD",
+    "sku": "SKU-AC-COOLINGPAD",
+    "name": "Đế tản nhiệt laptop gaming SoundPro C5",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 450000,
+    "max_price": 450000,
+    "total_stock": 30,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 6,
+    "specs": {
+      "fan_count": 5,
+      "max_laptop_inch": 17,
+      "led": true
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "đen",
+        "price_vnd": 450000,
+        "stock_qty": 30
+      }
+    ],
+    "promos": [],
+    "has_active_promos": false,
+    "embedding_text": "Phụ kiện điện tử Đế tản nhiệt laptop gaming SoundPro C5 (Mã SKU: SKU-AC-COOLINGPAD) của thương hiệu SoundPro. Thông số kỹ thuật: số quạt tản nhiệt 5, có đèn LED, hỗ trợ laptop tối đa 17 inch. Các phiên bản lựa chọn: màu đen giá 450.000đ (còn 30 máy). Thời gian bảo hành chính hãng: 6 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới."
+  },
+  {
+    "_id": "SKU-AC-EARBUDS-SPORT",
+    "sku": "SKU-AC-EARBUDS-SPORT",
+    "name": "Tai nghe thể thao chống nước SoundPro Sport",
+    "category": "phu_kien_dien_tu",
+    "category_name": "Phụ kiện điện tử",
+    "brand": "SoundPro",
+    "min_price": 790000,
+    "max_price": 790000,
+    "total_stock": 44,
+    "in_stock": true,
+    "installment": {
+      "supported": false,
+      "is_zero_percent": false
+    },
+    "trade_in": {
+      "supported": false
+    },
+    "warranty_months": 6,
+    "specs": {
+      "connectivity": "Bluetooth 5.2",
+      "water_resistance": "IPX7",
+      "battery_life_hours": 8
+    },
+    "variants": [
+      {
+        "variant_id": "std",
+        "storage_gb": null,
+        "ram_gb": null,
+        "color": "đen cam",
+        "price_vnd": 790000,
+        "stock_qty": 44
+      }
+    ],
+    "promos": [
+      {
+        "promo_code": "SPORT-EARBUDS-SALE",
+        "description": "Giảm 100.000đ dịp tựu trường",
+        "discount_vnd": 100000,
+        "valid_from": "2026-08-15",
+        "valid_to": "2026-09-15",
+        "active": false
+      }
+    ],
+    "has_active_promos": false,
+    "embedding_text": "Phụ kiện điện tử Tai nghe thể thao chống nước SoundPro Sport (Mã SKU: SKU-AC-EARBUDS-SPORT) của thương hiệu SoundPro. Thông số kỹ thuật: kết nối Bluetooth 5.2, chuẩn chống nước IPX7, thời lượng pin 8 giờ. Các phiên bản lựa chọn: màu đen cam giá 790.000đ (còn 44 máy). Thời gian bảo hành chính hãng: 6 tháng. Không áp dụng chính sách trả góp. Không áp dụng chương trình thu cũ đổi mới."
+  }
+]
