@@ -13,6 +13,8 @@ class CallState(TypedDict, total=False):
     channel_identity: str
     raw_customer_text: str
     normalized_customer_text: str
+    input_valid: bool
+    input_rejection_reason: Optional[str]
     orders: List[Dict[str, Any]]
     customer_phone: str
     channel: str
@@ -31,6 +33,8 @@ class CallState(TypedDict, total=False):
     episodic_summaries: List[Dict[str, Any]]
     call_brief: Optional[Dict[str, Any]]
     retrieved_kb: List[Dict[str, Any]]
+    pending_tool_results: List[Dict[str, Any]]
+    call_ended: bool
 
     plan_action: str
     tool_calls: List[Dict[str, Any]]

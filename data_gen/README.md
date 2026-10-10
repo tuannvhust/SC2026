@@ -31,7 +31,7 @@ BTC_DIR=./data
 
 Pipeline tự động load `.env` khi import `data_gen.config`, vì vậy không cần đặt key thủ công trong từng terminal. Mỗi thành viên chỉ sửa file `.env` local của mình; không commit file này.
 
-Lưu ý: `langgraph_agent` hiện vẫn đọc các biến legacy `ANTHROPIC_API_KEY`, `HARNESS_MODEL` và `HARNESS_DB`. Các biến này được giữ trong `.env.example` để agent không bị hỏng; chúng không được `data_gen` dùng khi đã có `HARNESS_GEN_MODEL`.
+Lưu ý: `langgraph_agent` dùng chung `GEMINI_API_KEY` (hoặc `GOOGLE_API_KEY`), cùng với `HARNESS_MODEL` và `HARNESS_DB`. Nếu không cấu hình API key, agent sẽ tự động chạy ở chế độ stand-in offline.
 
 Kiểm tra trước khi commit:
 

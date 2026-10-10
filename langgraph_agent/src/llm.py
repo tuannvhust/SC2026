@@ -6,43 +6,57 @@ from typing import Any, Dict
 from .state import CallState
 from .tools import CATALOG
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(override=True)
+except ImportError:
+    pass
+
 _FAKE_BAD_PRICE_ONCE = False  # cờ kiểm thử: buộc stand-in cố tình bịa giá sai 1 lần để test guardrail
 
 
 def get_model() -> str:
-    return os.getenv("HARNESS_MODEL", "claude-sonnet-4-6")
+    return os.getenv("HARNESS_MODEL", "gemini-3.5-flash-lite")  
 
 
 def use_fake_llm() -> bool:
-    return not os.getenv("ANTHROPIC_API_KEY")
+    return not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
 
 
 def real_llm_json(system: str, user: str) -> Dict[str, Any]:
-    import anthropic
+    from google import genai
+    from google.genai import types
 
-    client = anthropic.Anthropic()
-    resp = client.messages.create(
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
+    resp = client.models.generate_content(
         model=get_model(),
-        max_tokens=800,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+        contents=user,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            max_output_tokens=800,
+            response_mime_type="application/json",
+        ),
     )
-    text = "".join(b.text for b in resp.content if b.type == "text")
+    text = resp.text or ""
     text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.M).strip()
     return json.loads(text)
 
 
 def real_llm_text(system: str, user: str) -> str:
-    import anthropic
+    from google import genai
+    from google.genai import types
 
-    client = anthropic.Anthropic()
-    resp = client.messages.create(
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
+    resp = client.models.generate_content(
         model=get_model(),
-        max_tokens=400,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+        contents=user,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            max_output_tokens=400,
+        ),
     )
-    return "".join(b.text for b in resp.content if b.type == "text").strip()
+    return (resp.text or "").strip()
 
 
 def fmt_vnd(n: int) -> str:
@@ -92,7 +106,8 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
         promo = f" Hiện có ưu đãi {it['active_promos'][0].get('desc', it['active_promos'][0])}." if it.get("active_promos") else ""
         prefix = ""
         if first_turn and state.get("call_brief"):
-            prefix = state["call_brief"] + " "
+            brief = state["call_brief"]
+            prefix = (brief.get("suggested_opening", "") if isinstance(brief, dict) else brief) + " "
         text = f"{prefix}Dạ {it['name']} hiện giá {fmt_vnd(it['price_vnd'])}đ.{promo}"
         if _FAKE_BAD_PRICE_ONCE and state.get("retry_count", 0) == 0:
             text = f"Dạ {it['name']} hiện giá {fmt_vnd(it['price_vnd'] - 300_000)}đ ạ."  # cố tình hallucinate giá

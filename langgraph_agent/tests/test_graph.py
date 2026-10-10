@@ -28,6 +28,8 @@ def test_setup(tmp_path, monkeypatch):
     test_db = str(tmp_path / "test.db")
     monkeypatch.setenv("HARNESS_DB", test_db)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     graph = build_graph()
     phone = "0982000111"
     return {"graph": graph, "phone": phone, "db_path": test_db}

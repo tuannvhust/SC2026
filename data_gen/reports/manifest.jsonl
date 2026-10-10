@@ -1,2 +1,2 @@
-{"brief_id": "SC-DEMO-01", "provider": "gemini", "prompt_version": "dialogue_v2", "model": "gemini-3.5-flash-lite", "seed": 7, "timestamp": "2026-10-09T12:29:49.530304+00:00", "status": "ok", "error": null}
-{"brief_id": "SC-DEMO-02", "provider": "gemini", "prompt_version": "dialogue_v2", "model": "gemini-3.5-flash-lite", "seed": 7, "timestamp": "2026-10-09T12:29:55.220571+00:00", "status": "ok", "error": null}
+{"brief_id": "SC-DEMO-01", "provider": "gemini", "prompt_version": "dialogue_v2", "model": "gemini-3.5-flash-lite", "seed": 7, "timestamp": "2026-10-09T17:09:09.015079+00:00", "status": "ok", "error": null}
+{"brief_id": "SC-DEMO-02", "provider": "gemini", "prompt_version": "dialogue_v2", "model": "gemini-3.5-flash-lite", "seed": 7, "timestamp": "2026-10-09T17:09:16.120706+00:00", "status": "ok", "error": null}

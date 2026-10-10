@@ -31,6 +31,23 @@ CATALOG = {p["sku"]: {"name": p["name"], "price_vnd": p.get("list_price_vnd", 0)
                        "in_stock": p.get("stock", 0) > 0, "delivery_days": 2, "promos": []}
            for p in PRODUCTS}
 
+POLICY_DIR = DATA / "policy"
+
+
+def policy_kb_search(query: str = "", top_k: int = 3, **_) -> list[Dict[str, Any]]:
+    """Deterministic policy retriever; replaceable by a vector retriever in production."""
+    tokens = {t.lower() for t in re.findall(r"[\wÀ-ỹ]+", query) if len(t) > 2}
+    hits = []
+    for path in POLICY_DIR.glob("*.md"):
+        if "NOI-BO" in path.name.upper() or "noi-quy" in path.name.lower():
+            continue
+        content = path.read_text(encoding="utf-8")
+        score = sum(content.lower().count(token) for token in tokens)
+        if score:
+            hits.append({"chunk_id": path.stem, "source": path.name, "score": score,
+                         "text": content[:700].replace("\n", " ")})
+    return sorted(hits, key=lambda item: item["score"], reverse=True)[:top_k]
+
 
 def _region(address: str | None) -> str | None:
     s = (address or "").lower()
@@ -125,7 +142,7 @@ def order_create(customer_phone: str, sku: str, qty: int = 1, price_vnd: int | N
     stock = inventory_check(sku, on); quote = pricing_get_quote(sku, on, qty, customer_phone, address, basket_skus)
     if not stock["in_stock"] or stock["qty"] < qty: return {"error": "out_of_stock", "sku": sku}
     if price_vnd != quote["final_price_vnd"]: return {"error": "price_mismatch", "expected_price_vnd": quote["final_price_vnd"]}
-    return {"order_id": "OD" + uuid.uuid4().hex[:6].upper(), "status": "created", "sku": sku,
+    return {"order_id": "ORD-" + uuid.uuid4().hex[:6].upper(), "status": "created", "sku": sku,
             "price_vnd": price_vnd, "estimated_delivery": (date.fromisoformat(on) + timedelta(days=2)).isoformat()}
 
 
@@ -155,6 +172,8 @@ TOOLS = {"crm.get_customer": crm_get_customer, "catalog.search": catalog_search,
          "order.update": order_update, "schedule.callback": schedule_callback, "handoff.transfer": handoff_transfer,
          "catalog_search": lambda query, **kw: [{**x, "price_vnd": x["list_price_vnd"], "active_promos": []} for x in catalog_search(query, **kw)],
          "order_create": order_create}
+TOOLS["policy_kb.search"] = policy_kb_search
+DEFAULT_CATALOG_SEARCH = TOOLS["catalog_search"]
 
 
 def tool_crm_get_customer(customer_phone: str, **kwargs):

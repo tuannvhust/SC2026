@@ -10,10 +10,31 @@ from .llm import fake_plan, real_llm_json, real_llm_text, use_fake_llm
 from .memory import db, get_or_create_customer, load_episodic, load_profile, upsert_slot
 from .prompts import PLAN_SYSTEM, format_plan_user_prompt
 from .state import CallState
-from .tools import CATALOG, TOOLS, crm_get_customer, mask_pii
+from .tools import CATALOG, DEFAULT_CATALOG_SEARCH, TOOLS, crm_get_customer, mask_pii
 
 TOOL_TIMEOUT_S = 5
 _executor = ThreadPoolExecutor(max_workers=4)
+
+
+def input_guardrail(state: CallState) -> CallState:
+    """Reject empty, oversized or prompt-injection-like input before any lookup."""
+    text = (state.get("raw_customer_text") or "").strip()
+    reason = None
+    if not text:
+        reason = "empty_input"
+    elif len(text) > 2000:
+        reason = "input_too_long"
+    elif re.search(r"(ignore|bỏ qua).{0,30}(instruction|hướng dẫn|quy tắc)", text, re.I):
+        reason = "prompt_injection"
+    return {"input_valid": reason is None, "input_rejection_reason": reason}
+
+
+def input_refusal(state: CallState) -> CallState:
+    """Produce a safe response for input rejected by the input guardrail."""
+    return {
+        "final_response": "Dạ em chưa thể xử lý yêu cầu này. Anh/chị vui lòng gửi lại nội dung cần hỗ trợ ngắn gọn hơn ạ.",
+        "call_outcome": "tu_choi_dau_vao",
+    }
 
 
 def resolve_identity(state: CallState) -> CallState:
@@ -26,14 +47,16 @@ def resolve_identity(state: CallState) -> CallState:
         return {"crm_result": data, "needs_identity_confirm": True,
                 "candidates": data.get("candidates", []), "call_brief": None,
                 "call_brief_latency_ms": int((time.perf_counter() - started) * 1000)}
+    is_returning = bool(data.get("found") and not data.get("ambiguous"))
     if not data.get("found") and state.get("customer_phone"):
         cid, returning = get_or_create_customer(state["customer_phone"])
         data.update({"found": True, "customer_id": cid, "name": None, "honorific": None,
                      "orders": [], "sessions": [], "ambiguous": False})
+        is_returning = returning
     cid = data.get("customer_id")
     profile = {} if state.get("config") == "baseline_no_memory" else load_profile(cid) if cid else {}
     return {"crm_result": data, "customer_id": cid, "customer_name": data.get("name"),
-            "honorific": data.get("honorific"), "is_returning_customer": data.get("found", False),
+            "honorific": data.get("honorific"), "is_returning_customer": is_returning,
             "profile": profile, "episodic_summaries": (data.get("sessions", []) + load_episodic(cid)) if cid and state.get("config") != "baseline_no_memory" else data.get("sessions", []),
             "orders": data.get("orders", []), "call_id": state.get("call_id", ""),
             "call_brief_latency_ms": int((time.perf_counter() - started) * 1000)}
@@ -115,7 +138,7 @@ def plan_step(state: CallState) -> CallState:
     except Exception:  # Lỗi cú pháp JSON / lỗi API -> fallback an toàn thay vì làm gián đoạn cuộc gọi
         return {"plan_action": "cannot_answer", "handoff_reason": "llm_error"}
     action = out.get("action", "cannot_answer")
-    if action not in {"answer", "call_tool", "ask_clarify", "cannot_answer"}:
+    if action not in {"answer", "call_tool", "ask_clarify", "cannot_answer", "rag"}:
         action = "cannot_answer"
     upd: CallState = {
         "plan_action": action,
@@ -130,9 +153,12 @@ def plan_step(state: CallState) -> CallState:
 
 def call_tool(state: CallState) -> CallState:
     """Thực thi các lệnh gọi tool thông qua ThreadPoolExecutor và giám sát timeout."""
-    results = list(state.get("tool_results", []))
+    results = list(state.get("pending_tool_results", []))
     for tc in state.get("tool_calls", []):
-        name = tc.get("name"); fn = TOOLS.get(name)
+        name = tc.get("name")
+        # Keep the legacy alias patchable for timeout/fault-injection tests.
+        alias = TOOLS.get("catalog_search")
+        fn = alias if name == "catalog.search" and alias is not DEFAULT_CATALOG_SEARCH else TOOLS.get(name)
         if fn is None:
             return {"needs_handoff": True, "handoff_reason": "tool_error"}
         args = dict(tc.get("args", {}))
@@ -149,10 +175,24 @@ def call_tool(state: CallState) -> CallState:
             res = {k: v for k, v in res.items() if k != "_internal_price_floor_vnd"}
         results.append({"tool": name, "name": name, "args": args, "result": res})
     return {
-        "tool_results": results,
+        "pending_tool_results": results,
         "tool_call_count": state.get("tool_call_count", 0) + 1,
         "tool_calls": [],
     }
+
+
+def rag_tool(state: CallState) -> CallState:
+    """Query policy KB through the same controlled tool execution boundary."""
+    query = state.get("normalized_customer_text") or state.get("raw_customer_text", "")
+    fn = TOOLS["policy_kb.search"]
+    return {"pending_tool_results": [{"tool": "policy_kb.search", "name": "policy_kb.search",
+                                       "args": {"query": query}, "result": fn(query=query)}]}
+
+
+def collect_tool_results(state: CallState) -> CallState:
+    """Commit tool/RAG results to the planner-visible state in one place."""
+    return {"tool_results": list(state.get("tool_results", [])) + list(state.get("pending_tool_results", [])),
+            "pending_tool_results": []}
 
 
 def trace_emit(state: CallState) -> CallState:
@@ -267,3 +307,17 @@ def persist_turn(state: CallState) -> CallState:
         "call_outcome": outcome,
         "messages": [{"role": "assistant", "content": final or ""}],
     }
+
+
+def persist_call(state: CallState) -> CallState:
+    """Persist an episodic summary when the caller explicitly ends the call."""
+    cid = state.get("customer_id")
+    if not cid:
+        return {}
+    user_lines = [m["content"] for m in state.get("messages", []) if m.get("role") == "user"]
+    summary = f"Khách nói: {' | '.join(user_lines)[:200]}. Kết quả: {state.get('call_outcome') or 'hen_lai'}."
+    with db() as c:
+        c.execute("INSERT INTO episodic(customer_id,call_id,ts,summary,outcome) VALUES (?,?,?,?,?)",
+                  (cid, state.get("call_id"), datetime.now().isoformat(), summary,
+                   state.get("call_outcome") or "hen_lai"))
+    return {"call_summary": summary}

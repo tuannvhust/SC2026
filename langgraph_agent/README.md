@@ -18,7 +18,7 @@ Hội thoại telesales đòi hỏi thông tin sản phẩm theo thời gian th�
 - **`StateGraph`**: Quản lý quy trình và điều phối chuyển trạng thái giữa các node.
 - **`CallState` (TypedDict)**: Schema lưu trạng thái cuộc gọi, sử dụng `operator.add` để tích lũy lịch sử hội thoại (`messages`) qua các lượt.
 - **`MemorySaver`**: Quản lý checkpoint trong bộ nhớ cho các lượt thoại trong cùng một phiên gọi (`thread_id = call_id`).
-- **Nodes**: Các đơn vị xử lý độc lập cho việc định danh CRM, tạo Call Brief, chuẩn hóa ASR/teencode, truy xuất ngữ cảnh, lập kế hoạch, gọi tool, kiểm tra guardrail, chuyển máy, lưu lượt và xuất trace.
+- **Nodes**: Các đơn vị xử lý độc lập cho input guardrail, định danh CRM, tạo Call Brief, chuẩn hóa ASR/teencode, truy xuất policy KB (RAG), lập kế hoạch, gọi tool, gom kết quả, kiểm tra output guardrail, chuyển máy, lưu lượt và lưu kết thúc cuộc gọi.
 - **Conditional Edges**: Điều hướng rẽ nhánh động dựa trên hành động của planner, kết quả tool, trạng thái guardrail và số lần retry.
 
 ---
@@ -28,9 +28,9 @@ Hội thoại telesales đòi hỏi thông tin sản phẩm theo thời gian th�
 ```mermaid
 flowchart TB
  subgraph INPUT["1. INPUT & SESSION CONTINUITY"]
+        S["<b>resolve_identity</b><br>Xác định khách hàng theo customer_id<br>"]
         IG{{"<b>input_guardrail</b><br>Kiểm tra đầu vào<br>"}}
         N["<b>normalize_input</b><br>Chuẩn hóa đầu vào<br>"]
-        S["<b>resolve_identity</b><br>Xác định khách hàng theo customer_id<br>"]
         B["<b>build_call_brief<br></b>Tạo call brief nếu là khách cũ"]
         IM["Từ chối trả lời"]
   end
@@ -52,12 +52,12 @@ flowchart TB
         WM["<b>persist_turn</b><br>Lưu hội thoại<br>Working Memory/Event Log"]
         LM["<b>persist_call</b><br>Bộ nhớ cuộc gọi<br>Trích xuất → Kiểm tra → Lưu"]
   end
-    START(["<b>START<br></b>Khách gửi tin nhắn / cuộc gọi"]) --> IG
+    START(["<b>START<br></b>Khách gửi tin nhắn / cuộc gọi"]) --> S
+    S --> IG
     IG -- Không hợp lệ /<br>ngoài phạm vi --> IM
     IM --> WM
     IG -- Hợp lệ --> N
-    N --> S
-    S --> B
+    N --> B
     B --> P
     P -- trả lời / làm rõ --> OG
     P -- gọi tool --> T
@@ -100,7 +100,7 @@ langgraph_agent/
 │   ├── memory.py             # Quản lý SQLite database (profile slots, episodic summaries, CRM)
 │   ├── tools.py              # Tool tìm kiếm catalog, tạo đơn hàng, tra cứu CRM & registry TOOLS
 │   ├── prompts.py            # System prompt cho telesale & hàm format prompt
-│   ├── llm.py                # Gọi Anthropic API & bộ stand-in chạy offline bằng rule
+│   ├── llm.py                # Gọi Gemini API & bộ stand-in chạy offline bằng rule
 │   ├── guardrails.py         # Regex bóc tách số tiền & hàm kiểm tra đối soát với kết quả tool
 │   ├── nodes.py              # Định nghĩa các node thực thi trong graph
 │   ├── edges.py              # Các hàm điều hướng conditional edge
@@ -133,8 +133,8 @@ cp .env.example .env
 
 Các biến môi trường chính:
 
-- `ANTHROPIC_API_KEY`: API key của Anthropic. Nếu để trống, hệ thống sẽ tự động chuyển sang chế độ stand-in offline phục vụ kiểm thử.
-- `HARNESS_MODEL`: Model sử dụng (mặc định: `claude-sonnet-4-6`).
+- `GEMINI_API_KEY`: API key của Google Gemini (hoặc `GOOGLE_API_KEY`). Nếu để trống, hệ thống sẽ tự động chuyển sang chế độ stand-in offline phục vụ kiểm thử.
+- `HARNESS_MODEL`: Model sử dụng (mặc định: `gemini-3.5-flash-lite`).
 - `HARNESS_DB`: Đường dẫn file SQLite database (mặc định: `harness_memory.db`).
 
 ### Chạy kịch bản ví dụ
@@ -144,6 +144,15 @@ Các biến môi trường chính:
 ```bash
 python langgraph_agent/examples/run_graph.py
 ```
+
+Để đóng một cuộc gọi và ghi bộ nhớ episodic, truyền `call_ended=True` ở lượt cuối:
+
+```python
+handle_customer_turn(graph, call_id, phone, "voice_call", "Cảm ơn em nhé",
+                     call_ended=True)
+```
+
+Luồng RAG dùng tool `policy_kb.search`, đọc các tài liệu trong `data/policy/` và loại khỏi kết quả các tài liệu nội bộ. Có thể thay adapter này bằng vector search mà không phải đổi graph.
 
 ### Chạy kiểm thử tự động
 

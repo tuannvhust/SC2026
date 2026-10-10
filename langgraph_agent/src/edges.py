@@ -7,6 +7,8 @@ def route_after_plan(state: CallState) -> str:
         return "handoff_to_human"
     if state.get("plan_action") == "call_tool":
         return "call_tool"
+    if state.get("plan_action") == "rag":
+        return "rag_tool"
     return "guardrail_check"
 
 
@@ -17,6 +19,14 @@ def route_after_tool(state: CallState) -> str:
     if state.get("tool_call_count", 0) >= state.get("max_tool_calls", 3):
         return "guardrail_check"
     return "plan_step"
+
+
+def route_after_input_guardrail(state: CallState) -> str:
+    return "normalize_input" if state.get("input_valid") else "input_refusal"
+
+
+def route_after_persist_turn(state: CallState) -> str:
+    return "persist_call" if state.get("call_ended") else "trace_emit"
 
 
 def route_after_guardrail(state: CallState) -> str:
