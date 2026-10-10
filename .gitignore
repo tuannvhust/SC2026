@@ -51,3 +51,14 @@ Thumbs.db
 # Docs riêng tư
 NOTES.md
 data/**
+
+# Dữ liệu sinh ra lúc runtime của Vector Store & BM25
+data/qdrant_storage/
+data/processed/bm25_*
+*.db
+*.sqlite
+
+# Các file log
+*.log
+runs/
+trace_demo.jsonl

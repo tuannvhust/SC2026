@@ -1,0 +1,767 @@
+[
+  {
+    "_id": "CL-01",
+    "chunk_id": "CL-01",
+    "policy_id": "CL-01",
+    "title": "Nhật ký thay đổi chính sách — Shop BTC - 01/10/2026 — Chính sách đổi trả phiên bản 2026-10",
+    "source": "changelog.md",
+    "content": "Thay thế phiên bản 2026-06. Thay đổi: thời hạn đổi trả 14 → **7 ngày**; đổi size lần đầu **miễn phí** (trước: 20.000đ); hoàn tiền 7 → **3–5 ngày làm việc**; lỗi nhà sản xuất đổi mới 15 → **30 ngày** (gia dụng, mẹ & bé). Đơn tạo trước 01/10/2026 vẫn áp dụng bản cũ.",
+    "embedding_text": "Tài liệu 'Nhật ký thay đổi chính sách — Shop BTC - 01/10/2026 — Chính sách đổi trả phiên bản 2026-10' (changelog.md):\nThay thế phiên bản 2026-06. Thay đổi: thời hạn đổi trả 14 → **7 ngày**; đổi size lần đầu **miễn phí** (trước: 20.000đ); hoàn tiền 7 → **3–5 ngày làm việc**; lỗi nhà sản xuất đổi mới 15 → **30 ngày** (gia dụng, mẹ & bé). Đơn tạo trước 01/10/2026 vẫn áp dụng bản cũ."
+  },
+  {
+    "_id": "CL-02",
+    "chunk_id": "CL-02",
+    "policy_id": "CL-02",
+    "title": "Nhật ký thay đổi chính sách — Shop BTC - 01/10/2026 — Điều khoản khuyến mãi",
+    "source": "changelog.md",
+    "content": "Ban hành `dieu-khoan-khuyen-mai.md`: quy tắc cộng dồn, chọn chương trình có lợi nhất, giá sàn, khuyến mãi theo vùng.",
+    "embedding_text": "Tài liệu 'Nhật ký thay đổi chính sách — Shop BTC - 01/10/2026 — Điều khoản khuyến mãi' (changelog.md):\nBan hành `dieu-khoan-khuyen-mai.md`: quy tắc cộng dồn, chọn chương trình có lợi nhất, giá sàn, khuyến mãi theo vùng."
+  },
+  {
+    "_id": "CL-03",
+    "chunk_id": "CL-03",
+    "policy_id": "CL-03",
+    "title": "Nhật ký thay đổi chính sách — Shop BTC - 15/09/2026 — Vận chuyển",
+    "source": "changelog.md",
+    "content": "Thêm phụ thu hàng cồng kềnh 30.000đ ngoài nội thành; giới hạn COD dưới 10.000.000đ (trước: 15.000.000đ).",
+    "embedding_text": "Tài liệu 'Nhật ký thay đổi chính sách — Shop BTC - 15/09/2026 — Vận chuyển' (changelog.md):\nThêm phụ thu hàng cồng kềnh 30.000đ ngoài nội thành; giới hạn COD dưới 10.000.000đ (trước: 15.000.000đ)."
+  },
+  {
+    "_id": "CL-04",
+    "chunk_id": "CL-04",
+    "policy_id": "CL-04",
+    "title": "Nhật ký thay đổi chính sách — Shop BTC - 01/08/2026 — Bảo hành",
+    "source": "changelog.md",
+    "content": "Máy lọc nước Karofi/Kangaroo tăng bảo hành thân máy 24 → 36 tháng cho đơn từ 01/08/2026. Đơn trước đó giữ 24 tháng.",
+    "embedding_text": "Tài liệu 'Nhật ký thay đổi chính sách — Shop BTC - 01/08/2026 — Bảo hành' (changelog.md):\nMáy lọc nước Karofi/Kangaroo tăng bảo hành thân máy 24 → 36 tháng cho đơn từ 01/08/2026. Đơn trước đó giữ 24 tháng."
+  },
+  {
+    "_id": "CL-05",
+    "chunk_id": "CL-05",
+    "policy_id": "CL-05",
+    "title": "Nhật ký thay đổi chính sách — Shop BTC - 01/06/2026 — Ngừng bán",
+    "source": "changelog.md",
+    "content": "Ngừng bán AirPure X bản 2024 (SKU-AP-X-2024) và RunLite 1 (2025). Sản phẩm thay thế: SKU-AP-X, SKU-SN-RUN1. Màng lọc SKU-AP-FLT-X vẫn tương thích với bản 2024.",
+    "embedding_text": "Tài liệu 'Nhật ký thay đổi chính sách — Shop BTC - 01/06/2026 — Ngừng bán' (changelog.md):\nNgừng bán AirPure X bản 2024 (SKU-AP-X-2024) và RunLite 1 (2025). Sản phẩm thay thế: SKU-AP-X, SKU-SN-RUN1. Màng lọc SKU-AP-FLT-X vẫn tương thích với bản 2024."
+  },
+  {
+    "_id": "BH-01",
+    "chunk_id": "BH-01",
+    "policy_id": "BH-01",
+    "title": "Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Thời hạn bảo hành theo nhóm hàng",
+    "source": "chinh-sach-bao-hanh.md",
+    "content": "Máy lọc không khí AirPure, Samsung: **24 tháng**. Máy lọc không khí Xiaomi: 12 tháng. Máy lọc nước RO Karofi, Kangaroo: **36 tháng** (thân máy), lõi lọc không bảo hành. Quạt, nồi chiên không dầu: 12 tháng. Máy hút sữa, máy tiệt trùng, xe đẩy, ghế ô tô: 12 tháng. Giày, áo khoác: không bảo hành, chỉ áp dụng đổi trả 7 ngày. Thời hạn cụ thể của từng SKU ghi trong `attributes.warranty_months` của catalog — **catalog là nguồn ưu tiên** nếu có khác biệt.",
+    "embedding_text": "Tài liệu 'Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Thời hạn bảo hành theo nhóm hàng' (chinh-sach-bao-hanh.md):\nMáy lọc không khí AirPure, Samsung: **24 tháng**. Máy lọc không khí Xiaomi: 12 tháng. Máy lọc nước RO Karofi, Kangaroo: **36 tháng** (thân máy), lõi lọc không bảo hành. Quạt, nồi chiên không dầu: 12 tháng. Máy hút sữa, máy tiệt trùng, xe đẩy, ghế ô tô: 12 tháng. Giày, áo khoác: không bảo hành, chỉ áp dụng đổi trả 7 ngày. Thời hạn cụ thể của từng SKU ghi trong `attributes.warranty_months` của catalog — **catalog là nguồn ưu tiên** nếu có khác biệt."
+  },
+  {
+    "_id": "BH-02",
+    "chunk_id": "BH-02",
+    "policy_id": "BH-02",
+    "title": "Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Phạm vi bảo hành",
+    "source": "chinh-sach-bao-hanh.md",
+    "content": "Lỗi kỹ thuật do nhà sản xuất: motor, bo mạch, cảm biến, nguồn. Không bảo hành: hao mòn tự nhiên (màng lọc, lõi lọc, pin), hư hỏng do rơi vỡ, vào nước, côn trùng, dùng sai điện áp, tự ý tháo máy.",
+    "embedding_text": "Tài liệu 'Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Phạm vi bảo hành' (chinh-sach-bao-hanh.md):\nLỗi kỹ thuật do nhà sản xuất: motor, bo mạch, cảm biến, nguồn. Không bảo hành: hao mòn tự nhiên (màng lọc, lõi lọc, pin), hư hỏng do rơi vỡ, vào nước, côn trùng, dùng sai điện áp, tự ý tháo máy."
+  },
+  {
+    "_id": "BH-03",
+    "chunk_id": "BH-03",
+    "policy_id": "BH-03",
+    "title": "Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Cách bảo hành",
+    "source": "chinh-sach-bao-hanh.md",
+    "content": "Khách mang sản phẩm đến trung tâm bảo hành hãng hoặc gửi về shop (shop hỗ trợ chuyển đến hãng, khách chịu phí vận chuyển chiều đi). Thời gian xử lý 7–15 ngày làm việc. Trong thời gian bảo hành máy lọc nước, shop **không** cho mượn máy thay thế.",
+    "embedding_text": "Tài liệu 'Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Cách bảo hành' (chinh-sach-bao-hanh.md):\nKhách mang sản phẩm đến trung tâm bảo hành hãng hoặc gửi về shop (shop hỗ trợ chuyển đến hãng, khách chịu phí vận chuyển chiều đi). Thời gian xử lý 7–15 ngày làm việc. Trong thời gian bảo hành máy lọc nước, shop **không** cho mượn máy thay thế."
+  },
+  {
+    "_id": "BH-04",
+    "chunk_id": "BH-04",
+    "policy_id": "BH-04",
+    "title": "Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Màng lọc và lõi lọc",
+    "source": "chinh-sach-bao-hanh.md",
+    "content": "Màng lọc HEPA khuyến nghị thay sau **6–12 tháng** tùy môi trường; lõi lọc RO số 1–3 thay sau 6–9 tháng. Shop bán màng/lõi thay thế (xem catalog nhóm phu-kien). Không bảo hành, không đổi trả sau khi bóc seal.",
+    "embedding_text": "Tài liệu 'Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Màng lọc và lõi lọc' (chinh-sach-bao-hanh.md):\nMàng lọc HEPA khuyến nghị thay sau **6–12 tháng** tùy môi trường; lõi lọc RO số 1–3 thay sau 6–9 tháng. Shop bán màng/lõi thay thế (xem catalog nhóm phu-kien). Không bảo hành, không đổi trả sau khi bóc seal."
+  },
+  {
+    "_id": "BH-05",
+    "chunk_id": "BH-05",
+    "policy_id": "BH-05",
+    "title": "Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Bảo hành mở rộng",
+    "source": "chinh-sach-bao-hanh.md",
+    "content": "Khách có thể mua gói bảo hành mở rộng thêm 12 tháng với giá bằng 8% giá sản phẩm, chỉ áp dụng cho gia dụng trên 3.000.000đ, mua trong vòng 15 ngày kể từ ngày nhận hàng.",
+    "embedding_text": "Tài liệu 'Chính sách bảo hành — Shop BTC (phiên bản 2026-10) - Bảo hành mở rộng' (chinh-sach-bao-hanh.md):\nKhách có thể mua gói bảo hành mở rộng thêm 12 tháng với giá bằng 8% giá sản phẩm, chỉ áp dụng cho gia dụng trên 3.000.000đ, mua trong vòng 15 ngày kể từ ngày nhận hàng."
+  },
+  {
+    "_id": "DT-01",
+    "chunk_id": "DT-01",
+    "policy_id": "DT-01",
+    "title": "Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Thời hạn đổi trả",
+    "source": "chinh-sach-doi-tra.md",
+    "content": "Khách hàng được đổi hoặc trả sản phẩm trong vòng **7 ngày** kể từ ngày nhận hàng (tính theo ngày ký nhận trên đơn vận chuyển). Với ngành hàng gia dụng và mẹ & bé có lỗi kỹ thuật từ nhà sản xuất, thời hạn đổi mới là **30 ngày**.",
+    "embedding_text": "Tài liệu 'Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Thời hạn đổi trả' (chinh-sach-doi-tra.md):\nKhách hàng được đổi hoặc trả sản phẩm trong vòng **7 ngày** kể từ ngày nhận hàng (tính theo ngày ký nhận trên đơn vận chuyển). Với ngành hàng gia dụng và mẹ & bé có lỗi kỹ thuật từ nhà sản xuất, thời hạn đổi mới là **30 ngày**."
+  },
+  {
+    "_id": "DT-02",
+    "chunk_id": "DT-02",
+    "policy_id": "DT-02",
+    "title": "Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Điều kiện đổi trả",
+    "source": "chinh-sach-doi-tra.md",
+    "content": "Sản phẩm còn nguyên tem, nhãn, hộp, chưa qua sử dụng (giày/áo chưa giặt, chưa có dấu hiệu mòn đế). Có hóa đơn hoặc mã đơn hàng. Sản phẩm thuộc nhóm đồ lót, bình sữa, núm ti đã bóc seal **không** được đổi trả vì lý do vệ sinh.",
+    "embedding_text": "Tài liệu 'Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Điều kiện đổi trả' (chinh-sach-doi-tra.md):\nSản phẩm còn nguyên tem, nhãn, hộp, chưa qua sử dụng (giày/áo chưa giặt, chưa có dấu hiệu mòn đế). Có hóa đơn hoặc mã đơn hàng. Sản phẩm thuộc nhóm đồ lót, bình sữa, núm ti đã bóc seal **không** được đổi trả vì lý do vệ sinh."
+  },
+  {
+    "_id": "DT-03",
+    "chunk_id": "DT-03",
+    "policy_id": "DT-03",
+    "title": "Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Đổi size / màu (thời trang)",
+    "source": "chinh-sach-doi-tra.md",
+    "content": "Đổi size hoặc màu lần **đầu tiên** cho cùng một đơn hàng: **miễn phí**, shop chịu phí vận chuyển hai chiều. Từ lần đổi thứ hai trở đi: khách chịu phí vận chuyển 30.000đ/chiều. Điều kiện: size/màu mới còn hàng; nếu hết hàng, khách được chọn sản phẩm khác cùng giá hoặc hoàn tiền.",
+    "embedding_text": "Tài liệu 'Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Đổi size / màu (thời trang)' (chinh-sach-doi-tra.md):\nĐổi size hoặc màu lần **đầu tiên** cho cùng một đơn hàng: **miễn phí**, shop chịu phí vận chuyển hai chiều. Từ lần đổi thứ hai trở đi: khách chịu phí vận chuyển 30.000đ/chiều. Điều kiện: size/màu mới còn hàng; nếu hết hàng, khách được chọn sản phẩm khác cùng giá hoặc hoàn tiền."
+  },
+  {
+    "_id": "DT-04",
+    "chunk_id": "DT-04",
+    "policy_id": "DT-04",
+    "title": "Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Hoàn tiền",
+    "source": "chinh-sach-doi-tra.md",
+    "content": "Hoàn tiền trong **3–5 ngày làm việc** sau khi shop nhận lại hàng và kiểm tra đạt điều kiện. Đơn COD hoàn qua chuyển khoản ngân hàng; đơn thanh toán online hoàn về phương thức thanh toán ban đầu.",
+    "embedding_text": "Tài liệu 'Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Hoàn tiền' (chinh-sach-doi-tra.md):\nHoàn tiền trong **3–5 ngày làm việc** sau khi shop nhận lại hàng và kiểm tra đạt điều kiện. Đơn COD hoàn qua chuyển khoản ngân hàng; đơn thanh toán online hoàn về phương thức thanh toán ban đầu."
+  },
+  {
+    "_id": "DT-05",
+    "chunk_id": "DT-05",
+    "policy_id": "DT-05",
+    "title": "Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Sản phẩm lỗi do nhà sản xuất",
+    "source": "chinh-sach-doi-tra.md",
+    "content": "Đổi mới 1-1 trong 30 ngày với gia dụng và mẹ & bé nếu có xác nhận lỗi từ trung tâm bảo hành. Sau 30 ngày áp dụng chính sách bảo hành (xem chinh-sach-bao-hanh.md).",
+    "embedding_text": "Tài liệu 'Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Sản phẩm lỗi do nhà sản xuất' (chinh-sach-doi-tra.md):\nĐổi mới 1-1 trong 30 ngày với gia dụng và mẹ & bé nếu có xác nhận lỗi từ trung tâm bảo hành. Sau 30 ngày áp dụng chính sách bảo hành (xem chinh-sach-bao-hanh.md)."
+  },
+  {
+    "_id": "DT-06",
+    "chunk_id": "DT-06",
+    "policy_id": "DT-06",
+    "title": "Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Trường hợp không được đổi trả",
+    "source": "chinh-sach-doi-tra.md",
+    "content": "Sản phẩm hư hỏng do người dùng (rơi vỡ, vào nước, dùng sai điện áp). Sản phẩm mua trong chương trình xả kho ghi rõ \"không đổi trả\". Quá 7 ngày kể từ ngày nhận (trừ lỗi nhà sản xuất).",
+    "embedding_text": "Tài liệu 'Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Trường hợp không được đổi trả' (chinh-sach-doi-tra.md):\nSản phẩm hư hỏng do người dùng (rơi vỡ, vào nước, dùng sai điện áp). Sản phẩm mua trong chương trình xả kho ghi rõ \"không đổi trả\". Quá 7 ngày kể từ ngày nhận (trừ lỗi nhà sản xuất)."
+  },
+  {
+    "_id": "DT-07",
+    "chunk_id": "DT-07",
+    "policy_id": "DT-07",
+    "title": "Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Cách yêu cầu đổi trả",
+    "source": "chinh-sach-doi-tra.md",
+    "content": "Khách gọi hotline hoặc nhắn Zalo OA, cung cấp mã đơn hàng và lý do. Nhân viên tạo yêu cầu đổi trả trên hệ thống (tool `order.update` với action `exchange_size`, `exchange_product` hoặc `return`). Shop gửi đơn vị vận chuyển đến lấy hàng trong 1–2 ngày làm việc.",
+    "embedding_text": "Tài liệu 'Chính sách đổi trả — Shop BTC (phiên bản 2026-10) - Cách yêu cầu đổi trả' (chinh-sach-doi-tra.md):\nKhách gọi hotline hoặc nhắn Zalo OA, cung cấp mã đơn hàng và lý do. Nhân viên tạo yêu cầu đổi trả trên hệ thống (tool `order.update` với action `exchange_size`, `exchange_product` hoặc `return`). Shop gửi đơn vị vận chuyển đến lấy hàng trong 1–2 ngày làm việc."
+  },
+  {
+    "_id": "VC-01",
+    "chunk_id": "VC-01",
+    "policy_id": "VC-01",
+    "title": "Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Thời gian giao hàng",
+    "source": "chinh-sach-van-chuyen-thanh-toan.md",
+    "content": "| Khu vực | Thời gian (ngày làm việc) | Ghi chú |\n|---|---|---|\n| Nội thành Hà Nội, TP.HCM, Đà Nẵng | 1–2 | Đặt sau 16h tính từ ngày kế tiếp |\n| Ngoại thành 3 thành phố trên; Bình Dương, Đồng Nai, Hải Phòng, Cần Thơ | 2–3 | |\n| Tỉnh thành khác | 2–4 | Tây Nguyên, Tây Bắc: 3–5 |\n| Vùng sâu, hải đảo (Phú Quốc, Côn Đảo, Lý Sơn…) | 5–7 | Không nhận hàng cồng kềnh |\n\"Ngày làm việc\" không gồm Chủ nhật, ngày lễ và ngày nghỉ nội bộ (xem `thong-bao-lich-nghi.md`).",
+    "embedding_text": "Tài liệu 'Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Thời gian giao hàng' (chinh-sach-van-chuyen-thanh-toan.md):\n| Khu vực | Thời gian (ngày làm việc) | Ghi chú |\n|---|---|---|\n| Nội thành Hà Nội, TP.HCM, Đà Nẵng | 1–2 | Đặt sau 16h tính từ ngày kế tiếp |\n| Ngoại thành 3 thành phố trên; Bình Dương, Đồng Nai, Hải Phòng, Cần Thơ | 2–3 | |\n| Tỉnh thành khác | 2–4 | Tây Nguyên, Tây Bắc: 3–5 |\n| Vùng sâu, hải đảo (Phú Quốc, Côn Đảo, Lý Sơn…) | 5–7 | Không nhận hàng cồng kềnh |\n\"Ngày làm việc\" không gồm Chủ nhật, ngày lễ và ngày nghỉ nội bộ (xem `thong-bao-lich-nghi.md`)."
+  },
+  {
+    "_id": "VC-02",
+    "chunk_id": "VC-02",
+    "policy_id": "VC-02",
+    "title": "Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Phí vận chuyển",
+    "source": "chinh-sach-van-chuyen-thanh-toan.md",
+    "content": "Đơn từ **500.000đ**: miễn phí vận chuyển toàn quốc với ngành mẹ & bé (chương trình MOM-FREESHIP, xem promotions.json để biết thời hạn). Các ngành khác: 25.000đ nội thành, 35.000đ liên tỉnh; miễn phí với đơn từ 2.000.000đ. Hàng cồng kềnh (máy lọc nước, xe đẩy, ghế ô tô): phụ thu 30.000đ ngoài nội thành.",
+    "embedding_text": "Tài liệu 'Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Phí vận chuyển' (chinh-sach-van-chuyen-thanh-toan.md):\nĐơn từ **500.000đ**: miễn phí vận chuyển toàn quốc với ngành mẹ & bé (chương trình MOM-FREESHIP, xem promotions.json để biết thời hạn). Các ngành khác: 25.000đ nội thành, 35.000đ liên tỉnh; miễn phí với đơn từ 2.000.000đ. Hàng cồng kềnh (máy lọc nước, xe đẩy, ghế ô tô): phụ thu 30.000đ ngoài nội thành."
+  },
+  {
+    "_id": "VC-03",
+    "chunk_id": "VC-03",
+    "policy_id": "VC-03",
+    "title": "Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Thanh toán khi nhận hàng (COD)",
+    "source": "chinh-sach-van-chuyen-thanh-toan.md",
+    "content": "Chấp nhận COD toàn quốc với đơn dưới 10.000.000đ. Phí thu hộ: **0đ** (chương trình COD-0). Khách được kiểm tra ngoại quan hàng trước khi thanh toán nhưng không được dùng thử. Đơn COD bị từ chối nhận không lý do 2 lần sẽ yêu cầu chuyển khoản trước cho các đơn sau.",
+    "embedding_text": "Tài liệu 'Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Thanh toán khi nhận hàng (COD)' (chinh-sach-van-chuyen-thanh-toan.md):\nChấp nhận COD toàn quốc với đơn dưới 10.000.000đ. Phí thu hộ: **0đ** (chương trình COD-0). Khách được kiểm tra ngoại quan hàng trước khi thanh toán nhưng không được dùng thử. Đơn COD bị từ chối nhận không lý do 2 lần sẽ yêu cầu chuyển khoản trước cho các đơn sau."
+  },
+  {
+    "_id": "VC-04",
+    "chunk_id": "VC-04",
+    "policy_id": "VC-04",
+    "title": "Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Thanh toán online",
+    "source": "chinh-sach-van-chuyen-thanh-toan.md",
+    "content": "Chuyển khoản ngân hàng, ví MoMo, ZaloPay, thẻ nội địa/quốc tế. Đơn chuyển khoản được ưu tiên xử lý và giao trước đơn COD cùng khu vực. Shop **chưa hỗ trợ trả góp** qua công ty tài chính hay thẻ tín dụng; khách hỏi trả góp → trả lời chưa có, không hứa \"sắp có\".",
+    "embedding_text": "Tài liệu 'Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Thanh toán online' (chinh-sach-van-chuyen-thanh-toan.md):\nChuyển khoản ngân hàng, ví MoMo, ZaloPay, thẻ nội địa/quốc tế. Đơn chuyển khoản được ưu tiên xử lý và giao trước đơn COD cùng khu vực. Shop **chưa hỗ trợ trả góp** qua công ty tài chính hay thẻ tín dụng; khách hỏi trả góp → trả lời chưa có, không hứa \"sắp có\"."
+  },
+  {
+    "_id": "VC-05",
+    "chunk_id": "VC-05",
+    "policy_id": "VC-05",
+    "title": "Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Xác nhận đơn hàng",
+    "source": "chinh-sach-van-chuyen-thanh-toan.md",
+    "content": "Mọi đơn COD trên 2.000.000đ phải được nhân viên **gọi xác nhận** trước khi giao (tránh hoàn hàng). Nếu không liên lạc được sau 2 lần gọi trong 24h, đơn tạm giữ 3 ngày rồi hủy.",
+    "embedding_text": "Tài liệu 'Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Xác nhận đơn hàng' (chinh-sach-van-chuyen-thanh-toan.md):\nMọi đơn COD trên 2.000.000đ phải được nhân viên **gọi xác nhận** trước khi giao (tránh hoàn hàng). Nếu không liên lạc được sau 2 lần gọi trong 24h, đơn tạm giữ 3 ngày rồi hủy."
+  },
+  {
+    "_id": "VC-06",
+    "chunk_id": "VC-06",
+    "policy_id": "VC-06",
+    "title": "Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Theo dõi đơn hàng",
+    "source": "chinh-sach-van-chuyen-thanh-toan.md",
+    "content": "Khách nhận mã vận đơn qua SMS/Zalo khi đơn được bàn giao cho đơn vị vận chuyển. Tra cứu trạng thái qua tool `order.status` hoặc nhắn Zalo OA.",
+    "embedding_text": "Tài liệu 'Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Theo dõi đơn hàng' (chinh-sach-van-chuyen-thanh-toan.md):\nKhách nhận mã vận đơn qua SMS/Zalo khi đơn được bàn giao cho đơn vị vận chuyển. Tra cứu trạng thái qua tool `order.status` hoặc nhắn Zalo OA."
+  },
+  {
+    "_id": "VC-07",
+    "chunk_id": "VC-07",
+    "policy_id": "VC-07",
+    "title": "Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Giao hàng thất bại",
+    "source": "chinh-sach-van-chuyen-thanh-toan.md",
+    "content": "Đơn vị vận chuyển giao tối đa 3 lần. Sau 3 lần không thành công, hàng hoàn về kho; khách muốn giao lại phải đặt đơn mới.",
+    "embedding_text": "Tài liệu 'Chính sách vận chuyển & thanh toán — Shop BTC (phiên bản 2026-10) - Giao hàng thất bại' (chinh-sach-van-chuyen-thanh-toan.md):\nĐơn vị vận chuyển giao tối đa 3 lần. Sau 3 lần không thành công, hàng hoàn về kho; khách muốn giao lại phải đặt đơn mới."
+  },
+  {
+    "_id": "KM-01",
+    "chunk_id": "KM-01",
+    "policy_id": "KM-01",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Hiệu lực theo ngày báo giá",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Khuyến mãi chỉ áp dụng khi ngày **tạo đơn** nằm trong khoảng `start`–`end`. Giá đã báo trong một phiên trước không giữ được nếu chương trình đã hết hạn tại ngày tạo đơn; nhân viên xin lỗi và giới thiệu chương trình hiện hành. Ngoại lệ duy nhất: đơn đã tạo (có mã đơn) trước ngày hết hạn thì giữ giá.",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Hiệu lực theo ngày báo giá' (dieu-khoan-khuyen-mai.md):\nKhuyến mãi chỉ áp dụng khi ngày **tạo đơn** nằm trong khoảng `start`–`end`. Giá đã báo trong một phiên trước không giữ được nếu chương trình đã hết hạn tại ngày tạo đơn; nhân viên xin lỗi và giới thiệu chương trình hiện hành. Ngoại lệ duy nhất: đơn đã tạo (có mã đơn) trước ngày hết hạn thì giữ giá."
+  },
+  {
+    "_id": "KM-02",
+    "chunk_id": "KM-02",
+    "policy_id": "KM-02",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Không tiết lộ chương trình chưa bắt đầu",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Nhân viên không được báo trước các chương trình có `start` trong tương lai (ví dụ 11/11) dù khách hỏi thẳng, kể cả gợi ý \"đợi vài hôm nữa sẽ rẻ hơn\".",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Không tiết lộ chương trình chưa bắt đầu' (dieu-khoan-khuyen-mai.md):\nNhân viên không được báo trước các chương trình có `start` trong tương lai (ví dụ 11/11) dù khách hỏi thẳng, kể cả gợi ý \"đợi vài hôm nữa sẽ rẻ hơn\"."
+  },
+  {
+    "_id": "KM-03",
+    "chunk_id": "KM-03",
+    "policy_id": "KM-03",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Cộng dồn",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Chương trình `stackable: true` (freeship, miễn phí thu hộ) cộng được với mọi chương trình khác. Hai chương trình `stackable: false` **không** cộng với nhau trên cùng một sản phẩm; nếu nhiều chương trình cùng đủ điều kiện, áp dụng **chương trình có lợi nhất cho khách** (xem KM-04).",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Cộng dồn' (dieu-khoan-khuyen-mai.md):\nChương trình `stackable: true` (freeship, miễn phí thu hộ) cộng được với mọi chương trình khác. Hai chương trình `stackable: false` **không** cộng với nhau trên cùng một sản phẩm; nếu nhiều chương trình cùng đủ điều kiện, áp dụng **chương trình có lợi nhất cho khách** (xem KM-04)."
+  },
+  {
+    "_id": "KM-04",
+    "chunk_id": "KM-04",
+    "policy_id": "KM-04",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Chọn chương trình có lợi nhất",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Khi một sản phẩm đủ điều kiện nhiều chương trình không cộng dồn, nhân viên tính giá cuối của từng chương trình từ **giá niêm yết trong catalog** và chọn giá thấp nhất, nêu rõ với khách chương trình nào được áp. Ví dụ: AirPure Pro (niêm yết 7.990.000đ) đủ điều kiện AIR-OCT (−300.000đ) và TRADE-IN-AP (−400.000đ nếu khách sở hữu AirPure X bản 2024) → áp TRADE-IN-AP, giá cuối 7.590.000đ. Không được áp cả hai (7.290.000đ là sai).",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Chọn chương trình có lợi nhất' (dieu-khoan-khuyen-mai.md):\nKhi một sản phẩm đủ điều kiện nhiều chương trình không cộng dồn, nhân viên tính giá cuối của từng chương trình từ **giá niêm yết trong catalog** và chọn giá thấp nhất, nêu rõ với khách chương trình nào được áp. Ví dụ: AirPure Pro (niêm yết 7.990.000đ) đủ điều kiện AIR-OCT (−300.000đ) và TRADE-IN-AP (−400.000đ nếu khách sở hữu AirPure X bản 2024) → áp TRADE-IN-AP, giá cuối 7.590.000đ. Không được áp cả hai (7.290.000đ là sai)."
+  },
+  {
+    "_id": "KM-05",
+    "chunk_id": "KM-05",
+    "policy_id": "KM-05",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Điều kiện riêng của từng chương trình",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Một số chương trình có trường `conditions`: `min_qty` (số lượng tối thiểu trong cùng đơn), `exclude_variant_size` (size bị loại, ví dụ size 43 không được giảm 10% RUN-10 vì đã có phụ thu size lớn), `once_per_customer` (mỗi SĐT dùng một lần), `region` (chỉ áp dụng cho khách thuộc vùng, xác định theo địa chỉ giao hàng), `requires_owned_sku` (khách phải có đơn đã giao chứa SKU đó trong CRM). Chương trình \"máy thứ 2 giảm 50%\" (AIR-2ND-50) áp dụng cho **máy có giá thấp hơn** trong cặp, và chỉ khi hai máy nằm trong cùng một đơn.",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Điều kiện riêng của từng chương trình' (dieu-khoan-khuyen-mai.md):\nMột số chương trình có trường `conditions`: `min_qty` (số lượng tối thiểu trong cùng đơn), `exclude_variant_size` (size bị loại, ví dụ size 43 không được giảm 10% RUN-10 vì đã có phụ thu size lớn), `once_per_customer` (mỗi SĐT dùng một lần), `region` (chỉ áp dụng cho khách thuộc vùng, xác định theo địa chỉ giao hàng), `requires_owned_sku` (khách phải có đơn đã giao chứa SKU đó trong CRM). Chương trình \"máy thứ 2 giảm 50%\" (AIR-2ND-50) áp dụng cho **máy có giá thấp hơn** trong cặp, và chỉ khi hai máy nằm trong cùng một đơn."
+  },
+  {
+    "_id": "KM-06",
+    "chunk_id": "KM-06",
+    "policy_id": "KM-06",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Giá sàn và thẩm quyền giảm giá",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Nhân viên/agent **không được tự giảm giá** ngoài các chương trình đã công bố. Mỗi ngành hàng có giá sàn nội bộ (không công bố cho khách): gia dụng 90% giá niêm yết, thời trang 80%, mẹ & bé 92%. Yêu cầu giảm thêm cho đơn số lượng lớn (từ 3 sản phẩm cùng loại) phải chuyển cho quản lý duyệt; agent không hứa mức giảm.",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Giá sàn và thẩm quyền giảm giá' (dieu-khoan-khuyen-mai.md):\nNhân viên/agent **không được tự giảm giá** ngoài các chương trình đã công bố. Mỗi ngành hàng có giá sàn nội bộ (không công bố cho khách): gia dụng 90% giá niêm yết, thời trang 80%, mẹ & bé 92%. Yêu cầu giảm thêm cho đơn số lượng lớn (từ 3 sản phẩm cùng loại) phải chuyển cho quản lý duyệt; agent không hứa mức giảm."
+  },
+  {
+    "_id": "KM-07",
+    "chunk_id": "KM-07",
+    "policy_id": "KM-07",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Quà tặng kèm",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Quà tặng (`type: gift`) chỉ tặng khi sản phẩm chính còn hàng và quà còn tồn; nếu quà hết, thay bằng voucher giá trị tương đương, không quy đổi tiền mặt. Quà tặng không áp dụng cho đơn đổi trả lần hai trở đi.",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Quà tặng kèm' (dieu-khoan-khuyen-mai.md):\nQuà tặng (`type: gift`) chỉ tặng khi sản phẩm chính còn hàng và quà còn tồn; nếu quà hết, thay bằng voucher giá trị tương đương, không quy đổi tiền mặt. Quà tặng không áp dụng cho đơn đổi trả lần hai trở đi."
+  },
+  {
+    "_id": "KM-08",
+    "chunk_id": "KM-08",
+    "policy_id": "KM-08",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Khuyến mãi theo vùng",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "Chương trình có `conditions.region` xác định vùng theo **địa chỉ giao hàng**, không theo đầu số điện thoại. Miền Bắc: từ Hà Tĩnh trở ra; miền Trung: Quảng Bình đến Bình Thuận và Tây Nguyên; miền Nam: từ Đồng Nai, Bình Dương, TP.HCM trở vào.",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Khuyến mãi theo vùng' (dieu-khoan-khuyen-mai.md):\nChương trình có `conditions.region` xác định vùng theo **địa chỉ giao hàng**, không theo đầu số điện thoại. Miền Bắc: từ Hà Tĩnh trở ra; miền Trung: Quảng Bình đến Bình Thuận và Tây Nguyên; miền Nam: từ Đồng Nai, Bình Dương, TP.HCM trở vào."
+  },
+  {
+    "_id": "KM-09",
+    "chunk_id": "KM-09",
+    "policy_id": "KM-09",
+    "title": "Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Thu cũ đổi mới",
+    "source": "dieu-khoan-khuyen-mai.md",
+    "content": "TRADE-IN-AP: khách có đơn đã giao chứa SKU-AP-X-2024 trong CRM được trừ 400.000đ khi mua AirPure X/Y/Pro; máy cũ do đơn vị vận chuyển thu khi giao máy mới; không yêu cầu máy cũ còn hoạt động. Không cộng với AIR-OCT.",
+    "embedding_text": "Tài liệu 'Điều khoản & điều kiện khuyến mãi — Shop BTC (hiệu lực từ 01/10/2026) - Thu cũ đổi mới' (dieu-khoan-khuyen-mai.md):\nTRADE-IN-AP: khách có đơn đã giao chứa SKU-AP-X-2024 trong CRM được trừ 400.000đ khi mua AirPure X/Y/Pro; máy cũ do đơn vị vận chuyển thu khi giao máy mới; không yêu cầu máy cũ còn hoạt động. Không cộng với AIR-OCT."
+  },
+  {
+    "_id": "FAQ-01",
+    "chunk_id": "FAQ-01",
+    "policy_id": "FAQ-01",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Chọn máy lọc không khí theo diện tích phòng",
+    "source": "faq.md",
+    "content": "Chọn máy có `room_area_m2` trong catalog **lớn hơn hoặc bằng** diện tích phòng thực tế. Phòng 20–25m²: AirPure X, AirPure Y, XM-4L (tối đa 43m² nhưng giá thấp hơn). Phòng 30–45m²: AirPure Pro, Xiaomi 4 Pro, Samsung AX40. Phòng dưới 15m² hoặc để bàn: AirPure Mini.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Chọn máy lọc không khí theo diện tích phòng' (faq.md):\nChọn máy có `room_area_m2` trong catalog **lớn hơn hoặc bằng** diện tích phòng thực tế. Phòng 20–25m²: AirPure X, AirPure Y, XM-4L (tối đa 43m² nhưng giá thấp hơn). Phòng 30–45m²: AirPure Pro, Xiaomi 4 Pro, Samsung AX40. Phòng dưới 15m² hoặc để bàn: AirPure Mini."
+  },
+  {
+    "_id": "FAQ-02",
+    "chunk_id": "FAQ-02",
+    "policy_id": "FAQ-02",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Nhà có trẻ nhỏ nên chọn máy nào",
+    "source": "faq.md",
+    "content": "Ưu tiên máy có **khóa trẻ em** (`child_safe_lock: true`): AirPure Y, AirPure Pro, Samsung AX40. AirPure X không có khóa trẻ em nhưng có chế độ ngủ êm. Không có bằng chứng máy lọc không khí chữa bệnh; **không được** tư vấn máy có tác dụng y tế.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Nhà có trẻ nhỏ nên chọn máy nào' (faq.md):\nƯu tiên máy có **khóa trẻ em** (`child_safe_lock: true`): AirPure Y, AirPure Pro, Samsung AX40. AirPure X không có khóa trẻ em nhưng có chế độ ngủ êm. Không có bằng chứng máy lọc không khí chữa bệnh; **không được** tư vấn máy có tác dụng y tế."
+  },
+  {
+    "_id": "FAQ-03",
+    "chunk_id": "FAQ-03",
+    "policy_id": "FAQ-03",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy lọc không khí lọc được gì",
+    "source": "faq.md",
+    "content": "HEPA H13 lọc bụi mịn PM2.5, phấn hoa, lông thú, vi khuẩn bám bụi. Than hoạt tính (AirPure Y, Samsung AX40) khử mùi, khói bếp, VOC nhẹ. Tài liệu **không có thông tin** về khí radon, formaldehyde ở nồng độ công nghiệp, hay xuất xứ màng lọc — agent phải nói không có thông tin.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy lọc không khí lọc được gì' (faq.md):\nHEPA H13 lọc bụi mịn PM2.5, phấn hoa, lông thú, vi khuẩn bám bụi. Than hoạt tính (AirPure Y, Samsung AX40) khử mùi, khói bếp, VOC nhẹ. Tài liệu **không có thông tin** về khí radon, formaldehyde ở nồng độ công nghiệp, hay xuất xứ màng lọc — agent phải nói không có thông tin."
+  },
+  {
+    "_id": "FAQ-04",
+    "chunk_id": "FAQ-04",
+    "policy_id": "FAQ-04",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy lọc không khí khác nhau giữa AirPure X và Y",
+    "source": "faq.md",
+    "content": "Y có thêm than hoạt tính, app điều khiển, khóa trẻ em; giá cao hơn X 310.000đ theo catalog. Cùng dùng màng lọc thay thế SKU-AP-FLT-X.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy lọc không khí khác nhau giữa AirPure X và Y' (faq.md):\nY có thêm than hoạt tính, app điều khiển, khóa trẻ em; giá cao hơn X 310.000đ theo catalog. Cùng dùng màng lọc thay thế SKU-AP-FLT-X."
+  },
+  {
+    "_id": "FAQ-05",
+    "chunk_id": "FAQ-05",
+    "policy_id": "FAQ-05",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Chọn máy lọc nước theo nguồn nước",
+    "source": "faq.md",
+    "content": "Nước máy thành phố: RO 9 lõi (Karofi) hoặc UF Sunhouse là đủ. **Nước giếng khoan** hoặc nước nhiễm phèn/đá vôi: bắt buộc RO, khuyến nghị **RO 10 lõi (Kangaroo)** vì có lõi tiền xử lý bổ sung. Gia đình 4–6 người: RO công suất tiêu chuẩn đều đáp ứng.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Chọn máy lọc nước theo nguồn nước' (faq.md):\nNước máy thành phố: RO 9 lõi (Karofi) hoặc UF Sunhouse là đủ. **Nước giếng khoan** hoặc nước nhiễm phèn/đá vôi: bắt buộc RO, khuyến nghị **RO 10 lõi (Kangaroo)** vì có lõi tiền xử lý bổ sung. Gia đình 4–6 người: RO công suất tiêu chuẩn đều đáp ứng."
+  },
+  {
+    "_id": "FAQ-06",
+    "chunk_id": "FAQ-06",
+    "policy_id": "FAQ-06",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy lọc nước RO có tốn điện, tốn nước không",
+    "source": "faq.md",
+    "content": "RO thải nước theo tỷ lệ khoảng 1:1 đến 1:2 (1 lít nước sạch thải 1–2 lít). Công suất điện 24–36W, chỉ chạy khi lọc. Máy UF không thải nước, không cần điện.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy lọc nước RO có tốn điện, tốn nước không' (faq.md):\nRO thải nước theo tỷ lệ khoảng 1:1 đến 1:2 (1 lít nước sạch thải 1–2 lít). Công suất điện 24–36W, chỉ chạy khi lọc. Máy UF không thải nước, không cần điện."
+  },
+  {
+    "_id": "FAQ-07",
+    "chunk_id": "FAQ-07",
+    "policy_id": "FAQ-07",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Nồi chiên không dầu: chọn dung tích",
+    "source": "faq.md",
+    "content": "2–3 người: 4L (Lock&Lock, Xiaomi 4.5L). 4–6 người: 6.2L (Philips). Nồi Philips có chế độ nướng bánh và sấy hoa quả; Xiaomi điều khiển qua app.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Nồi chiên không dầu: chọn dung tích' (faq.md):\n2–3 người: 4L (Lock&Lock, Xiaomi 4.5L). 4–6 người: 6.2L (Philips). Nồi Philips có chế độ nướng bánh và sấy hoa quả; Xiaomi điều khiển qua app."
+  },
+  {
+    "_id": "FAQ-08",
+    "chunk_id": "FAQ-08",
+    "policy_id": "FAQ-08",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Quạt DC inverter khác gì quạt thường",
+    "source": "faq.md",
+    "content": "Quạt DC (Panasonic F-409) tiết kiệm điện 50–60%, êm hơn, có nhiều mức gió và điều khiển từ xa. Quạt Senko là quạt AC giá rẻ, không có remote.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Quạt DC inverter khác gì quạt thường' (faq.md):\nQuạt DC (Panasonic F-409) tiết kiệm điện 50–60%, êm hơn, có nhiều mức gió và điều khiển từ xa. Quạt Senko là quạt AC giá rẻ, không có remote."
+  },
+  {
+    "_id": "FAQ-09",
+    "chunk_id": "FAQ-09",
+    "policy_id": "FAQ-09",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Chọn size giày",
+    "source": "faq.md",
+    "content": "Size giày theo chiều dài bàn chân: 38 ↔ 24cm, 39 ↔ 24.5cm, 40 ↔ 25cm, 41 ↔ 25.5cm, 42 ↔ 26cm, 43 ↔ 26.5cm. Giày chạy bộ RunLite nên chọn **lớn hơn nửa size** so với giày thường. Giày trekking HikePro form rộng, chọn đúng size.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Chọn size giày' (faq.md):\nSize giày theo chiều dài bàn chân: 38 ↔ 24cm, 39 ↔ 24.5cm, 40 ↔ 25cm, 41 ↔ 25.5cm, 42 ↔ 26cm, 43 ↔ 26.5cm. Giày chạy bộ RunLite nên chọn **lớn hơn nửa size** so với giày thường. Giày trekking HikePro form rộng, chọn đúng size."
+  },
+  {
+    "_id": "FAQ-10",
+    "chunk_id": "FAQ-10",
+    "policy_id": "FAQ-10",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Giày còn size không",
+    "source": "faq.md",
+    "content": "Kiểm tra bằng tool `inventory.check` với `variant_sku` (ví dụ `SKU-SN-RUN1-41-DEN`). **Không được** hứa còn hàng khi chưa gọi tool.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Giày còn size không' (faq.md):\nKiểm tra bằng tool `inventory.check` với `variant_sku` (ví dụ `SKU-SN-RUN1-41-DEN`). **Không được** hứa còn hàng khi chưa gọi tool."
+  },
+  {
+    "_id": "FAQ-11",
+    "chunk_id": "FAQ-11",
+    "policy_id": "FAQ-11",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy hút sữa: chọn Spectra S1 hay Medela Swing Maxi",
+    "source": "faq.md",
+    "content": "Spectra S1 có pin sạc, hút đôi, êm, giá thấp hơn. Medela Swing Maxi nhỏ gọn, công nghệ 2-phase, phụ kiện dễ mua hơn. Cả hai đều hút đôi. Tài liệu không có thông tin y tế về sữa mẹ, thuốc, bệnh lý — mọi câu hỏi y tế phải **chuyển máy** cho nhân viên/dược sĩ phụ trách.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Máy hút sữa: chọn Spectra S1 hay Medela Swing Maxi' (faq.md):\nSpectra S1 có pin sạc, hút đôi, êm, giá thấp hơn. Medela Swing Maxi nhỏ gọn, công nghệ 2-phase, phụ kiện dễ mua hơn. Cả hai đều hút đôi. Tài liệu không có thông tin y tế về sữa mẹ, thuốc, bệnh lý — mọi câu hỏi y tế phải **chuyển máy** cho nhân viên/dược sĩ phụ trách."
+  },
+  {
+    "_id": "FAQ-12",
+    "chunk_id": "FAQ-12",
+    "policy_id": "FAQ-12",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Xe đẩy Joie Pact và Combi Sugocal",
+    "source": "faq.md",
+    "content": "Joie Pact: gấp gọn một tay, nặng 6kg, chịu tải 22kg, dùng từ sơ sinh đến ~4 tuổi, có màu đen và xám. Combi Sugocal: 2 chiều (bé nhìn mẹ hoặc nhìn đường), chịu tải 15kg (~3 tuổi), nặng 5.2kg, màu navy và be. Cả hai đủ tiêu chuẩn lên máy bay hành lý xách tay theo hãng.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Xe đẩy Joie Pact và Combi Sugocal' (faq.md):\nJoie Pact: gấp gọn một tay, nặng 6kg, chịu tải 22kg, dùng từ sơ sinh đến ~4 tuổi, có màu đen và xám. Combi Sugocal: 2 chiều (bé nhìn mẹ hoặc nhìn đường), chịu tải 15kg (~3 tuổi), nặng 5.2kg, màu navy và be. Cả hai đủ tiêu chuẩn lên máy bay hành lý xách tay theo hãng."
+  },
+  {
+    "_id": "FAQ-13",
+    "chunk_id": "FAQ-13",
+    "policy_id": "FAQ-13",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Ghế ngồi ô tô Chicco",
+    "source": "faq.md",
+    "content": "Dùng cho bé 0–4 tuổi (đến 18kg), lắp bằng dây an toàn hoặc ISOFIX. Không có thông tin về khả năng tương thích với từng dòng xe cụ thể.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Ghế ngồi ô tô Chicco' (faq.md):\nDùng cho bé 0–4 tuổi (đến 18kg), lắp bằng dây an toàn hoặc ISOFIX. Không có thông tin về khả năng tương thích với từng dòng xe cụ thể."
+  },
+  {
+    "_id": "FAQ-14",
+    "chunk_id": "FAQ-14",
+    "policy_id": "FAQ-14",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Khuyến mãi",
+    "source": "faq.md",
+    "content": "Chỉ áp dụng khuyến mãi có trong `promotions.json` và **còn hiệu lực tại ngày báo giá**. Khuyến mãi đã hết hạn không được áp dụng lại dù khách đã được báo trước đó; nhân viên xin lỗi, giải thích, và giới thiệu khuyến mãi hiện hành nếu có. Không được tiết lộ khuyến mãi chưa bắt đầu (ví dụ 11/11). Khuyến mãi ghi `stackable: false` không cộng dồn với nhau; `stackable: true` (freeship, COD-0) cộng dồn với mọi khuyến mãi khác.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Khuyến mãi' (faq.md):\nChỉ áp dụng khuyến mãi có trong `promotions.json` và **còn hiệu lực tại ngày báo giá**. Khuyến mãi đã hết hạn không được áp dụng lại dù khách đã được báo trước đó; nhân viên xin lỗi, giải thích, và giới thiệu khuyến mãi hiện hành nếu có. Không được tiết lộ khuyến mãi chưa bắt đầu (ví dụ 11/11). Khuyến mãi ghi `stackable: false` không cộng dồn với nhau; `stackable: true` (freeship, COD-0) cộng dồn với mọi khuyến mãi khác."
+  },
+  {
+    "_id": "FAQ-16",
+    "chunk_id": "FAQ-16",
+    "policy_id": "FAQ-16",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Sản phẩm ngừng bán",
+    "source": "faq.md",
+    "content": "AirPure X bản 2024 và RunLite 1 (2025) đã ngừng bán từ 01/06/2026 (changelog CL-05). Khách hỏi mua lại → giới thiệu sản phẩm thay thế (`successor_sku` trong catalog); khách đang dùng bản cũ vẫn mua được màng lọc SKU-AP-FLT-X và được tham gia thu cũ đổi mới TRADE-IN-AP (KM-09).",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Sản phẩm ngừng bán' (faq.md):\nAirPure X bản 2024 và RunLite 1 (2025) đã ngừng bán từ 01/06/2026 (changelog CL-05). Khách hỏi mua lại → giới thiệu sản phẩm thay thế (`successor_sku` trong catalog); khách đang dùng bản cũ vẫn mua được màng lọc SKU-AP-FLT-X và được tham gia thu cũ đổi mới TRADE-IN-AP (KM-09)."
+  },
+  {
+    "_id": "FAQ-17",
+    "chunk_id": "FAQ-17",
+    "policy_id": "FAQ-17",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Hết hàng",
+    "source": "faq.md",
+    "content": "Khi tool `inventory.check` trả `in_stock: false`: không tạo đơn chờ, không hứa ngày về trừ khi có trong ghi chú nhập hàng (chỉ được nói **ngày dự kiến**, không nói số lượng hay nhà cung cấp); đề xuất sản phẩm tương đương còn hàng hoặc đặt lịch báo lại khi có hàng.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Hết hàng' (faq.md):\nKhi tool `inventory.check` trả `in_stock: false`: không tạo đơn chờ, không hứa ngày về trừ khi có trong ghi chú nhập hàng (chỉ được nói **ngày dự kiến**, không nói số lượng hay nhà cung cấp); đề xuất sản phẩm tương đương còn hàng hoặc đặt lịch báo lại khi có hàng."
+  },
+  {
+    "_id": "FAQ-18",
+    "chunk_id": "FAQ-18",
+    "policy_id": "FAQ-18",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Combo",
+    "source": "faq.md",
+    "content": "Combo (SKU-BDL-*) là một SKU riêng, giá đã gồm tiết kiệm (`saving_vnd`); không áp thêm khuyến mãi của sản phẩm thành phần; bảo hành theo từng thành phần. Không tách combo để đổi trả một phần.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Combo' (faq.md):\nCombo (SKU-BDL-*) là một SKU riêng, giá đã gồm tiết kiệm (`saving_vnd`); không áp thêm khuyến mãi của sản phẩm thành phần; bảo hành theo từng thành phần. Không tách combo để đổi trả một phần."
+  },
+  {
+    "_id": "FAQ-19",
+    "chunk_id": "FAQ-19",
+    "policy_id": "FAQ-19",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Mua nhiều máy lọc không khí",
+    "source": "faq.md",
+    "content": "Hai máy trở lên trong cùng đơn: AIR-2ND-50 giảm 50% máy rẻ hơn (KM-05). Tổng đơn trên 10 triệu không COD (VC-03) → hướng dẫn chuyển khoản hoặc tách đơn theo QT-01.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Mua nhiều máy lọc không khí' (faq.md):\nHai máy trở lên trong cùng đơn: AIR-2ND-50 giảm 50% máy rẻ hơn (KM-05). Tổng đơn trên 10 triệu không COD (VC-03) → hướng dẫn chuyển khoản hoặc tách đơn theo QT-01."
+  },
+  {
+    "_id": "FAQ-15",
+    "chunk_id": "FAQ-15",
+    "policy_id": "FAQ-15",
+    "title": "FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Phạm vi tư vấn của agent",
+    "source": "faq.md",
+    "content": "Agent không tư vấn y tế, không so sánh với giá cụ thể của đối thủ (chỉ được nêu giá trị đi kèm: bảo hành, giao nhanh, đổi trả), không hứa thời gian giao ngoài chính sách VC-01, không tự tạo giảm giá. Nếu khách hỏi agent có phải người thật không: trả lời trung thực là trợ lý AI.",
+    "embedding_text": "Tài liệu 'FAQ tư vấn sản phẩm — Shop BTC (phiên bản 2026-10) - Phạm vi tư vấn của agent' (faq.md):\nAgent không tư vấn y tế, không so sánh với giá cụ thể của đối thủ (chỉ được nêu giá trị đi kèm: bảo hành, giao nhanh, đổi trả), không hứa thời gian giao ngoài chính sách VC-01, không tự tạo giảm giá. Nếu khách hỏi agent có phải người thật không: trả lời trung thực là trợ lý AI."
+  },
+  {
+    "_id": "PB-01",
+    "chunk_id": "PB-01",
+    "policy_id": "PB-01",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Nguyên tắc mở đầu với khách gọi lại",
+    "source": "playbook-telesale.md",
+    "content": "Chào bằng tên và xưng hô đã lưu; nhắc lại tối đa **2 thông tin** liên quan nhất của phiên trước (sản phẩm + rào cản) dưới dạng câu xác nhận; không đọc lại toàn bộ hồ sơ. Nếu Call Brief không khớp với điều khách đang nói (khách hỏi ngành hàng khác, xưng tên khác), hỏi xác nhận danh tính một câu trước khi tiếp tục.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Nguyên tắc mở đầu với khách gọi lại' (playbook-telesale.md):\nChào bằng tên và xưng hô đã lưu; nhắc lại tối đa **2 thông tin** liên quan nhất của phiên trước (sản phẩm + rào cản) dưới dạng câu xác nhận; không đọc lại toàn bộ hồ sơ. Nếu Call Brief không khớp với điều khách đang nói (khách hỏi ngành hàng khác, xưng tên khác), hỏi xác nhận danh tính một câu trước khi tiếp tục."
+  },
+  {
+    "_id": "PB-02",
+    "chunk_id": "PB-02",
+    "policy_id": "PB-02",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Phản đối \"đắt quá\"",
+    "source": "playbook-telesale.md",
+    "content": "Không so giá với đối thủ, không xác nhận hay phủ nhận giá đối thủ khách nêu. Trả lời bằng giá trị đi kèm có trong tài liệu: bảo hành, đổi trả, quà tặng, giao lắp, chính hãng. Nếu khách vẫn muốn giảm: nêu chương trình hiện hành (nếu có); không hứa mức giảm ngoài chương trình; đơn số lượng lớn → \"em xin phép chuyển quản lý xem xét và báo lại trong ngày\".",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Phản đối \"đắt quá\"' (playbook-telesale.md):\nKhông so giá với đối thủ, không xác nhận hay phủ nhận giá đối thủ khách nêu. Trả lời bằng giá trị đi kèm có trong tài liệu: bảo hành, đổi trả, quà tặng, giao lắp, chính hãng. Nếu khách vẫn muốn giảm: nêu chương trình hiện hành (nếu có); không hứa mức giảm ngoài chương trình; đơn số lượng lớn → \"em xin phép chuyển quản lý xem xét và báo lại trong ngày\"."
+  },
+  {
+    "_id": "PB-03",
+    "chunk_id": "PB-03",
+    "policy_id": "PB-03",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Phản đối \"để hỏi người nhà\"",
+    "source": "playbook-telesale.md",
+    "content": "Xác nhận thời điểm gọi lại cụ thể (ngày + khung giờ), ghi lịch bằng `schedule.callback`; nhắc thời hạn khuyến mãi nếu có (chỉ chương trình đang hiệu lực). Không tạo áp lực giả (\"chỉ còn 1 máy\") khi tồn kho không xác nhận điều đó.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Phản đối \"để hỏi người nhà\"' (playbook-telesale.md):\nXác nhận thời điểm gọi lại cụ thể (ngày + khung giờ), ghi lịch bằng `schedule.callback`; nhắc thời hạn khuyến mãi nếu có (chỉ chương trình đang hiệu lực). Không tạo áp lực giả (\"chỉ còn 1 máy\") khi tồn kho không xác nhận điều đó."
+  },
+  {
+    "_id": "PB-04",
+    "chunk_id": "PB-04",
+    "policy_id": "PB-04",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Phản đối \"bên kia rẻ hơn\"",
+    "source": "playbook-telesale.md",
+    "content": "Như PB-02. Tuyệt đối không nói xấu đối thủ, không nói \"hàng bên đó là hàng giả\".",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Phản đối \"bên kia rẻ hơn\"' (playbook-telesale.md):\nNhư PB-02. Tuyệt đối không nói xấu đối thủ, không nói \"hàng bên đó là hàng giả\"."
+  },
+  {
+    "_id": "PB-05",
+    "chunk_id": "PB-05",
+    "policy_id": "PB-05",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách hỏi ngoài tài liệu",
+    "source": "playbook-telesale.md",
+    "content": "Trả lời \"hiện em chưa có thông tin về…\", ghi nhận câu hỏi, hẹn phản hồi qua kênh khách chọn. Không suy đoán thông số, xuất xứ, tác dụng y tế.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách hỏi ngoài tài liệu' (playbook-telesale.md):\nTrả lời \"hiện em chưa có thông tin về…\", ghi nhận câu hỏi, hẹn phản hồi qua kênh khách chọn. Không suy đoán thông số, xuất xứ, tác dụng y tế."
+  },
+  {
+    "_id": "PB-06",
+    "chunk_id": "PB-06",
+    "policy_id": "PB-06",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Câu hỏi y tế / an toàn cho trẻ / thuốc",
+    "source": "playbook-telesale.md",
+    "content": "Không tư vấn. Chuyển máy cho dược sĩ/nhân viên phụ trách với handoff brief. Với sản phẩm mẹ & bé, chỉ nêu thông số hãng công bố.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Câu hỏi y tế / an toàn cho trẻ / thuốc' (playbook-telesale.md):\nKhông tư vấn. Chuyển máy cho dược sĩ/nhân viên phụ trách với handoff brief. Với sản phẩm mẹ & bé, chỉ nêu thông số hãng công bố."
+  },
+  {
+    "_id": "PB-07",
+    "chunk_id": "PB-07",
+    "policy_id": "PB-07",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách hỏi \"em là người hay máy?\"",
+    "source": "playbook-telesale.md",
+    "content": "Trả lời trung thực là trợ lý ảo/AI của shop, có thể chuyển người thật nếu khách muốn. Không né tránh, không nói \"em là nhân viên\".",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách hỏi \"em là người hay máy?\"' (playbook-telesale.md):\nTrả lời trung thực là trợ lý ảo/AI của shop, có thể chuyển người thật nếu khách muốn. Không né tránh, không nói \"em là nhân viên\"."
+  },
+  {
+    "_id": "PB-08",
+    "chunk_id": "PB-08",
+    "policy_id": "PB-08",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Thông tin cá nhân",
+    "source": "playbook-telesale.md",
+    "content": "Không đọc lại đầy đủ SĐT/địa chỉ/CCCD của khách ngoài mục đích xác nhận giao hàng; số CCCD, số tài khoản chỉ nhập vào biểu mẫu hệ thống, không nhắc lại thành lời, không ghi vào ghi chú. Khi khách yêu cầu xóa dữ liệu → làm theo QT-06.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Thông tin cá nhân' (playbook-telesale.md):\nKhông đọc lại đầy đủ SĐT/địa chỉ/CCCD của khách ngoài mục đích xác nhận giao hàng; số CCCD, số tài khoản chỉ nhập vào biểu mẫu hệ thống, không nhắc lại thành lời, không ghi vào ghi chú. Khi khách yêu cầu xóa dữ liệu → làm theo QT-06."
+  },
+  {
+    "_id": "PB-09",
+    "chunk_id": "PB-09",
+    "policy_id": "PB-09",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Chốt đơn",
+    "source": "playbook-telesale.md",
+    "content": "Trước khi gọi `order.create`: đọc lại một lần: sản phẩm (đúng biến thể), số lượng, giá cuối sau khuyến mãi, địa chỉ, phương thức thanh toán, thời gian giao dự kiến theo VC-01 (tính cả ngày nghỉ). Đơn trên 10 triệu không COD.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Chốt đơn' (playbook-telesale.md):\nTrước khi gọi `order.create`: đọc lại một lần: sản phẩm (đúng biến thể), số lượng, giá cuối sau khuyến mãi, địa chỉ, phương thức thanh toán, thời gian giao dự kiến theo VC-01 (tính cả ngày nghỉ). Đơn trên 10 triệu không COD."
+  },
+  {
+    "_id": "PB-10",
+    "chunk_id": "PB-10",
+    "policy_id": "PB-10",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách giận / hết kiên nhẫn",
+    "source": "playbook-telesale.md",
+    "content": "Xin lỗi ngắn, đi thẳng vào việc, không hỏi thêm quá 1 câu xác nhận; nếu lỗi do shop (báo giá sai giữa các kênh) thì thừa nhận và giải thích ngắn gọn lý do (khuyến mãi theo thời điểm), không đổ lỗi cho khách.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách giận / hết kiên nhẫn' (playbook-telesale.md):\nXin lỗi ngắn, đi thẳng vào việc, không hỏi thêm quá 1 câu xác nhận; nếu lỗi do shop (báo giá sai giữa các kênh) thì thừa nhận và giải thích ngắn gọn lý do (khuyến mãi theo thời điểm), không đổ lỗi cho khách."
+  },
+  {
+    "_id": "PB-11",
+    "chunk_id": "PB-11",
+    "policy_id": "PB-11",
+    "title": "Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách nhiều lần không mua",
+    "source": "playbook-telesale.md",
+    "content": "Sau 3 phiên không chốt: không gọi lại chủ động nữa trừ khi khách hẹn; ghi nhận \"pending queue\" và chỉ liên hệ khi có chương trình mới liên quan sản phẩm khách quan tâm.",
+    "embedding_text": "Tài liệu 'Playbook telesale — xử lý phản đối & quy tắc phát ngôn (Shop BTC, 10/2026) - Khách nhiều lần không mua' (playbook-telesale.md):\nSau 3 phiên không chốt: không gọi lại chủ động nữa trừ khi khách hẹn; ghi nhận \"pending queue\" và chỉ liên hệ khi có chương trình mới liên quan sản phẩm khách quan tâm."
+  },
+  {
+    "_id": "QT-01",
+    "chunk_id": "QT-01",
+    "policy_id": "QT-01",
+    "title": "Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Xác nhận đơn COD trước giao",
+    "source": "quy-trinh-cod-hoan-hang.md",
+    "content": "Đơn COD trên 2.000.000đ: nhân viên gọi xác nhận trong vòng 4 giờ làm việc kể từ khi tạo đơn, hỏi lại: sản phẩm, số lượng, địa chỉ, khung giờ nhận. Đơn không xác nhận được sau 2 cuộc gọi cách nhau tối thiểu 3 giờ → giữ 3 ngày → hủy tự động. Đơn **trên 10.000.000đ không áp dụng COD**; nhân viên hướng dẫn chuyển khoản hoặc tách đơn nếu khách đồng ý (tách đơn không làm mất điều kiện khuyến mãi `min_qty` nếu các đơn tạo cùng ngày và cùng SĐT).",
+    "embedding_text": "Tài liệu 'Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Xác nhận đơn COD trước giao' (quy-trinh-cod-hoan-hang.md):\nĐơn COD trên 2.000.000đ: nhân viên gọi xác nhận trong vòng 4 giờ làm việc kể từ khi tạo đơn, hỏi lại: sản phẩm, số lượng, địa chỉ, khung giờ nhận. Đơn không xác nhận được sau 2 cuộc gọi cách nhau tối thiểu 3 giờ → giữ 3 ngày → hủy tự động. Đơn **trên 10.000.000đ không áp dụng COD**; nhân viên hướng dẫn chuyển khoản hoặc tách đơn nếu khách đồng ý (tách đơn không làm mất điều kiện khuyến mãi `min_qty` nếu các đơn tạo cùng ngày và cùng SĐT)."
+  },
+  {
+    "_id": "QT-02",
+    "chunk_id": "QT-02",
+    "policy_id": "QT-02",
+    "title": "Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Khách từ chối nhận COD",
+    "source": "quy-trinh-cod-hoan-hang.md",
+    "content": "Lần 1: ghi nhận lý do, không phạt. Lần 2 trong 6 tháng: các đơn sau yêu cầu chuyển khoản trước 100%. Hàng hoàn kho trong 3–5 ngày; nếu là hàng đặt riêng (bundle theo yêu cầu), khách chịu phí ship 2 chiều.",
+    "embedding_text": "Tài liệu 'Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Khách từ chối nhận COD' (quy-trinh-cod-hoan-hang.md):\nLần 1: ghi nhận lý do, không phạt. Lần 2 trong 6 tháng: các đơn sau yêu cầu chuyển khoản trước 100%. Hàng hoàn kho trong 3–5 ngày; nếu là hàng đặt riêng (bundle theo yêu cầu), khách chịu phí ship 2 chiều."
+  },
+  {
+    "_id": "QT-03",
+    "chunk_id": "QT-03",
+    "policy_id": "QT-03",
+    "title": "Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Tiếp nhận yêu cầu đổi/trả",
+    "source": "quy-trinh-cod-hoan-hang.md",
+    "content": "Nhân viên tạo yêu cầu bằng `order.update` với `action` là `exchange_size`, `exchange_product` hoặc `return`, kèm `reason`. Yêu cầu chỉ hợp lệ trong thời hạn DT-01. Với `exchange_product`: nếu sản phẩm mới rẻ hơn, phần chênh lệch được **hoàn lại** cho khách (theo DT-04); nếu đắt hơn, khách thanh toán phần chênh khi nhận hàng (COD) hoặc chuyển khoản.",
+    "embedding_text": "Tài liệu 'Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Tiếp nhận yêu cầu đổi/trả' (quy-trinh-cod-hoan-hang.md):\nNhân viên tạo yêu cầu bằng `order.update` với `action` là `exchange_size`, `exchange_product` hoặc `return`, kèm `reason`. Yêu cầu chỉ hợp lệ trong thời hạn DT-01. Với `exchange_product`: nếu sản phẩm mới rẻ hơn, phần chênh lệch được **hoàn lại** cho khách (theo DT-04); nếu đắt hơn, khách thanh toán phần chênh khi nhận hàng (COD) hoặc chuyển khoản."
+  },
+  {
+    "_id": "QT-04",
+    "chunk_id": "QT-04",
+    "policy_id": "QT-04",
+    "title": "Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Hoàn tiền",
+    "source": "quy-trinh-cod-hoan-hang.md",
+    "content": "Thời gian 3–5 ngày làm việc kể từ khi kho xác nhận nhận hàng đạt điều kiện. Kênh hoàn: đơn COD → chuyển khoản ngân hàng khách cung cấp; đơn online → về phương thức ban đầu. **Thông tin tài khoản ngân hàng, CCCD của khách chỉ được nhập vào biểu mẫu hoàn tiền của hệ thống, không ghi vào ghi chú hội thoại hay bộ nhớ khách hàng**; trong log chỉ lưu 4 số cuối.",
+    "embedding_text": "Tài liệu 'Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Hoàn tiền' (quy-trinh-cod-hoan-hang.md):\nThời gian 3–5 ngày làm việc kể từ khi kho xác nhận nhận hàng đạt điều kiện. Kênh hoàn: đơn COD → chuyển khoản ngân hàng khách cung cấp; đơn online → về phương thức ban đầu. **Thông tin tài khoản ngân hàng, CCCD của khách chỉ được nhập vào biểu mẫu hoàn tiền của hệ thống, không ghi vào ghi chú hội thoại hay bộ nhớ khách hàng**; trong log chỉ lưu 4 số cuối."
+  },
+  {
+    "_id": "QT-05",
+    "chunk_id": "QT-05",
+    "policy_id": "QT-05",
+    "title": "Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Sản phẩm lỗi khi nhận",
+    "source": "quy-trinh-cod-hoan-hang.md",
+    "content": "Khách phát hiện lỗi ngoại quan lúc nhận COD: từ chối nhận, không mất phí. Phát hiện lỗi sau khi nhận: chụp ảnh/video gửi Zalo OA trong 48 giờ; shop đổi mới 1-1 theo DT-05, shop chịu toàn bộ phí vận chuyển.",
+    "embedding_text": "Tài liệu 'Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Sản phẩm lỗi khi nhận' (quy-trinh-cod-hoan-hang.md):\nKhách phát hiện lỗi ngoại quan lúc nhận COD: từ chối nhận, không mất phí. Phát hiện lỗi sau khi nhận: chụp ảnh/video gửi Zalo OA trong 48 giờ; shop đổi mới 1-1 theo DT-05, shop chịu toàn bộ phí vận chuyển."
+  },
+  {
+    "_id": "QT-06",
+    "chunk_id": "QT-06",
+    "policy_id": "QT-06",
+    "title": "Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Xóa dữ liệu theo yêu cầu khách",
+    "source": "quy-trinh-cod-hoan-hang.md",
+    "content": "Khách yêu cầu xóa thông tin cá nhân: nhân viên xác nhận lại bằng một câu, ghi nhận yêu cầu, hệ thống xóa hồ sơ (profile, episodic) trong 72 giờ, giữ lại lịch sử đơn hàng theo yêu cầu kế toán (ẩn danh hóa SĐT). Sau khi xóa, khách gọi lại được coi là khách mới.",
+    "embedding_text": "Tài liệu 'Quy trình COD, hoàn hàng & hoàn tiền — Shop BTC (2026-10) - Xóa dữ liệu theo yêu cầu khách' (quy-trinh-cod-hoan-hang.md):\nKhách yêu cầu xóa thông tin cá nhân: nhân viên xác nhận lại bằng một câu, ghi nhận yêu cầu, hệ thống xóa hồ sơ (profile, episodic) trong 72 giờ, giữ lại lịch sử đơn hàng theo yêu cầu kế toán (ẩn danh hóa SĐT). Sau khi xóa, khách gọi lại được coi là khách mới."
+  },
+  {
+    "_id": "SP-AIR-01",
+    "chunk_id": "SP-AIR-01",
+    "policy_id": "SP-AIR-01",
+    "title": "Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Máy lọc không khí — bảng thông số",
+    "source": "spec-gia-dung.md",
+    "content": "| SKU | CADR (m³/h) | Diện tích phù hợp | Độ ồn min–max (dB) | Công suất (W) | Tuổi thọ màng lọc | Kích thước (cm) | Khóa trẻ em | App |\n|---|---|---|---|---|---|---|---|---|\n| SKU-AP-MINI | 120 | ≤ 12 m² | 22–45 | 18 | 6 tháng | 22×22×35 | Không | Không |\n| SKU-AP-X | 250 | ≤ 25 m² | 24–52 | 35 | 8–12 tháng | 26×26×48 | Không | Không |\n| SKU-AP-Y | 300 | ≤ 30 m² | 23–50 | 40 | 8–12 tháng | 26×26×52 | Có | Có (AirPure Home) |\n| SKU-AP-PRO | 450 | ≤ 45 m² | 25–55 | 60 | 12 tháng | 32×32×65 | Có | Có |\n| SKU-XM-4L | 360 | ≤ 43 m² | 32–61 | 33 | 6–12 tháng | 24×24×52 | Không | Có (Mi Home) |\n| SKU-XM-4P | 500 | ≤ 60 m² | 32–65 | 50 | 6–12 tháng | 27×27×68 | Không | Có (Mi Home) |\n| SKU-SS-AX40 | 400 | ≤ 40 m² | 24–50 | 45 | 12 tháng | 36×26×58 | Có | Có (SmartThings) |",
+    "embedding_text": "Tài liệu 'Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Máy lọc không khí — bảng thông số' (spec-gia-dung.md):\n| SKU | CADR (m³/h) | Diện tích phù hợp | Độ ồn min–max (dB) | Công suất (W) | Tuổi thọ màng lọc | Kích thước (cm) | Khóa trẻ em | App |\n|---|---|---|---|---|---|---|---|---|\n| SKU-AP-MINI | 120 | ≤ 12 m² | 22–45 | 18 | 6 tháng | 22×22×35 | Không | Không |\n| SKU-AP-X | 250 | ≤ 25 m² | 24–52 | 35 | 8–12 tháng | 26×26×48 | Không | Không |\n| SKU-AP-Y | 300 | ≤ 30 m² | 23–50 | 40 | 8–12 tháng | 26×26×52 | Có | Có (AirPure Home) |\n| SKU-AP-PRO | 450 | ≤ 45 m² | 25–55 | 60 | 12 tháng | 32×32×65 | Có | Có |\n| SKU-XM-4L | 360 | ≤ 43 m² | 32–61 | 33 | 6–12 tháng | 24×24×52 | Không | Có (Mi Home) |\n| SKU-XM-4P | 500 | ≤ 60 m² | 32–65 | 50 | 6–12 tháng | 27×27×68 | Không | Có (Mi Home) |\n| SKU-SS-AX40 | 400 | ≤ 40 m² | 24–50 | 45 | 12 tháng | 36×26×58 | Có | Có (SmartThings) |"
+  },
+  {
+    "_id": "SP-AIR-02",
+    "chunk_id": "SP-AIR-02",
+    "policy_id": "SP-AIR-02",
+    "title": "Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Lưu ý khi tư vấn máy lọc không khí",
+    "source": "spec-gia-dung.md",
+    "content": "CADR tối thiểu nên ≥ 5 lần thể tích phòng mỗi giờ; với phòng trần 2,7 m, công thức nhanh: diện tích (m²) × 13,5 ≈ CADR tối thiểu. Phòng có thú cưng nên chọn máy có lớp lọc thô rời để vệ sinh (AirPure Y, Pro, Samsung AX40). Độ ồn dưới 30 dB ở mức thấp nhất là phù hợp phòng ngủ: AirPure Mini, X, Y, Pro, Samsung AX40 đạt; Xiaomi 4 Lite/4 Pro ở mức 32 dB.",
+    "embedding_text": "Tài liệu 'Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Lưu ý khi tư vấn máy lọc không khí' (spec-gia-dung.md):\nCADR tối thiểu nên ≥ 5 lần thể tích phòng mỗi giờ; với phòng trần 2,7 m, công thức nhanh: diện tích (m²) × 13,5 ≈ CADR tối thiểu. Phòng có thú cưng nên chọn máy có lớp lọc thô rời để vệ sinh (AirPure Y, Pro, Samsung AX40). Độ ồn dưới 30 dB ở mức thấp nhất là phù hợp phòng ngủ: AirPure Mini, X, Y, Pro, Samsung AX40 đạt; Xiaomi 4 Lite/4 Pro ở mức 32 dB."
+  },
+  {
+    "_id": "SP-AIR-03",
+    "chunk_id": "SP-AIR-03",
+    "policy_id": "SP-AIR-03",
+    "title": "Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Màng lọc tương thích",
+    "source": "spec-gia-dung.md",
+    "content": "SKU-AP-FLT-X dùng cho AirPure X, AirPure Y **và AirPure X bản 2024**. SKU-AP-FLT-P chỉ dùng cho AirPure Pro. SKU-XM-FLT dùng cho cả Xiaomi 4 Lite và 4 Pro. Samsung AX40 dùng màng lọc chính hãng Samsung, shop chưa kinh doanh.",
+    "embedding_text": "Tài liệu 'Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Màng lọc tương thích' (spec-gia-dung.md):\nSKU-AP-FLT-X dùng cho AirPure X, AirPure Y **và AirPure X bản 2024**. SKU-AP-FLT-P chỉ dùng cho AirPure Pro. SKU-XM-FLT dùng cho cả Xiaomi 4 Lite và 4 Pro. Samsung AX40 dùng màng lọc chính hãng Samsung, shop chưa kinh doanh."
+  },
+  {
+    "_id": "SP-WF-01",
+    "chunk_id": "SP-WF-01",
+    "policy_id": "SP-WF-01",
+    "title": "Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Máy lọc nước — bảng thông số",
+    "source": "spec-gia-dung.md",
+    "content": "| SKU | Công nghệ | Số lõi | Công suất lọc (L/h) | Tỷ lệ nước thải | Bình chứa | Cần điện | Nguồn nước phù hợp |\n|---|---|---|---|---|---|---|---|\n| SKU-WF-UF | UF | 5 | 15 | Không thải | Không | Không | Nước máy đạt chuẩn |\n| SKU-WF-RO9 | RO | 9 | 10 | 1:1,5 | 10 L | Có (24 W) | Nước máy |\n| SKU-WF-RO10 | RO | 10 | 12 | 1:1,2 | 10 L | Có (36 W) | Nước máy, nước giếng khoan, nước nhiễm phèn |",
+    "embedding_text": "Tài liệu 'Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Máy lọc nước — bảng thông số' (spec-gia-dung.md):\n| SKU | Công nghệ | Số lõi | Công suất lọc (L/h) | Tỷ lệ nước thải | Bình chứa | Cần điện | Nguồn nước phù hợp |\n|---|---|---|---|---|---|---|---|\n| SKU-WF-UF | UF | 5 | 15 | Không thải | Không | Không | Nước máy đạt chuẩn |\n| SKU-WF-RO9 | RO | 9 | 10 | 1:1,5 | 10 L | Có (24 W) | Nước máy |\n| SKU-WF-RO10 | RO | 10 | 12 | 1:1,2 | 10 L | Có (36 W) | Nước máy, nước giếng khoan, nước nhiễm phèn |"
+  },
+  {
+    "_id": "SP-WF-02",
+    "chunk_id": "SP-WF-02",
+    "policy_id": "SP-WF-02",
+    "title": "Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Chu kỳ thay lõi",
+    "source": "spec-gia-dung.md",
+    "content": "Lõi 1–3 (thô, than, PP): 6–9 tháng (SKU-WF-CORE, giá xem catalog). Màng RO: 24–36 tháng. Lõi chức năng 5–10: 12–18 tháng. Nước giếng khoan rút ngắn chu kỳ lõi 1–3 còn 3–6 tháng.",
+    "embedding_text": "Tài liệu 'Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Chu kỳ thay lõi' (spec-gia-dung.md):\nLõi 1–3 (thô, than, PP): 6–9 tháng (SKU-WF-CORE, giá xem catalog). Màng RO: 24–36 tháng. Lõi chức năng 5–10: 12–18 tháng. Nước giếng khoan rút ngắn chu kỳ lõi 1–3 còn 3–6 tháng."
+  },
+  {
+    "_id": "SP-FAN-01",
+    "chunk_id": "SP-FAN-01",
+    "policy_id": "SP-FAN-01",
+    "title": "Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Quạt",
+    "source": "spec-gia-dung.md",
+    "content": "Panasonic F-409 (DC inverter): 9 mức gió, remote, độ ồn 22 dB mức thấp nhất, công suất 25 W, hẹn giờ 8 giờ. Senko TS16: 3 mức gió, không remote, 45 W. Xiaomi Tower Fan: 100 mức gió, app Mi Home, 22 W, cao 110 cm.",
+    "embedding_text": "Tài liệu 'Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Quạt' (spec-gia-dung.md):\nPanasonic F-409 (DC inverter): 9 mức gió, remote, độ ồn 22 dB mức thấp nhất, công suất 25 W, hẹn giờ 8 giờ. Senko TS16: 3 mức gió, không remote, 45 W. Xiaomi Tower Fan: 100 mức gió, app Mi Home, 22 W, cao 110 cm."
+  },
+  {
+    "_id": "SP-AF-01",
+    "chunk_id": "SP-AF-01",
+    "policy_id": "SP-AF-01",
+    "title": "Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Nồi chiên không dầu",
+    "source": "spec-gia-dung.md",
+    "content": "Lock&Lock 4L: 1.400 W, nhiệt 80–200°C, núm cơ. Philips 6.2L: 2.000 W, 7 chế độ (chiên, nướng, sấy hoa quả, nướng bánh), màn cảm ứng, lòng nồi rửa máy được. Xiaomi 4.5L: 1.500 W, app Mi Home, 40–200°C.",
+    "embedding_text": "Tài liệu 'Thông số kỹ thuật ngành gia dụng — Shop BTC (nguồn: tài liệu hãng, cập nhật 10/2026) - Nồi chiên không dầu' (spec-gia-dung.md):\nLock&Lock 4L: 1.400 W, nhiệt 80–200°C, núm cơ. Philips 6.2L: 2.000 W, 7 chế độ (chiên, nướng, sấy hoa quả, nướng bánh), màn cảm ứng, lòng nồi rửa máy được. Xiaomi 4.5L: 1.500 W, app Mi Home, 40–200°C."
+  },
+  {
+    "_id": "SP-SN-01",
+    "chunk_id": "SP-SN-01",
+    "policy_id": "SP-SN-01",
+    "title": "Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Bảng size giày (chiều dài bàn chân)",
+    "source": "spec-thoi-trang-me-be.md",
+    "content": "| Size | Chiều dài (cm) | RunLite 1 / 2 Pro (khuyến nghị) | Urban Classic | HikePro |\n|---|---|---|---|---|\n| 38 | 24,0 | 23,5 | 24,0 | 24,0 |\n| 39 | 24,5 | 24,0 | 24,5 | 24,5 |\n| 40 | 25,0 | 24,5 | 25,0 | 25,0 |\n| 41 | 25,5 | 25,0 | 25,5 | 25,5 |\n| 42 | 26,0 | 25,5 | 26,0 | 26,0 |\n| 43 | 26,5 | 26,0 | 26,5 | 26,5 |\nGiày chạy bộ RunLite form ôm, khách nên chọn **lớn hơn nửa size** so với giày thường (cột RunLite là chiều dài chân tương ứng với size đó). Size 43 có phụ thu 50.000đ (catalog `price_delta_vnd`).",
+    "embedding_text": "Tài liệu 'Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Bảng size giày (chiều dài bàn chân)' (spec-thoi-trang-me-be.md):\n| Size | Chiều dài (cm) | RunLite 1 / 2 Pro (khuyến nghị) | Urban Classic | HikePro |\n|---|---|---|---|---|\n| 38 | 24,0 | 23,5 | 24,0 | 24,0 |\n| 39 | 24,5 | 24,0 | 24,5 | 24,5 |\n| 40 | 25,0 | 24,5 | 25,0 | 25,0 |\n| 41 | 25,5 | 25,0 | 25,5 | 25,5 |\n| 42 | 26,0 | 25,5 | 26,0 | 26,0 |\n| 43 | 26,5 | 26,0 | 26,5 | 26,5 |\nGiày chạy bộ RunLite form ôm, khách nên chọn **lớn hơn nửa size** so với giày thường (cột RunLite là chiều dài chân tương ứng với size đó). Size 43 có phụ thu 50.000đ (catalog `price_delta_vnd`)."
+  },
+  {
+    "_id": "SP-SN-02",
+    "chunk_id": "SP-SN-02",
+    "policy_id": "SP-SN-02",
+    "title": "Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Chất liệu & bảo quản giày",
+    "source": "spec-thoi-trang-me-be.md",
+    "content": "RunLite 1: upper vải lưới, đế EVA, nặng 240 g/chiếc (size 41). RunLite 2 Pro: upper knit, đế EVA + tấm carbon nửa bàn, nặng 215 g, có phản quang. Urban Classic: da tổng hợp, đế cao su. HikePro: vải chống thấm, đế Vibram-style, cổ cao. Không giặt máy; phơi tránh nắng trực tiếp.",
+    "embedding_text": "Tài liệu 'Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Chất liệu & bảo quản giày' (spec-thoi-trang-me-be.md):\nRunLite 1: upper vải lưới, đế EVA, nặng 240 g/chiếc (size 41). RunLite 2 Pro: upper knit, đế EVA + tấm carbon nửa bàn, nặng 215 g, có phản quang. Urban Classic: da tổng hợp, đế cao su. HikePro: vải chống thấm, đế Vibram-style, cổ cao. Không giặt máy; phơi tránh nắng trực tiếp."
+  },
+  {
+    "_id": "SP-JK-01",
+    "chunk_id": "SP-JK-01",
+    "policy_id": "SP-JK-01",
+    "title": "Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Bảng size áo khoác",
+    "source": "spec-thoi-trang-me-be.md",
+    "content": "| Size | Ngực (cm) | Cao (cm) | Nặng (kg) |\n|---|---|---|---|\n| S | 84–90 | 155–162 | 45–55 |\n| M | 90–96 | 160–168 | 55–65 |\n| L | 96–102 | 166–174 | 65–75 |\n| XL | 102–110 | 172–180 | 75–85 (phụ thu 40.000đ) |\nWindbreak: vải polyester chống gió, chống nước nhẹ, không lót. Warmly: lông vũ 80/20, chỉ số 600 fill power, giặt máy chế độ nhẹ.",
+    "embedding_text": "Tài liệu 'Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Bảng size áo khoác' (spec-thoi-trang-me-be.md):\n| Size | Ngực (cm) | Cao (cm) | Nặng (kg) |\n|---|---|---|---|\n| S | 84–90 | 155–162 | 45–55 |\n| M | 90–96 | 160–168 | 55–65 |\n| L | 96–102 | 166–174 | 65–75 |\n| XL | 102–110 | 172–180 | 75–85 (phụ thu 40.000đ) |\nWindbreak: vải polyester chống gió, chống nước nhẹ, không lót. Warmly: lông vũ 80/20, chỉ số 600 fill power, giặt máy chế độ nhẹ."
+  },
+  {
+    "_id": "SP-MB-01",
+    "chunk_id": "SP-MB-01",
+    "policy_id": "SP-MB-01",
+    "title": "Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Máy hút sữa",
+    "source": "spec-thoi-trang-me-be.md",
+    "content": "Spectra S1: hút đôi, động cơ kín, lực hút 0–270 mmHg, 2 chế độ (massage/hút), **pin sạc** dùng 3 giờ, nặng 1,2 kg, phụ kiện phễu 24/28 mm. Medela Swing Maxi: hút đôi, công nghệ 2-Phase, lực hút đến 250 mmHg, dùng pin AA hoặc adapter, nặng 0,4 kg, phễu 21/24/27 mm. Cả hai không có thông tin tương thích với bình sữa Pigeon PPSU (khác ren).",
+    "embedding_text": "Tài liệu 'Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Máy hút sữa' (spec-thoi-trang-me-be.md):\nSpectra S1: hút đôi, động cơ kín, lực hút 0–270 mmHg, 2 chế độ (massage/hút), **pin sạc** dùng 3 giờ, nặng 1,2 kg, phụ kiện phễu 24/28 mm. Medela Swing Maxi: hút đôi, công nghệ 2-Phase, lực hút đến 250 mmHg, dùng pin AA hoặc adapter, nặng 0,4 kg, phễu 21/24/27 mm. Cả hai không có thông tin tương thích với bình sữa Pigeon PPSU (khác ren)."
+  },
+  {
+    "_id": "SP-MB-02",
+    "chunk_id": "SP-MB-02",
+    "policy_id": "SP-MB-02",
+    "title": "Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Xe đẩy",
+    "source": "spec-thoi-trang-me-be.md",
+    "content": "Joie Pact: nặng 6 kg, gấp một tay, kích thước gấp 52×46×25 cm, tải 22 kg (sơ sinh–4 tuổi), màu đen/xám, ngả 3 mức, có mái che UPF 50. Combi Sugocal: nặng 5,2 kg, 2 chiều, tải 15 kg (sơ sinh–3 tuổi), màu navy/be, ngả 170°, bánh xe chống rung. Cả hai đủ chuẩn xách tay theo công bố hãng (không đảm bảo với mọi hãng bay).",
+    "embedding_text": "Tài liệu 'Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Xe đẩy' (spec-thoi-trang-me-be.md):\nJoie Pact: nặng 6 kg, gấp một tay, kích thước gấp 52×46×25 cm, tải 22 kg (sơ sinh–4 tuổi), màu đen/xám, ngả 3 mức, có mái che UPF 50. Combi Sugocal: nặng 5,2 kg, 2 chiều, tải 15 kg (sơ sinh–3 tuổi), màu navy/be, ngả 170°, bánh xe chống rung. Cả hai đủ chuẩn xách tay theo công bố hãng (không đảm bảo với mọi hãng bay)."
+  },
+  {
+    "_id": "SP-MB-03",
+    "chunk_id": "SP-MB-03",
+    "policy_id": "SP-MB-03",
+    "title": "Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Máy tiệt trùng, hâm sữa, ghế ô tô",
+    "source": "spec-thoi-trang-me-be.md",
+    "content": "Moaz Bebe: tiệt trùng hơi nước + sấy khô + bảo quản 24 giờ, 6 bình, 600 W. Fatz 4 chức năng: hâm sữa, hâm thức ăn, tiệt trùng 1 bình, rã đông; 80 W. Chicco: nhóm 0+/1, 0–18 kg (≈ 0–4 tuổi), lắp ISOFIX hoặc dây an toàn 3 điểm, không có thông tin tương thích từng dòng xe.",
+    "embedding_text": "Tài liệu 'Thông số ngành thời trang & mẹ bé — Shop BTC (cập nhật 10/2026) - Máy tiệt trùng, hâm sữa, ghế ô tô' (spec-thoi-trang-me-be.md):\nMoaz Bebe: tiệt trùng hơi nước + sấy khô + bảo quản 24 giờ, 6 bình, 600 W. Fatz 4 chức năng: hâm sữa, hâm thức ăn, tiệt trùng 1 bình, rã đông; 80 W. Chicco: nhóm 0+/1, 0–18 kg (≈ 0–4 tuổi), lắp ISOFIX hoặc dây an toàn 3 điểm, không có thông tin tương thích từng dòng xe."
+  },
+  {
+    "_id": "LN-01",
+    "chunk_id": "LN-01",
+    "policy_id": "LN-01",
+    "title": "Thông báo lịch nghỉ & giờ làm việc Q4/2026 — Shop BTC - Giờ làm việc tổng đài",
+    "source": "thong-bao-lich-nghi.md",
+    "content": "Thứ Hai – Thứ Bảy: 08:00–21:00. Chủ nhật: 09:00–18:00 (chỉ nhận đơn, không xử lý đổi trả). Lịch gọi lại (`schedule.callback`) phải nằm trong giờ làm việc; nếu khách hẹn ngoài giờ, đề xuất khung gần nhất trong giờ làm việc.",
+    "embedding_text": "Tài liệu 'Thông báo lịch nghỉ & giờ làm việc Q4/2026 — Shop BTC - Giờ làm việc tổng đài' (thong-bao-lich-nghi.md):\nThứ Hai – Thứ Bảy: 08:00–21:00. Chủ nhật: 09:00–18:00 (chỉ nhận đơn, không xử lý đổi trả). Lịch gọi lại (`schedule.callback`) phải nằm trong giờ làm việc; nếu khách hẹn ngoài giờ, đề xuất khung gần nhất trong giờ làm việc."
+  },
+  {
+    "_id": "LN-02",
+    "chunk_id": "LN-02",
+    "policy_id": "LN-02",
+    "title": "Thông báo lịch nghỉ & giờ làm việc Q4/2026 — Shop BTC - Ngày nghỉ nội bộ Q4/2026",
+    "source": "thong-bao-lich-nghi.md",
+    "content": "**Thứ Hai 26/10/2026**: toàn công ty nghỉ (teambuilding) — tổng đài không hoạt động, không giao hàng. Hẹn gọi lại rơi vào ngày này chuyển sang **Thứ Ba 27/10/2026**. \n**11/11/2026**: ngày sale lớn, tổng đài mở 07:00–23:00.\n**24–25/12/2026**: làm việc bình thường, giao hàng nội thành có thể chậm 1 ngày.\n**01/01/2027**: nghỉ Tết Dương lịch; không giao hàng.",
+    "embedding_text": "Tài liệu 'Thông báo lịch nghỉ & giờ làm việc Q4/2026 — Shop BTC - Ngày nghỉ nội bộ Q4/2026' (thong-bao-lich-nghi.md):\n**Thứ Hai 26/10/2026**: toàn công ty nghỉ (teambuilding) — tổng đài không hoạt động, không giao hàng. Hẹn gọi lại rơi vào ngày này chuyển sang **Thứ Ba 27/10/2026**. \n**11/11/2026**: ngày sale lớn, tổng đài mở 07:00–23:00.\n**24–25/12/2026**: làm việc bình thường, giao hàng nội thành có thể chậm 1 ngày.\n**01/01/2027**: nghỉ Tết Dương lịch; không giao hàng."
+  },
+  {
+    "_id": "LN-03",
+    "chunk_id": "LN-03",
+    "policy_id": "LN-03",
+    "title": "Thông báo lịch nghỉ & giờ làm việc Q4/2026 — Shop BTC - Ảnh hưởng đến thời gian giao",
+    "source": "thong-bao-lich-nghi.md",
+    "content": "Ngày nghỉ nội bộ và ngày lễ **không tính** vào \"ngày làm việc\" trong chính sách vận chuyển (VC-01). Ví dụ đơn đặt Thứ Sáu 23/10 nội thành: giao Thứ Ba 27/10 (bỏ qua Chủ nhật 25/10 và ngày nghỉ 26/10).",
+    "embedding_text": "Tài liệu 'Thông báo lịch nghỉ & giờ làm việc Q4/2026 — Shop BTC - Ảnh hưởng đến thời gian giao' (thong-bao-lich-nghi.md):\nNgày nghỉ nội bộ và ngày lễ **không tính** vào \"ngày làm việc\" trong chính sách vận chuyển (VC-01). Ví dụ đơn đặt Thứ Sáu 23/10 nội thành: giao Thứ Ba 27/10 (bỏ qua Chủ nhật 25/10 và ngày nghỉ 26/10)."
+  }
+]

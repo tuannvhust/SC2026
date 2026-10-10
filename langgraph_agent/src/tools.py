@@ -34,8 +34,7 @@ CATALOG = {p["sku"]: {"name": p["name"], "price_vnd": p.get("list_price_vnd", 0)
 POLICY_DIR = DATA / "policy"
 
 
-def policy_kb_search(query: str = "", top_k: int = 3, **_) -> list[Dict[str, Any]]:
-    """Deterministic policy retriever; replaceable by a vector retriever in production."""
+def _deterministic_policy_search(query: str = "", top_k: int = 3) -> list[Dict[str, Any]]:
     tokens = {t.lower() for t in re.findall(r"[\wÀ-ỹ]+", query) if len(t) > 2}
     hits = []
     for path in POLICY_DIR.glob("*.md"):
@@ -44,9 +43,37 @@ def policy_kb_search(query: str = "", top_k: int = 3, **_) -> list[Dict[str, Any
         content = path.read_text(encoding="utf-8")
         score = sum(content.lower().count(token) for token in tokens)
         if score:
-            hits.append({"chunk_id": path.stem, "source": path.name, "score": score,
-                         "text": content[:700].replace("\n", " ")})
+            hits.append({
+                "chunk_id": path.stem,
+                "source": path.name,
+                "score": score,
+                "text": content[:700].replace("\n", " ")
+            })
     return sorted(hits, key=lambda item: item["score"], reverse=True)[:top_k]
+
+
+def policy_kb_search(query: str = "", top_k: int = 3, **_) -> list[Dict[str, Any]]:
+    """Policy retriever kết hợp Semantic RAG từ src/memory/semantic_rag với fallback deterministic."""
+    try:
+        from src.memory.semantic_rag.retriever import SemanticRetriever
+        retriever = SemanticRetriever()
+        results = retriever.search_policies(query=query, top_k=top_k)
+        if results:
+            hits = []
+            for item in results:
+                # Chuẩn hóa cấu trúc trả về theo chuẩn tool_results của LangGraph
+                hits.append({
+                    "chunk_id": str(item.get("_id") or item.get("policy_id") or item.get("id", "")),
+                    "source": item.get("source") or item.get("title", "policy_kb"),
+                    "score": item.get("_score", 1.0),
+                    "text": item.get("content") or item.get("text") or item.get("embedding_text", ""),
+                })
+            return hits
+    except Exception as e:
+        # Khi chưa start Qdrant hoặc thiếu embedding index -> fallback về deterministic search
+        pass
+
+    return _deterministic_policy_search(query=query, top_k=top_k)
 
 
 def _region(address: str | None) -> str | None:

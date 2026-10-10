@@ -82,6 +82,9 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
     if "hỏi chồng" in last_user or "hỏi vợ" in last_user:
         facts["blocker"] = "cần hỏi người nhà"
 
+    if any(k in last_user for k in ["thuốc", "tiểu đường", "bệnh", "y tế"]):
+        return {"action": "cannot_answer", "facts": facts}
+
     # 1) Đã có kết quả tool trong lượt này -> trả lời dựa trên kết quả đó
     if results:
         last = results[-1]
@@ -92,6 +95,16 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
                 "facts": {"blocker": None},
                 "draft_response": f"Dạ em đã tạo đơn {r['order_id']} giá {fmt_vnd(r['price_vnd'])}đ cho anh/chị rồi ạ.",
             }
+        if last.get("tool") == "policy_kb.search" or last.get("name") == "policy_kb.search":
+            hits = last.get("result", [])
+            if hits:
+                kb_text = hits[0].get("text", "")
+                return {
+                    "action": "answer",
+                    "draft_response": f"Dạ về chính sách của cửa hàng: {kb_text}",
+                    "facts": facts,
+                }
+            return {"action": "cannot_answer", "facts": facts}
         items = last["result"]
         if isinstance(items, dict) and "final_price_vnd" in items:
             items = [{"sku": state.get("profile", {}).get("product_advised"),
@@ -146,7 +159,14 @@ def fake_plan(state: CallState) -> Dict[str, Any]:
             "facts": facts,
             "tool_calls": [{"name": "catalog.search", "args": {"query": last_user}}],
         }
-    # 5) Khách đưa ra lý do cản trở (blocker) hoặc phản hồi xã giao
+    # 5) Khách hỏi về chính sách bảo hành, đổi trả, giao hàng
+    if any(k in last_user for k in ["chính sách", "chinh sach", "đổi trả", "doi tra", "bảo hành", "bao hanh", "giao hàng", "giao hang"]):
+        return {
+            "action": "rag",
+            "facts": facts,
+            "tool_calls": [{"name": "policy_kb.search", "args": {"query": last_user}}],
+        }
+    # 6) Khách đưa ra lý do cản trở (blocker) hoặc phản hồi xã giao
     if facts:
         return {
             "action": "answer",

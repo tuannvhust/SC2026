@@ -1,0 +1,60 @@
+{
+  "call_id": "string",
+  "customer_id": "string",
+  "channel": {
+    "medium": "voice | chat",
+    "platform": "hotline | zalo_oa | fanpage_messenger | livestream_comment | app_chat | sms",
+    "customer_identifier": { "type": "phone | zalo_id | facebook_id", "value": "string" }
+  },
+  "timestamp": "ISO8601",
+
+  "turns": [
+    {
+      "turn_id": "int",
+      "speaker": "agent | customer",
+      "text": "string",
+      "text_normalized": "string",
+
+      "intent": "hoi_cau_hinh | so_sanh_may | hoi_gia | hoi_tra_gop | hoi_thu_cu_doi_moi | hoi_bao_hanh | dat_hang | khieu_nai_loi | doi_tra | hoi_van_don | tu_choi | khac",
+
+      "entities": {
+        "product_of_interest": "SKU|null",
+        "compare_with_sku": "SKU|null",
+        "storage_variant_gb": "int|null",
+        "ram_variant_gb": "int|null",
+        "color": "string|null",
+        "price_quoted_vnd": "int|null",
+        "installment_months": "int|null",
+        "trade_in_device": "string|null", 
+        "trade_in_value_vnd": "int|null",
+        "promo_code": "string|null",
+        "warranty_months_confirmed": "int|null",
+        "callback_time": "ISO8601|null",
+        "decision_maker": "self | spouse | family | company | null",
+        "budget_vnd": "int|null",
+        "use_case": "gaming | van_phong | do_hoa | hoc_tap | null"
+      },
+
+      "sentiment": "positive | neutral | negative | null",
+      "objection": {
+        "type": "gia_cao | cau_hinh_thap | so_sanh_doi_thu | lo_hang_loi | can_hoi_y_kien | cho_sale | null",
+        "handling_strategy": "string|null"
+      },
+      "commitment_made": "string|null"
+    }
+  ],
+
+  "call_summary": {
+    "product_advised": "SKU|null",
+    "variant_confirmed": { "storage_gb": "int|null", "ram_gb": "int|null", "color": "string|null" },
+    "price_quoted_vnd": "int|null",
+    "promo_code": "string|null",
+    "promo_expiry": "date|null",
+    "installment_offered": "boolean",
+    "trade_in_offered": "boolean",
+    "blocker": "string|null",
+    "outcome": "chot | hen_lai | tu_choi"
+  },
+
+  "pii_masked": true
+}

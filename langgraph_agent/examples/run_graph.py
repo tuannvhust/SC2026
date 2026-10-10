@@ -44,6 +44,7 @@ def main():
             customer_phone=customer_phone,
             channel=channel,
             user_message=user_msg,
+            trace_path="trace_demo.jsonl",
         )
         print(f"Agent:      {result.get('final_response')}")
 
