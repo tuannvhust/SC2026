@@ -1,434 +1,71 @@
-# Pipeline sinh scenario cho Call-Center E-commerce
+# Hướng dẫn sinh dataset hội thoại
 
-`data_gen` là pipeline độc lập để tạo scenario hội thoại nhiều cuộc gọi cho cùng một khách hàng, theo format BTC. Pipeline chỉ đọc dữ liệu trong `data/` và không phụ thuộc vào `langgraph_agent/`.
+> Hướng dẫn này dành cho thành viên thiết kế, sinh và review dataset trong `data_gen/`. Làm theo thứ tự từng bước; không chạy batch Gemini trên brief chưa review.
 
-Nguyên tắc quan trọng:
+## 1. Phạm vi hiện tại
 
-- `data/` là BTC_DIR, chỉ đọc; không sửa, thêm hoặc xoá file trong đó.
-- Giá, khuyến mãi, tồn kho, CRM, COD và các factual value phải đến từ BTC data hoặc `data/eval/mock_tools.py`.
-- LLM chỉ sinh lời thoại. LLM không sinh `ground_truth_facts`, `success_if`, `must_not_ask` hoặc `must_carry_over`.
-- Full dialogue được lưu ở `raw/` để review. Scenario BTC chính thức chứa các field theo `scenario_format.md`; pipeline giữ thêm `customer_id` ở top-level như metadata truy xuất CRM, để reviewer phân biệt đúng customer trong brief (đặc biệt với shared-phone).
-- Không ghi số điện thoại, địa chỉ hoặc PII chưa mask vào prompt, log, manifest hay report. `customer_phone` chỉ xuất hiện trong scenario nếu schema BTC bắt buộc.
+- Đợt hiện tại tập trung vào **M1, hội thoại text**. Mục tiêu M1 trong `dataset_config.json`: tối thiểu 120 transcript, 30 khách đa phiên, 10 khách đa kênh, một ngành hàng (`thoi-trang`) và hai miền (`bac`, `nam`). Audio/ASR là đợt bổ sung; chưa tính là hoàn tất M1. M2 chưa được bật.
+- Coverage matrix hiện là kế hoạch, không phải dataset đã sinh hay đã được duyệt. Mỗi dòng là một scenario; `num_calls` là số transcript/cuộc trong scenario.
+- Lượt khách được sinh bằng LLM hoặc dry-run. Agent không được sinh trong dataset: scenario chỉ chứa `customer_turns` cùng facts và điều kiện chấm do pipeline tạo từ brief/mock tools.
+- Giá, khuyến mãi, tồn kho, chính sách, ngày và dữ kiện CRM phải khớp dữ liệu BTC. Thư mục `data/` chỉ đọc; không sửa hoặc đưa PII thật vào brief, prompt, log hay báo cáo.
 
-## 0. Cài đặt API key bằng `.env`
+## 2. Luồng công việc
 
-Mọi thành viên dùng cùng quy ước: lưu Gemini API key trong file `.env` ở repository root. File `.env` đã được gitignore và không được commit. Không đặt key trong brief, prompt, source code, report hoặc manifest.
-
-Tạo file local từ template:
-
-```powershell
-Copy-Item .env.example .env
+```text
+Kiểm tra môi trường và dữ liệu BTC
+  → review coverage_matrix.csv
+  → tạo/review brief
+  → lint brief
+  → dry-run + auto-check
+  → sinh thử bằng Gemini
+  → review scenario và chốt
+  → track coverage, lưu manifest và bàn giao
 ```
 
-Mở `.env` và thay giá trị mẫu:
+Mọi lệnh dưới đây chạy từ **repository root** trong PowerShell.
 
-```dotenv
-GEMINI_API_KEY=your_real_gemini_api_key
-HARNESS_GEN_MODEL=gemini-3.5-flash-lite
-GEMINI_MIN_INTERVAL_SECONDS=2.0
-BTC_DIR=./data
-```
+## 3. Chuẩn bị môi trường (mỗi thành viên làm một lần)
 
-Pipeline tự động load `.env` khi import `data_gen.config`, vì vậy không cần đặt key thủ công trong từng terminal. Mỗi thành viên chỉ sửa file `.env` local của mình; không commit file này.
-
-Lưu ý: `langgraph_agent` hiện vẫn đọc các biến legacy `ANTHROPIC_API_KEY`, `HARNESS_MODEL` và `HARNESS_DB`. Các biến này được giữ trong `.env.example` để agent không bị hỏng; chúng không được `data_gen` dùng khi đã có `HARNESS_GEN_MODEL`.
-
-Kiểm tra trước khi commit:
-
-```powershell
-git status --short
-git check-ignore .env
-```
-
-Lệnh thứ hai phải trả về `.env`. Nếu key đã từng bị commit hoặc bị lộ, cần thu hồi key trên Google AI Studio và tạo key mới; chỉ xóa file khỏi working tree là chưa đủ.
-
-Nếu gặp lỗi `Install the Gemini SDK with: pip install google-genai` hoặc `cannot import name 'genai' from 'google'`, môi trường chưa cài đúng SDK. Package `google-generativeai` cũ không thay thế được package mới. Cài dependency từ repository root:
+Cài dependencies nếu môi trường chưa có:
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-Kiểm tra:
+Tạo `.env` local từ template, điền API key của mình; không commit `.env` hoặc chia sẻ key:
 
 ```powershell
-python -c "from google import genai; print('google-genai OK')"
+Copy-Item .env.example .env
 ```
 
-Nếu API trả lỗi model không tồn tại hoặc không được phép sử dụng, kiểm tra `HARNESS_GEN_MODEL` trong `.env`. Có thể bắt đầu bằng `gemini-2.5-flash`, sau đó đổi sang model khác đang khả dụng trong tài khoản/API của nhóm.
-
-## 0.1 Chạy thử bằng demo có sẵn
-
-Repo có hai demo brief:
-
-- `SC-DEMO-01`: khách còn do dự, cần hỏi thêm gia đình, gồm 2 cuộc gọi và promotion conditional.
-- `SC-DEMO-02`: case promotion hết hạn, gồm 2 cuộc gọi.
-
-Từ repository root, chạy lint trước:
-
-```powershell
-python -m data_gen.lint_briefs data_gen/briefs/
-```
-
-### Demo dry-run — không cần API key
-
-Lệnh dưới đây chạy hai demo đầu tiên theo thứ tự tên file, không gọi Gemini và không tốn quota:
-
-```powershell
-python -m data_gen.run_batch `
-  --briefs data_gen/briefs/ `
-  --out data_gen/scenarios_dryrun/ `
-  --dry-run `
-  --limit 2 `
-  --seed 7 `
-  --force
-```
-
-Sau khi chạy, kiểm tra các output:
-
-```powershell
-Get-ChildItem data_gen/fact_packs/SC-DEMO-*.json
-Get-ChildItem data_gen/raw/SC-DEMO-*.json
-Get-ChildItem data_gen/scenarios_dryrun/SC-DEMO-*.json
-
-python -m data_gen.auto_check `
-  --scenarios data_gen/scenarios_dryrun/ `
-  --briefs data_gen/briefs/ `
-  --fact-packs data_gen/fact_packs/
-```
-
-Đọc log terminal để xác nhận mỗi demo có `START`, từng `CALL` và `OK`. Kiểm tra thêm `data_gen/reports/manifest.jsonl` và `data_gen/reports/auto_check_report.csv`. Dry-run chỉ kiểm tra luồng và schema; hội thoại chưa đại diện cho chất lượng Gemini.
-
-### Demo production bằng Gemini
-
-Đảm bảo `.env` có `GEMINI_API_KEY` và model hợp lệ, sau đó chạy riêng vào folder production:
-
-```powershell
-python -m data_gen.run_batch `
-  --briefs data_gen/briefs/ `
-  --out data_gen/scenarios/ `
-  --limit 2 `
-  --seed 7 `
-  --force
-```
-
-Ở production, mỗi call sẽ tạo raw dialogue bằng Gemini rồi assemble scenario. `--force` trong lần demo đầu tiên giúp không reuse raw/scenario cũ từ lần dry-run hoặc prompt version cũ. Không dùng `--dry-run` trong lệnh này.
-
-Kiểm tra production output:
-
-```powershell
-Get-ChildItem data_gen/scenarios/SC-DEMO-*.json
-
-python -m data_gen.auto_check `
-  --scenarios data_gen/scenarios/ `
-  --briefs data_gen/briefs/ `
-  --fact-packs data_gen/fact_packs/
-```
-
-Nếu hai demo chạy đúng, bỏ `--limit 2` để chạy toàn bộ brief đã pass lint. Không chạy đồng thời nhiều production batch bằng cùng API key; nếu gặp `429`, tăng `GEMINI_MIN_INTERVAL_SECONDS` trong `.env` lên `4.0` hoặc `5.0`.
-
-## 1. Cấu trúc thư mục
-
-Toàn bộ file thuộc workflow đều nằm bên trong `data_gen/`:
-
-```text
-data_gen/
-├── __init__.py
-├── config.py
-├── NOTES_DISCOVERY.md
-├── README.md
-├── explore_data.py
-├── lint_briefs.py
-├── facts.py
-├── llm_client.py
-├── gen_dialogue.py
-├── assemble_scenario.py
-├── auto_check.py
-├── run_batch.py
-├── slot_keywords.json
-├── coverage_matrix/
-│   ├── matrix_config.json
-│   ├── make_coverage_matrix.py
-│   └── README.md
-├── prompts/
-│   ├── dialogue_v1.txt
-│   └── dialogue_v2.txt
-├── briefs/
-├── fact_packs/
-├── raw/
-├── scenarios/
-├── scenarios_dryrun/
-├── reports/
-└── tests/
-```
-
-### 1.1 Folder dữ liệu đầu vào và kết quả
-
-| Folder              | Nội dung                                                                                                                                            | Ai sử dụng             |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `briefs/`           | Brief nội bộ do thành viên thiết kế; không phải schema BTC cuối cùng                                                                                | SV1/content            |
-| `fact_packs/`       | Fact pack deterministic cho từng cuộc gọi, có source trace                                                                                          | SV2/pipeline, reviewer |
-| `raw/`              | Full dialogue gồm `customer` và `agent` do LLM hoặc dry-run sinh ra                                                                                 | reviewer ngôn ngữ      |
-| `scenarios/`        | Scenario production sinh bằng LLM API                                                                                                               | agent/evaluation       |
-| `scenarios_dryrun/` | Scenario sinh bằng template offline                                                                                                                 | test pipeline/schema   |
-| `reports/`          | Inventory, lint report, auto-check, manifest và các báo cáo chạy                                                                                    | cả nhóm                |
-| `prompts/`          | Prompt có version cho dialogue generator                                                                                                            | người quản lý prompt   |
-| `tests/`            | Unit test cho fact builder, linter và auto-check                                                                                                    | developer/CI           |
-| `coverage_matrix/`  | Lập kế hoạch độ phủ persona/ngành/miền/hard case trước khi viết nhiều brief. `layer=A` là hard-case/trap bắt buộc; `layer=B` là baseline diversity. | SV1/content, cả nhóm   |
-
-Không copy dữ liệu BTC vào các folder trên. Pipeline đọc trực tiếp từ `../data` thông qua `BTC_DIR`.
-
-### 1.2 File mã nguồn
-
-| File                      | Chức năng                                                                                                                                           |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `config.py`               | Tự load `.env`, khai báo `BTC_DIR`, các output directory, provider/model, prompt version và reference date.                                         |
-| `explore_data.py`         | Khảo sát catalog, CRM, promotion, policy và persona; ghi `reports/data_inventory.csv`.                                                              |
-| `lint_briefs.py`          | Kiểm tra brief trước khi tạo fact pack: persona, customer, SKU, variant, promotion, policy chunk, call index và forbidden facts.                    |
-| `facts.py`                | Tính ngày gọi, gọi mock tools, đọc CRM/catalog/policy và tạo fact pack. Đây là nguồn factual duy nhất được đưa vào prompt.                          |
-| `llm_client.py`           | Interface `complete()`. Production gọi Gemini API qua `google-genai`; dry-run dùng template deterministic. Có retry cho lỗi API.                    |
-| `gen_dialogue.py`         | Đọc brief + fact pack + persona + previous-call summary, gọi LLM, parse full dialogue và ghi vào `raw/`.                                            |
-| `assemble_scenario.py`    | Mapping duy nhất từ brief/raw/fact pack sang BTC scenario. Metadata grading được tạo tại đây bằng code; `customer_id` được giữ lại để trace về CRM. |
-| `auto_check.py`           | Kiểm tra numeric consistency, PII, internal policy leakage, re-ask heuristic và đối chiếu ground truth với mock tools.                              |
-| `run_batch.py`            | Chạy toàn bộ pipeline theo batch, hỗ trợ `--dry-run`, `--limit`, `--force`, skip output hợp lệ và ghi manifest.                                     |
-| `slot_keywords.json`      | Từ khoá phục vụ heuristic phát hiện agent hỏi lại slot đã biết.                                                                                     |
-| `prompts/dialogue_v2.txt` | Prompt production hiện tại; bao phủ factual grounding, multi-call memory, promotion/policy traps, PII và JSON output. |
-| `prompts/dialogue_v1.txt` | Prompt legacy để reproduce raw cũ; không dùng cho run mới. |
-| `NOTES_DISCOVERY.md`      | Kết quả khảo sát BTC data, schema, mock tools, policy và các mâu thuẫn đã phát hiện.                                                                |
-
-## 2. Brief cần viết như thế nào?
-
-Mỗi scenario có một file JSON trong `data_gen/briefs/`:
-
-```json
-{
-	"brief_id": "SC-DEMO-01",
-	"persona_id": "<persona có trong data/simulator/personas.json>",
-	"customer_id": "<customer_id có trong CRM>",
-	"channel": "hotline",
-	"hard_case_tags": ["multi_call"],
-	"calls": [
-		{
-			"call_index": 1,
-			"days_later": 0,
-			"customer_goal": "...",
-			"products": [
-				{
-					"sku": "<SKU từ catalog>",
-					"variant_id": "<variant_sku nếu có>",
-					"qty": 1
-				}
-			],
-			"promo_codes_in_play": ["<promo_code từ promotions.json>"],
-			"policy_chunk_ids": ["<chunk ID từ policy/*.md>"],
-			"facts_to_establish": {
-				"room_area_m2": 25,
-				"blocker": "can hoi nguoi nha"
-			},
-			"expected_outcome": "hen_goi_lai",
-			"story_hint": "Hướng dẫn ngắn cho cuộc hội thoại."
-		}
-	]
-}
-```
-
-`facts_to_establish` chỉ chứa điều khách chủ động nói, ví dụ diện tích phòng, ngân sách hoặc lý do chưa mua. Không nhập thủ công `price_vnd`, `final_price_vnd`, `list_price_vnd`, kết quả promotion, inventory hoặc policy content vào brief.
-
-Trước khi commit brief, cần kiểm tra:
-
-1. Persona, customer, SKU, variant, promotion và policy chunk đều tồn tại trong BTC data.
-2. `call_index` liên tục từ 1.
-3. `days_later` không âm.
-4. Các call sau mô tả rõ thông tin cần carry-over và outcome.
-5. Brief không chứa phone, địa chỉ hoặc PII không cần thiết.
-
-## 3. Quy trình generate data
-
-### Bước 0 — Discovery và phân công
-
-Đọc [NOTES_DISCOVERY.md](NOTES_DISCOVERY.md), `data/README.md`, `data/schemas/scenario_format.md`, simulator persona và mock tools.
-
-SV1 phụ trách persona, goal, hard case, story hint và coverage. SV2 phụ trách fact builder, LLM adapter, validator và manifest. Cả hai cùng review ngôn ngữ và factual correctness.
-
-### Bước 1 — Khảo sát BTC data
-
-Chạy từ repository root:
-
-```powershell
-python -m data_gen.explore_data
-```
-
-Kết quả là `data_gen/reports/data_inventory.csv`. Dùng file này để chọn khách đặc biệt, promotion active/expired/not-started, policy current/old/internal và đủ 12 persona.
-
-### Bước 2 — Tạo và lint brief
-
-Đặt brief vào `data_gen/briefs/`, sau đó chạy:
-
-```powershell
-python -m data_gen.lint_briefs
-```
-
-Hoặc chỉ định folder khác:
-
-```powershell
-python -m data_gen.lint_briefs data_gen/briefs/
-```
-
-Kết quả ghi vào `data_gen/reports/lint_report.txt`. Nếu lint fail, sửa brief; không sửa fact pack hoặc scenario bằng tay để làm cho test pass.
-
-Nếu cần tạo nhiều scenario, hãy lập coverage matrix trước:
-
-```powershell
-python -m data_gen.coverage_matrix.make_coverage_matrix generate
-python -m data_gen.coverage_matrix.make_coverage_matrix report
-```
-
-Xem hướng dẫn chi tiết tại [coverage_matrix/README.md](coverage_matrix/README.md). Matrix phải đạt coverage mục tiêu trước khi nhóm mở rộng batch.
-
-### Bước 3 — Build fact pack
-
-Tạo fact pack cho từng call:
-
-```powershell
-python -m data_gen.facts `
-  --brief data_gen/briefs/SC-DEMO-01.json `
-  --call 1
-```
-
-Fact builder sẽ tính `call_date`, resolve CRM customer, gọi catalog/pricing/inventory mock tools, lấy promotion states, đọc policy chunk theo ID, gắn source cho factual value và loại PII không cần thiết khỏi prompt-facing CRM profile.
-
-Fact pack nằm ở `data_gen/fact_packs/<brief_id>_c<call_index>.json`.
-
-### Bước 4 — Generate full dialogue
-
-#### Dry-run, không tốn API
-
-Dry-run dùng template deterministic, mục tiêu là kiểm tra pipeline, schema và assembler:
-
-```powershell
-python -m data_gen.gen_dialogue `
-  --brief data_gen/briefs/SC-DEMO-01.json `
-  --call 1 `
-  --dry-run `
-  --seed 7
-```
-
-Dry-run raw dialogue được ghi vào `data_gen/raw/`, còn scenario cuối phải ghi vào `data_gen/scenarios_dryrun/`.
-
-#### LLM API
-
-Production hiện dùng Gemini API:
-
-```powershell
-# Đặt GEMINI_API_KEY và HARNESS_GEN_MODEL trong .env ở repository root
-
-python -m data_gen.gen_dialogue `
-  --brief data_gen/briefs/SC-DEMO-01.json `
-  --call 1 `
-  --seed 7
-```
-
-LLM nhận persona, goal, fact pack, CRM profile đã lọc, các slot không được hỏi lại và summary của call trước. Summary call trước được tạo từ structured data bằng code, không nhờ LLM tự tóm tắt.
-
-LLM phải chỉ trả về mảng dialogue gồm 8–16 lượt, mỗi lượt có `role` là `customer` hoặc `agent` và `text`. LLM không được tự đổi grading metadata hoặc factual ground truth.
-
-### Bước 5 — Assemble scenario BTC
-
-```powershell
-python -m data_gen.assemble_scenario `
-  --brief data_gen/briefs/SC-DEMO-01.json `
-  --dry-run
-```
-
-`assemble_scenario.py` lấy customer turns từ raw dialogue và tạo bằng code `must_not_ask`, `must_carry_over`, `success_if`, `ground_truth_facts`, ngày gọi, outcome và channel. Không copy agent turns vào scenario BTC; agent turns chỉ nằm trong `raw/` để reviewer đọc.
-
-### Bước 6 — Chạy batch
-
-```powershell
-python -m data_gen.run_batch `
-  --briefs data_gen/briefs/ `
-  --out data_gen/scenarios_dryrun/ `
-  --dry-run `
-  --seed 7
-```
-
-Các option chính:
-
-| Option      | Chức năng                                |
-| ----------- | ---------------------------------------- |
-| `--briefs`  | Folder chứa brief                        |
-| `--out`     | Folder output scenario                   |
-| `--dry-run` | Không gọi API, output vào folder dry-run |
-| `--seed`    | Seed ghi vào raw/manifest                |
-| `--limit N` | Chỉ chạy N brief đầu                     |
-| `--force`   | Sinh lại kể cả output đã tồn tại         |
-
-Khi chạy batch, terminal sẽ log từng brief và từng call với các trạng thái `START`, `CALL`, `OK`, `SKIP` hoặc `FAIL`. Log chỉ chứa brief ID/call index và đường dẫn output, không chứa API key hay PII.
-
-Batch idempotent: output hợp lệ sẽ được skip nếu không dùng `--force`. Raw dialogue chỉ được reuse khi cùng mode (`dry-run` hoặc Gemini production), seed và model/provider; raw dry-run sẽ tự động được sinh lại khi chạy production. Một brief fail không làm dừng các brief còn lại. Manifest nằm ở `data_gen/reports/manifest.jsonl`.
-
-Để giảm rate limit, mỗi request Gemini có khoảng nghỉ tối thiểu theo `GEMINI_MIN_INTERVAL_SECONDS` (mặc định `2.0` giây). Khi gặp lỗi tạm thời/rate limit, pipeline retry tối đa 3 lần với exponential backoff và jitter; nếu response có `Retry-After` thì ưu tiên thời gian đó. Có thể tăng lên `4.0` hoặc `5.0` nếu quota/provider vẫn trả `429`:
+Các giá trị data generation thường dùng:
 
 ```dotenv
+GEMINI_API_KEY=your_key
+HARNESS_GEN_MODEL=gemini-3.5-flash-lite
 GEMINI_MIN_INTERVAL_SECONDS=4.0
+BTC_DIR=./data
 ```
 
-### Bước 7 — Auto-check và review thủ công
+## 4. Review coverage matrix
 
-```powershell
-python -m data_gen.auto_check `
-  --scenarios data_gen/scenarios_dryrun/ `
-  --briefs data_gen/briefs/ `
-  --fact-packs data_gen/fact_packs/
-```
+File làm việc hiện tại: `data_gen/reports/coverage_matrix.csv`. Matrix được quản lý trực tiếp và có thể có quyết định biên tập đã review; **không tự chạy lệnh `generate` hoặc `pipeline --regenerate-matrix`**, vì chúng tạo lại kế hoạch.
 
-Report nằm ở `data_gen/reports/auto_check_report.csv`. Cần xử lý hard failure trước khi freeze. `E8_REASK_REVIEW` chỉ là cảnh báo heuristic, cần review bằng người.
+Lọc theo `owner`. Kiểm tra tối thiểu:
 
-Review tối thiểu: giá/ngày/tồn kho khớp fact pack; promotion expired/not-started/ineligible không bị nói như active; call sau không hỏi lại slot đã biết; không leak policy nội bộ, giá nhập, PII; persona và tiếng Việt tự nhiên; scenario đúng `data/schemas/scenario_format.md`.
+- `level`, `case_number`, `slot_id`: đúng M1, ID duy nhất và thứ tự liên tục.
+- `persona_id`: đúng mục tiêu tâm lý/hành vi; prompt persona lấy từ `data/simulator/personas.json`.
+- `nganh`, `mien`: đúng phạm vi M1 và category thực tế trong catalog.
+- `num_calls`, `channel_pattern`: số kênh phải khớp số cuộc; mỗi phần tử là một kênh (`hotline`, `chat_fanpage`, `zalo_oa`). Đa kênh chỉ ghi khi có chuyển kênh thật.
+- `hard_case_tag`, `special_customer`, `customer_id`: phải phù hợp nhau. Case cần lịch sử/đơn đặc biệt phải dùng đúng CRM customer; case không cần lịch sử nên dùng customer bình thường.
+- `promo_*`, `policy_*`, `story_hints`: nêu dữ kiện/diễn biến khiến case kiểm thử được. `story_hints` được truyền vào `calls[].story_hint` và system prompt của persona; phân tách diễn biến từng cuộc bằng `Call 1: ... || Call 2: ...`.
+- `owner`, `status`: cập nhật tiến độ; không xóa slot đã thống nhất. Nếu cần bỏ, đặt `status=dropped`; không ghi lý do vào `story_hints` vì nội dung này được đưa cho LLM.
 
-### Bước 8 — Freeze và bàn giao
+Không tạo customer ID, SKU, promo code hoặc policy chunk bằng suy đoán. `customer_id` phải tồn tại trong CRM; `NEW:<id>` chỉ dùng khi brief/linter/mock tools hỗ trợ và case thực sự cần khách mới.
 
-Sau khi lint, fact check, auto-check và manual review đạt:
+## 5. Tạo và hoàn thiện brief
 
-1. chuyển bản được duyệt vào `data_gen/scenarios/` nếu là production API;
-2. lưu raw dialogue, fact pack và manifest cùng prompt version;
-3. ghi lại model, seed, timestamp, provider và commit code;
-4. chỉ sau đó mới đưa scenario vào `langgraph_agent` hoặc evaluation.
-
-## 3.1 Quy trình nhóm để sinh full bộ data
-
-`full bộ data` nghĩa là toàn bộ brief hợp lệ trong `data_gen/briefs/` đã được sinh thành scenario, có fact pack, raw dialogue, manifest và báo cáo auto-check tương ứng. Hai file `SC-DEMO-01` và `SC-DEMO-02` chỉ là mẫu kiểm tra pipeline, không phải toàn bộ dataset.
-
-### Phân công đề xuất
-
-| Vai trò             | Việc chính                                                           | Artifact phải bàn giao                     |
-| ------------------- | -------------------------------------------------------------------- | ------------------------------------------ |
-| Coverage owner      | Sinh matrix, cân bằng persona/ngành/miền/layer, phân owner           | `reports/coverage_matrix.csv`              |
-| Brief owners        | Mỗi người chỉ sửa các row có `owner` của mình, viết brief từ BTC IDs | các file JSON trong `briefs/`              |
-| Fact/pipeline owner | Kiểm tra lint, fact pack, cấu hình model/provider và chạy batch      | `fact_packs/`, `raw/`, `manifest.jsonl`    |
-| Reviewers           | Review factual correctness, ngôn ngữ, carry-over, PII và hard cases  | `auto_check_report.csv`, trạng thái matrix |
-
-Không để hai thành viên cùng sửa một brief. Nếu cần đổi persona, hard case hoặc customer của slot, đánh dấu slot cũ là `dropped`, ghi lý do ở `notes`, rồi tạo slot mới; không âm thầm đổi mục tiêu coverage.
-
-### Giai đoạn A — Chuẩn bị một lần cho cả nhóm
-
-Chạy từ repository root:
-
-```powershell
-python -m data_gen.explore_data
-python -m data_gen.coverage_matrix.make_coverage_matrix generate
-python -m data_gen.coverage_matrix.make_coverage_matrix report
-```
-
-Coverage owner commit matrix sau khi review. Thành viên khác không chạy lại `generate` lên file đã phân công vì lệnh này tạo lại các row. Chỉ chạy `report` để kiểm tra quota hiện tại.
-
-Kiểm tra môi trường:
-
-```powershell
-python -m data_gen.lint_briefs data_gen/briefs/
-pytest -q data_gen/tests
-```
-
-Nếu chỉ muốn tạo khung cho các slot mới:
+Một brief JSON trong `data_gen/briefs/` là đặc tả đầu vào cho **một scenario**, có một hoặc nhiều cuộc gọi. Tên/ID brief phải khớp `slot_id` trong matrix. Có thể tạo khung ban đầu từ CSV:
 
 ```powershell
 python -m data_gen.coverage_matrix.make_coverage_matrix stubs `
@@ -436,206 +73,149 @@ python -m data_gen.coverage_matrix.make_coverage_matrix stubs `
   --out data_gen/briefs/
 ```
 
-Không chạy `stubs` để ghi đè brief đã viết. Các giá trị `TODO` phải được thay bằng ID và outcome thật lấy từ BTC trước khi commit.
+Lệnh này giúp điền thông tin vào trong cấu trúc brief và không ghi đè brief đã tồn tại. Chỉ dùng `--force` khi chủ động muốn tạo lại stub và đã lưu phần biên tập cần giữ. Stub là bản nháp, không phải brief đã sẵn sàng sinh.
 
-### Giai đoạn B — Mỗi thành viên viết brief
+Người phụ trách cần đọc và hoàn thiện từng brief, bảo đảm:
 
-1. Mở `reports/coverage_matrix.csv` và lọc theo `owner`.
-2. Với từng slot, điền một file `<slot_id>.json` trong `briefs/`.
-3. Chỉ dùng persona, customer, SKU, variant, promotion và policy chunk có thật trong BTC.
-4. Không điền giá, kết quả promotion, tồn kho hoặc policy content vào brief.
-5. Giữ đúng `layer`: `A` phải thể hiện hard case tương ứng; `B` là scenario nền.
-6. Nếu `customer_id` trong matrix đã có giá trị, phải dùng đúng ID đó. Nếu để trống, chọn một customer hợp lệ từ CRM phù hợp với story và điền vào brief; không tự bịa ID và không commit `TODO`.
-7. Chạy lint trước khi tạo pull request:
+1. `level`, `case_number`, `brief_id`, `persona_id`, `customer_id` khớp matrix.
+2. Mỗi call có `call_index` liên tục, `days_later`, `channel`, `customer_goal`, `products`/variant và `expected_outcome` hợp lý.
+3. Dữ kiện khách nói nằm trong `facts_to_establish`; không tự điền giá cuối, kết quả tồn kho/khuyến mãi hay nội dung policy. Pipeline lấy factual values từ catalog/mock tools.
+4. `story_hint`/diễn biến call làm cho hard case xảy ra rõ ràng. Ví dụ: callback nêu đúng thời điểm; hàng hết giữa các cuộc phải có mốc ngày; shared phone phải xác minh người gọi; khách thiếu kiên nhẫn phải giới hạn câu hỏi; đổi hàng cần có lịch sử mua và SKU cụ thể.
+5. `success_if` kiểm thử đúng hành vi mong đợi. `story_hints` chỉ hướng dẫn diễn biến phía khách, không thay thế điều kiện chấm hoặc danh sách tool bị cấm.
+6. Không có PII thật, giá nội bộ, giá nhập, thông tin nhà cung cấp hoặc dữ kiện khuyến mãi chưa bắt đầu bị lộ cho khách.
+
+Brief cần đủ dữ kiện để khách simulator bám kịch bản. `gen_dialogue` kết hợp `system_prompt` của persona trong BTC `personas.json` với prompt chung `data_gen/prompts/customer_turns_v2.txt`; mỗi call còn nhận `style`, vị trí `call_index/scenario_num_calls` và `patience_initial` tương ứng. Persona định hình cách nói/hành vi, còn brief quy định mục tiêu, facts, diễn biến và giới hạn. Không dựa vào persona để tự tạo facts còn thiếu.
+
+## 6. Lint brief trước khi sinh
+
+Sau khi hoàn thiện brief, chạy lint trên thư mục:
 
 ```powershell
 python -m data_gen.lint_briefs data_gen/briefs/
 ```
 
-Commit brief theo nhóm nhỏ, ví dụ `briefs: add SV1 slots SC-001 to SC-010`. Reviewer chỉ merge khi lint pass và nội dung brief khớp coverage row.
+Chỉ tiếp tục khi tất cả brief được đưa vào batch đều pass. Linter kiểm tra schema/field, persona và customer trong nguồn BTC, SKU/variant, promotion, policy, chuỗi call và các yêu cầu cấu trúc theo hard-case tag. Lint không thay review nội dung của con người.
 
-### Giai đoạn C — Dry-run toàn bộ trước khi tốn API
+## 7. Dry-run offline
 
-Sau khi tất cả brief đã được viết và lint pass:
+Dry-run không gọi Gemini và không dùng để đánh giá chất lượng hội thoại. Chạy một vài brief để kiểm tra đường đi và schema:
 
 ```powershell
 python -m data_gen.run_batch `
   --briefs data_gen/briefs/ `
   --out data_gen/scenarios_dryrun/ `
   --dry-run `
+  --level M1 `
+  --limit 3 `
   --seed 7
+```
 
+Sau đó chạy kiểm tra tự động:
+
+```powershell
 python -m data_gen.auto_check `
   --scenarios data_gen/scenarios_dryrun/ `
   --briefs data_gen/briefs/ `
-  --fact-packs data_gen/fact_packs/
+  --fact-packs data_gen/fact_packs/ `
+  --raw data_gen/raw/
 ```
 
-Dry-run dùng template offline nên không đại diện cho chất lượng ngôn ngữ của LLM. Mục tiêu của bước này là phát hiện brief sai, fact pack lỗi, output sai cấu trúc, sai giá/ngày và lỗi privacy trước khi gọi API thật.
+`auto_check` đối chiếu scenario với brief, raw customer turns và fact pack; kiểm tra số lượt (4–8), call/kênh/identity, giá và tồn kho bằng BTC mock tools, `success_if`/ground truth, PII và dữ kiện tiền không có căn cứ. Kết quả chi tiết ở `data_gen/reports/auto_check_report.csv`: lỗi `E*` là hard error (lệnh trả mã khác 0), `W*` là cảnh báo. `W9_MANUAL_REVIEW` luôn nhắc review giọng persona, mạch story hint và việc hard case có thực sự xuất hiện hay không.
 
-Kiểm tra:
+Đây là kiểm tra artifact và phần lời khách được sinh, **không** đánh giá phản hồi của agent hay chứng minh scenario đạt nội dung chỉ nhờ tag. Những phần đó cần contract/eval và review thủ công; không gọi LLM judge trong bước auto-check để tránh chi phí, tính không ổn định và false positive trên dữ liệu không có lời agent.
 
-- `reports/manifest.jsonl` không có `failed`;
-- `reports/auto_check_report.csv` không có hard failure;
-- cảnh báo `E8_REASK_REVIEW` đã được người review đọc;
-- số file trong `scenarios_dryrun/` khớp số brief cần generate;
-- coverage report vẫn đạt quota.
+Dry-run chỉ xác nhận pipeline có thể tạo output. Không đưa dry-run vào kết quả chất lượng, metric hoặc dataset freeze.
 
-### Giai đoạn D — Cấu hình LLM API và sinh production data
+## 8. Sinh bằng Gemini
 
-Pipeline hiện tại gọi Gemini trong `llm_client.py` bằng SDK `google-genai`. Mỗi thành viên không commit API key; đặt key trong `.env` theo mục 0. Có thể tạo key từ Google AI Studio.
-
-```powershell
-Copy-Item .env.example .env
-# Sau đó sửa GEMINI_API_KEY trong .env
-```
-
-Chạy thử một vài brief trước:
+Chỉ sinh sau khi matrix và brief đã review, lint pass, và dry-run/auto-check không còn lỗi cần xử lý. Bắt đầu bằng một batch nhỏ vào thư mục production:
 
 ```powershell
 python -m data_gen.run_batch `
   --briefs data_gen/briefs/ `
   --out data_gen/scenarios/ `
-  --limit 2 `
+  --level M1 `
+  --limit 3 `
   --seed 7
 ```
 
-Sau khi review thử đạt, chạy toàn bộ:
+Đọc log, `data_gen/reports/manifest.jsonl`, các file trong `data_gen/raw/` và `data_gen/scenarios/`. Nếu ổn, bỏ `--limit 3` để chạy toàn bộ brief M1 đã pass lint. Không chạy đồng thời nhiều batch dùng chung API key; nếu gặp giới hạn tốc độ, tăng `GEMINI_MIN_INTERVAL_SECONDS` trong `.env`.
 
-```powershell
-python -m data_gen.run_batch `
-  --briefs data_gen/briefs/ `
-  --out data_gen/scenarios/ `
-  --seed 7
-```
+`run_batch` có thể reuse raw tương thích theo seed, prompt, model/provider và brief. Chỉ thêm `--force` khi muốn tái sinh có chủ đích; lệnh này có thể thay output hiện tại. Khi đổi brief/prompt, kiểm tra kỹ trước khi force để không mất artifact đã được review.
 
-Batch có tính idempotent: output đã tồn tại sẽ được skip. Chỉ dùng `--force` khi đã thống nhất regenerate toàn bộ hoặc một batch cụ thể; khi regenerate phải giữ lại seed, model, prompt version và ghi chú lý do trong commit/manifest.
+## 9. Review scenario
 
-Nếu nhóm dùng provider khác Gemini, không được chỉ đổi tên biến model. Cần bổ sung adapter trong `llm_client.py`, cơ chế đọc API key riêng, retry và kiểm tra output JSON; sau đó cập nhật README, test adapter và manifest để ghi provider/model chính xác. Cho tới khi adapter được merge, production run chính thức chỉ hỗ trợ Gemini.
-
-### Giai đoạn E — Auto-check, review và freeze
-
-Sau production run:
+Sau khi sinh, chạy lại `auto_check` trên thư mục production:
 
 ```powershell
 python -m data_gen.auto_check `
   --scenarios data_gen/scenarios/ `
   --briefs data_gen/briefs/ `
   --fact-packs data_gen/fact_packs/
-
-python -m data_gen.coverage_matrix.make_coverage_matrix report
-pytest -q data_gen/tests
 ```
 
-Mỗi reviewer cần kiểm tra ít nhất một mẫu ở mỗi nhóm `layer`, hard case, persona và provider/model run. Đối với mỗi scenario, kiểm tra:
+Review thủ công ít nhất các hard case và một mẫu của từng persona/kênh. Xác nhận:
 
-- customer và channel đúng brief;
-- giá, promotion, inventory, ngày và policy khớp fact pack;
-- promotion expired/not-started/ineligible không bị nói như đang active;
-- call sau giữ đúng thông tin từ call trước và không hỏi lại slot đã biết;
-- không lộ phone, địa chỉ, CCCD, email hoặc internal policy;
-- customer turns tự nhiên, agent không hallucinate và outcome phù hợp `expected_outcome`;
-- không còn `TODO`, `failed` hoặc hard failure.
+- khách chỉ nói những gì brief cho phép; giọng điệu và mức kiên nhẫn đúng persona;
+- mạch giữa các call nhất quán, không nhắc lại dữ kiện không cần thiết, kênh đổi đúng kế hoạch;
+- khách không nói thay agent, không bịa số liệu/giá/policy và không đưa PII thật;
+- case thực sự tạo ra điều kiện kiểm thử và `success_if` tương ứng có ý nghĩa.
 
-Chỉ scenario đã review mới được coi là `validated`. Không sửa trực tiếp scenario để che lỗi; sửa brief/prompt/code, regenerate artifact liên quan và chạy lại các bước kiểm tra.
+Nếu có lỗi, sửa brief/prompt/code/story_hints theo đúng nguồn, sinh lại scenario bị ảnh hưởng và review lại. Không sửa tay scenario JSON đã sinh để “làm cho pass”. Chỉ đánh dấu `validated` sau auto-check và review tay.
 
-### Giai đoạn F — Bàn giao dataset
+## 10. Checklist trước khi bàn giao/freeze
 
-Một dataset được xem là sẵn sàng khi có đủ:
+- [ ] Matrix có owner/status rõ, ID liên tục/duy nhất, quota M1 và channel/persona/customer nhất quán.
+- [ ] Brief khớp matrix, không còn TODO, pass `lint_briefs`.
+- [ ] Hard case có facts và điều kiện chấm rõ; review bằng người thật, không chỉ dựa vào tag.
+- [ ] Production scenario sinh từ LLM, pass `auto_check`, pass contract và đã review thủ công.
+- [ ] Có manifest và tracking report; chỉ artifact đã được review mới đánh dấu `validated`.
+- [ ] Dry-run không được tính là dữ liệu production; audio/ASR và M2 không được báo là hoàn tất.
+- [ ] Không commit `.env`, API key, PII thật, database hoặc artifact nhạy cảm.
 
-1. `reports/coverage_matrix.csv` đạt quota và các row đã có owner/status rõ ràng;
-2. tất cả brief cần thiết pass lint;
-3. fact pack và raw dialogue tồn tại cho từng call;
-4. scenario production nằm trong `scenarios/`, scenario dry-run nằm riêng trong `scenarios_dryrun/`;
-5. `auto_check_report.csv` không có hard failure;
-6. `manifest.jsonl` ghi `brief_id`, provider/model, prompt version, seed, timestamp và status;
-7. `pytest -q data_gen/tests` pass;
-8. không có thay đổi ngoài ý muốn trong `data/` và không có API key/PII trong git diff.
+## 11. Vai trò các artifact chính
 
-Các artifact cần chia sẻ/commit theo chính sách của nhóm:
+| Đường dẫn                                           | Vai trò                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------------- |
+| `data_gen/reports/coverage_matrix.csv`              | Kế hoạch scenario và phân công owner.                                |
+| `data_gen/briefs/*.json`                            | Đặc tả nội bộ đã được review cho từng scenario.                      |
+| `data_gen/fact_packs/`                              | Fact pack xác định bằng code từ dữ liệu BTC/mock tools, theo call.   |
+| `data_gen/raw/`                                     | Lượt khách do LLM/dry-run sinh và metadata prompt/model/seed.        |
+| `data_gen/scenarios/`                               | Scenario production theo contract BTC, dùng cho review/eval.         |
+| `data_gen/scenarios_dryrun/`                        | Output offline để thử contract; không phải dữ liệu đánh giá.         |
+| `data_gen/reports/manifest.jsonl`                   | Nhật ký batch, trạng thái, model/prompt/seed và digest.              |
+| `data_gen/reports/coverage_tracking.csv`            | Trạng thái slot suy ra từ brief/raw/scenario; không thay matrix gốc. |
+| `data_gen/prompts/customer_turns_v2.txt`            | Prompt chung hiện hành; kết hợp system prompt persona BTC.           |
+| `data_gen/auto_check.py`, `data_gen/lint_briefs.py` | Kiểm tra cấu trúc brief và lỗi scenario tự động.                     |
 
-- nên commit: brief, coverage matrix, prompt, code, README, report không chứa PII;
-- chỉ commit `fact_packs/`, `raw/`, `scenarios/` nếu repo cho phép lưu generated data;
-- không commit API key, log request, phone/address chưa mask hoặc file tạm;
-- nếu dataset lớn, lưu artifact ở nơi được nhóm thống nhất và commit manifest/hash thay vì tự ý đẩy lên repo.
-
-### Lệnh kiểm tra nhanh trước khi báo hoàn tất
+## 12. Lệnh nhanh
 
 ```powershell
+# 1. Xem dữ liệu BTC
+python -m data_gen.explore_data
+
+# 2. Kiểm tra coverage (không tính audio đợt này)
+python -m data_gen.coverage_matrix.make_coverage_matrix report --matrix data_gen/reports/coverage_matrix.csv --defer-audio
+
+# 3. Tạo stub còn thiếu; không ghi đè brief đã có
+python -m data_gen.coverage_matrix.make_coverage_matrix stubs --matrix data_gen/reports/coverage_matrix.csv --out data_gen/briefs/
+
+# 4. Lint brief
 python -m data_gen.lint_briefs data_gen/briefs/
-python -m data_gen.coverage_matrix.make_coverage_matrix report
-python -m data_gen.run_batch --briefs data_gen/briefs/ --out data_gen/scenarios_dryrun/ --dry-run --seed 7
+
+# 5. Dry-run một vài case rồi auto-check
+python -m data_gen.run_batch --briefs data_gen/briefs/ --out data_gen/scenarios_dryrun/ --dry-run --level M1 --limit 3 --seed 7
 python -m data_gen.auto_check --scenarios data_gen/scenarios_dryrun/ --briefs data_gen/briefs/ --fact-packs data_gen/fact_packs/
-pytest -q data_gen/tests
+
+# 6. Sinh thử bằng Gemini sau khi review
+python -m data_gen.run_batch --briefs data_gen/briefs/ --out data_gen/scenarios/ --level M1 --limit 3 --seed 7
+
+# 7. Sinh riêng lẻ một call
+python -m data_gen.gen_dialogue --brief data_gen/briefs/SC-001.json --call 1
+python -m data_gen.gen_dialogue --brief data_gen/briefs/SC-001.json --call 2
+
+# 8. Tong hop nhieu call thanh 1 scenario
+python -m  data_gen.assemble_scenario --brief data_gen/briefs/SC-0o1.json --out data_gen/scenarios
 ```
 
-Nếu một lệnh fail, dừng freeze và ghi lỗi vào issue/PR tương ứng; không chuyển scenario lỗi sang `scenarios/` hoặc evaluation.
-
-## 4. Kiểm thử và giới hạn
-
-Chạy:
-
-```powershell
-pytest -q data_gen/tests
-```
-
-Test hiện có kiểm tra fact pack với mock tools cho promotion conditional, promotion expired và inventory thay đổi theo ngày; kiểm tra linter và các nhóm lỗi auto-check.
-
-BTC checkout hiện thiếu `data/eval/validate_scenarios.py`, dù BTC README có tham chiếu file này. Vì vậy `auto_check` ghi warning `BTC_VALIDATOR_MISSING`; warning này không có nghĩa official BTC validator đã pass. Khi BTC bổ sung file, cần chạy thêm validator chính thức trên `data_gen/scenarios/`.
-
-## 5. Giải thích thuật ngữ
-
-| Thuật ngữ            | Giải thích                                                                                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `BTC`                | Ban tổ chức hoặc bộ dữ liệu/định dạng chuẩn mà bài yêu cầu.                                                                                            |
-| `BTC_DIR`            | Thư mục gốc chứa dữ liệu BTC; mặc định là `data/`. Đây là thư mục chỉ đọc.                                                                             |
-| `brief`              | Bản mô tả nội bộ của một scenario: khách hàng nào, mục tiêu gì, sản phẩm nào và các cuộc gọi diễn ra như thế nào. Brief chưa phải output cuối của BTC. |
-| `fact pack`          | Gói dữ kiện được code tạo cho một cuộc gọi từ catalog, CRM, promotion, inventory, policy và mock tools. Đây là nguồn sự thật để LLM viết hội thoại.    |
-| `ground truth`       | Dữ kiện đúng dùng để đối chiếu kết quả agent, ví dụ giá chính xác, trạng thái tồn kho hoặc ngày restock.                                               |
-| `ground_truth_facts` | Các factual value trong scenario dùng để kiểm tra agent có nói đúng hay không. Field này phải do code tạo.                                             |
-| `customer turns`     | Các lượt lời của khách hàng. Đây là phần input deterministic quan trọng để BTC chấm agent.                                                             |
-| `agent turns`        | Các lượt lời của agent. Trong pipeline, chúng được lưu trong `raw/` để review, không dùng làm ground truth bắt buộc.                                   |
-| `raw dialogue`       | Bản hội thoại thô gồm cả `customer` và `agent` trước khi assemble thành scenario BTC.                                                                  |
-| `scenario`           | File JSON cuối cùng theo schema BTC, chứa metadata, các cuộc gọi, customer turns và điều kiện đánh giá.                                                |
-| `multi-call`         | Scenario có nhiều cuộc gọi của cùng một khách hàng, thường dùng để kiểm tra memory và carry-over.                                                      |
-| `call index`         | Số thứ tự cuộc gọi: `1`, `2`, `3`.                                                                                                                     |
-| `call date`          | Ngày thực tế của một cuộc gọi. Giá, promotion và inventory phải được tính theo ngày này.                                                               |
-| `days later`         | Số ngày kể từ cuộc gọi trước để suy ra `call_date`.                                                                                                    |
-| `carry-over`         | Thông tin cần được giữ lại và sử dụng ở cuộc gọi sau, ví dụ sản phẩm đã tư vấn hoặc vấn đề khách còn do dự.                                            |
-| `must_carry_over`    | Danh sách slot mà agent bắt buộc phải nhớ và dùng đúng ở call hiện tại.                                                                                |
-| `must_not_ask`       | Danh sách slot agent không được hỏi mở lại vì đã biết từ CRM hoặc cuộc gọi trước.                                                                      |
-| `slot`               | Một đơn vị thông tin có tên, ví dụ `product_advised`, `budget_vnd`, `room_area_m2` hoặc `address`.                                                     |
-| `persona`            | Kiểu hành vi và phong cách giao tiếp của khách hàng, ví dụ khách so giá hoặc khách thiếu kiên nhẫn.                                                    |
-| `hard case`          | Ca kiểm thử khó, ví dụ promotion hết hạn, ASR lỗi, shared phone hoặc policy cũ.                                                                        |
-| `promotion`          | Chương trình khuyến mãi. Promotion có thể active, expired, not started hoặc ineligible theo điều kiện.                                                 |
-| `inventory`          | Trạng thái tồn kho của sản phẩm/variant tại một ngày cụ thể.                                                                                           |
-| `CRM`                | Customer Relationship Management; dữ liệu hồ sơ, định danh, lịch sử đơn hàng và các phiên trước của khách.                                             |
-| `PII`                | Personally Identifiable Information; thông tin có thể nhận diện một cá nhân như số điện thoại, địa chỉ, email hoặc CCCD.                               |
-| `mask PII`           | Che hoặc thay thế PII bằng giá trị an toàn trước khi ghi log, gửi prompt hoặc xuất report.                                                             |
-| `policy chunk`       | Một đoạn chính sách có mã định danh, ví dụ `[DT-01]` hoặc `[KM-05]`.                                                                                   |
-| `current policy`     | Chính sách đang có hiệu lực tại thời điểm gọi.                                                                                                         |
-| `old policy`         | Chính sách cũ đã hết hiệu lực, không được dùng thay cho chính sách hiện tại.                                                                           |
-| `internal policy`    | Tài liệu nội bộ như giá nhập hoặc KPI; không được tiết lộ cho khách hàng.                                                                              |
-| `mock tool`          | Hàm mô phỏng công cụ nghiệp vụ của BTC, dùng để tra giá, tồn kho, CRM, tạo đơn hoặc callback.                                                          |
-| `fact source`        | Nguồn chứng minh một factual value, ví dụ `pricing_get_quote` hoặc `catalog/products.json`.                                                            |
-| `LLM`                | Large Language Model; mô hình ngôn ngữ dùng để sinh câu thoại.                                                                                         |
-| `LLM API`            | API cho phép chương trình gửi prompt đến LLM và nhận kết quả tự động.                                                                                  |
-| `provider`           | Nhà cung cấp LLM API; pipeline hiện tại dùng Google Gemini.                                                                                            |
-| `prompt`             | Nội dung hướng dẫn và dữ liệu đầu vào gửi cho LLM.                                                                                                     |
-| `prompt version`     | Phiên bản prompt, ví dụ `dialogue_v1`, dùng để tái lập và so sánh các lần sinh dữ liệu.                                                                |
-| `structured output`  | Kết quả LLM theo format có cấu trúc, trong pipeline là JSON dialogue.                                                                                  |
-| `dry-run`            | Chế độ chạy thử không gọi API thật và không tốn chi phí; pipeline dùng template deterministic.                                                         |
-| `production run`     | Chế độ chạy thật bằng LLM API để tạo dữ liệu chất lượng dùng cho development/evaluation.                                                               |
-| `deterministic`      | Cùng input và cấu hình cho ra kết quả ổn định hoặc có thể tái lập.                                                                                     |
-| `seed`               | Giá trị dùng để tái lập một lần sinh dữ liệu hoặc ghi nhận cấu hình chạy.                                                                              |
-| `temperature`        | Mức độ ngẫu nhiên khi LLM sinh output; giá trị thấp thường phù hợp với task có yêu cầu factual.                                                        |
-| `retry`              | Cơ chế gọi lại khi API lỗi, timeout hoặc trả về JSON không hợp lệ.                                                                                     |
-| `parse`              | Đọc và chuyển chuỗi JSON LLM trả về thành object để chương trình xử lý.                                                                                |
-| `assemble`           | Bước ghép brief, fact pack và dialogue thành scenario BTC cuối cùng.                                                                                   |
-| `validator`          | Chương trình kiểm tra scenario có đúng schema và nghiệp vụ hay không.                                                                                  |
-| `auto-check`         | Nhóm kiểm tra tự động bổ sung như sai giá, leak PII, leak policy và hỏi lại slot đã biết.                                                              |
-| `heuristic`          | Quy tắc kiểm tra gần đúng, thường dựa trên regex/từ khoá; có thể cần review thủ công.                                                                  |
-| `manifest`           | File nhật ký các lần chạy, thường chứa brief ID, model, seed, timestamp và status.                                                                     |
-| `idempotent`         | Chạy lại cùng pipeline không tạo output trùng hoặc thay đổi output hợp lệ nếu không dùng `--force`.                                                    |
-| `quarantine`         | Nơi tạm giữ scenario lỗi hoặc chưa được duyệt, không đưa vào batch chính thức.                                                                         |
-| `freeze`             | Trạng thái scenario đã qua kiểm tra và không được sửa thủ công thêm.                                                                                   |
+Xem chi tiết về cách lập và đọc matrix tại [`coverage_matrix/README.md`](coverage_matrix/README.md). Mục tiêu M1/M2 và thứ tự level nằm trong [`dataset_config.json`](dataset_config.json); cấu hình hiện chỉ bật M1 trong batch mặc định.

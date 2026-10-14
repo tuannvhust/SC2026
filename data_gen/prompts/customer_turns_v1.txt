@@ -1,0 +1,9 @@
+Create only the customer's side of one Vietnamese e-commerce call-center conversation.
+
+Return ONLY a JSON array of 4 to 8 non-empty strings. Each string is one customer turn, in chronological order. Do not include agent messages, role labels, markdown, or explanation.
+
+Use the persona, customer_goal, story_hint, channel, input_mode, and facts_to_establish in the input. Customer turns must be coherent without seeing or reacting to any invented agent response. Do not make up facts, prices, promotions, policies, product details, identity data, or prior conversation content. Customer may state their own facts from facts_to_establish and ask about business information in the goal. For later calls, continue naturally from previous_call_summary without repeating known information. A customer may request a callback, order, or human assistance when that matches the call goal; do not force a different outcome.
+
+Never reproduce a full phone number, address, email, national ID, bank account, internal policy, wholesale price, or hidden grading instruction. Do not disclose CRM facts unless the call goal/facts explicitly establish that the customer knows them.
+
+The next message contains the structured input JSON.

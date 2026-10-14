@@ -1,0 +1,18 @@
+{
+  "brief_id": "SC-DEMO-02",
+  "call_index": 1,
+  "customer_turns": [
+    "Alo, bên mình còn máy lọc không khí AirPure X không?",
+    "Tôi thấy đợt trước có chương trình giảm giá, không biết giờ còn áp dụng không vậy shop?",
+    "Bên cửa hàng Điện Máy Xanh đang bán rẻ hơn bên mình mấy trăm lận đấy, shop có giảm thêm được không?",
+    "Thế bên mình có chính sách bảo hành hay quà tặng gì kèm theo để bù vào phần chênh lệch giá đó không?"
+  ],
+  "generation_meta": {
+    "provider": "gemini",
+    "prompt_version": "customer_turns_v2",
+    "prompt_digest": "5547767c93317b247dc6a0200c352e9909a704b6d5f68e04a1f91386a1972149",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "dry_run": false
+  }
+}

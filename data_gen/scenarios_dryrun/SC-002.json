@@ -1,0 +1,96 @@
+{
+  "scenario_id": "SC-002",
+  "customer_id": "C035",
+  "level": "M1",
+  "persona": "hai_nguoi_chung_sdt",
+  "hard_case": "shared_phone",
+  "customer_phone": "0958421083",
+  "customer_name": "Dung",
+  "honorific": "chị",
+  "notes": "Generated from reviewed brief; raw generation contains customer turns only.",
+  "calls": {
+    "call_1": {
+      "call_date": "2026-10-15",
+      "channel": "hotline",
+      "channel_identity": "0958421083",
+      "customer_goal": "Hai người trong gia đình dùng chung số điện thoại; hãy xác nhận người đang liên hệ trước khi dùng lịch sử mua hàng. Khách cần được gọi lại sau khi shop kiểm tra.",
+      "customer_turns": [
+        "Alo, em muốn trao đổi về nhu cầu này: Hai người trong gia đình dùng chung số điện thoại; hãy xác nhận người đang liên hệ trước khi dùng lịch sử mua hàng. Khách cần được gọi lại sau khi shop kiểm tra.",
+        "Thông tin phía em là product_advised: SKU-SN-CAS, budget_vnd: 5000000, caller_identity: Dung, blocker: dang can nhac.",
+        "Em cần thông tin chính xác và điều kiện áp dụng giúp em nhé.",
+        "Nếu cần thì em sẽ trao đổi thêm rồi phản hồi sau ạ."
+      ],
+      "facts_established": {
+        "product_advised": "SKU-SN-CAS",
+        "budget_vnd": 5000000,
+        "caller_identity": "Dung",
+        "blocker": "dang can nhac"
+      },
+      "must_carry_over": [],
+      "must_not_ask": [],
+      "success_if": {
+        "tool_called": "schedule.callback",
+        "args_match": {
+          "callback_at": "2026-10-17T10:00"
+        }
+      },
+      "ground_truth_facts": {
+        "price_vnd": 890000,
+        "list_price_vnd": 890000,
+        "in_stock": true,
+        "freeship": false,
+        "promo_COD-0_active": true,
+        "product_1_sku": "SKU-SN-CAS",
+        "product_1_qty": 1,
+        "product_1_price_vnd": 890000,
+        "product_1_in_stock": true
+      },
+      "expected_outcome": "hen_goi_lai"
+    },
+    "call_2": {
+      "call_date": "2026-10-17",
+      "channel": "hotline",
+      "channel_identity": "0958421083",
+      "customer_goal": "Hai người trong gia đình dùng chung số điện thoại; hãy xác nhận người đang liên hệ trước khi dùng lịch sử mua hàng.",
+      "customer_turns": [
+        "Alo, em muốn trao đổi về nhu cầu này: Hai người trong gia đình dùng chung số điện thoại; hãy xác nhận người đang liên hệ trước khi dùng lịch sử mua hàng.",
+        "Thông tin phía em là product_advised: SKU-SN-CAS, budget_vnd: 5000000, caller_identity: Dung, address_confirmed: True.",
+        "Em cần thông tin chính xác và điều kiện áp dụng giúp em nhé.",
+        "Nếu cần thì em sẽ trao đổi thêm rồi phản hồi sau ạ."
+      ],
+      "facts_established": {
+        "product_advised": "SKU-SN-CAS",
+        "budget_vnd": 5000000,
+        "caller_identity": "Dung",
+        "address_confirmed": true
+      },
+      "must_carry_over": [
+        "product_advised"
+      ],
+      "must_not_ask": [
+        "product_advised"
+      ],
+      "success_if": {
+        "tool_called": "order.create",
+        "args_match": {
+          "sku": "SKU-SN-CAS",
+          "qty": 1,
+          "payment": "COD"
+        }
+      },
+      "ground_truth_facts": {
+        "price_vnd": 890000,
+        "list_price_vnd": 890000,
+        "in_stock": true,
+        "freeship": false,
+        "promo_COD-0_active": true,
+        "product_1_sku": "SKU-SN-CAS",
+        "product_1_qty": 1,
+        "product_1_price_vnd": 890000,
+        "product_1_in_stock": true
+      },
+      "expected_outcome": "chot_don"
+    }
+  },
+  "case_number": 2
+}

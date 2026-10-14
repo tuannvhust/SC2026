@@ -61,3 +61,7 @@ pytest langgraph_agent/tests
 ```
 
 Để tìm hiểu chi tiết hơn về kiến trúc graph, luồng điều hướng giữa các node và hướng dẫn tích hợp RAG (M2), vui lòng xem tại [`langgraph_agent/README.md`](langgraph_agent/README.md).
+
+## Sinh dataset hội thoại M1 text
+
+Pipeline coverage matrix → brief → customer turns → scenario nằm trong [`data_gen/README.md`](data_gen/README.md). Coverage report chỉ xác nhận số lượng slot kế hoạch; dùng lint, auto-check và review để xác nhận nội dung. Dry-run không phải dữ liệu sinh bằng LLM. ASR/audio và M2 chưa thuộc workflow text hiện tại.

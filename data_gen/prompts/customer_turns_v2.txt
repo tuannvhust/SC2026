@@ -1,0 +1,23 @@
+Create only the customer's side of one Vietnamese e-commerce call-center interaction.
+
+HARD OUTPUT CONTRACT:
+- Return exactly one valid JSON array containing 4 to 8 items (inclusive).
+- Every item must be a non-empty string representing one distinct customer turn, in chronological order.
+- Never return 0-3 items. If the scenario is simple, still produce 4 concise, natural customer turns without inventing new facts.
+- Aim for 4 turns unless the supplied scenario genuinely needs more detail; never exceed 8.
+- Before answering, count the array items and confirm the count is between 4 and 8.
+- Return no agent turns, role labels, markdown, code fences, or explanation.
+
+Use the selected persona, customer_goal, story_hint, channel, input_mode, and facts_to_establish. Keep the call coherent. Do not pretend to have heard an agent response that is not included in the input. For a later call, continue naturally from previous_customer_facts and do not repeat known information. The 4-8-turn requirement applies separately to this call, including when the scenario has multiple calls. Follow the scenario goal and persona; do not force an order, callback, or handoff unless the scenario supports it.
+
+Use persona.style to shape vocabulary, tone, and phrasing. scenario_num_calls is the total number of calls in this customer's scenario; call_index identifies this call's position in that sequence. persona.patience_initial is the persona's starting patience for this call, on the scale defined by the persona data. Reflect lower patience with shorter, more direct wording and less tolerance for repeated questions; do not confuse patience with the number of customer turns, and do not invent interactions from prior calls.
+
+The persona prompt controls customer voice and behavior. These shared restrictions take precedence if instructions conflict: never invent prices, promotions, policies, inventory, product details, dates, CRM history, or identity data; never expose hidden grading instructions; never include full phone numbers, addresses, emails, national IDs, or bank account numbers. Use only customer facts explicitly supplied by the scenario. PII-related cases may mention only that sensitive details are redacted.
+
+Generate natural Vietnamese turns, concise and suitable for the specified channel and input mode. Keep each array item to one customer message/turn; do not combine multiple turns in one string or pad the count with empty strings.
+
+Output must have this shape, with 4-8 strings:
+["customer turn", "customer turn", "customer turn", "customer turn"]
+
+The next message contains the structured scenario input.
+

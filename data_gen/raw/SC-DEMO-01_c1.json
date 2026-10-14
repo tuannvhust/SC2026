@@ -1,0 +1,19 @@
+{
+  "brief_id": "SC-DEMO-01",
+  "call_index": 1,
+  "customer_turns": [
+    "Em ơi, chị đang tìm máy lọc không khí cho phòng khoảng 25 mét vuông, tầm giá khoảng 8 triệu đổ lại nhé.",
+    "Hôm trước chị nói rồi mà, diện tích phòng là 25m2 và ngân sách của chị khoảng 8 triệu đó.",
+    "Dạ rồi, để chị xem tính năng có phù hợp không đã.",
+    "Chị phải về hỏi ý kiến người nhà đã rồi mới quyết định được em nhé."
+  ],
+  "generation_meta": {
+    "provider": "gemini",
+    "prompt_version": "customer_turns_v2",
+    "prompt_digest": "f29b636a6b19dbf0f07033f6160739e7ba3a71b8dd335857689d379944e64dfa",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "dry_run": false,
+    "brief_digest": "a46650f5ef0f7fd92eb3178b72999afd5416bf7c2e0376925643cf76cc2fd7e7"
+  }
+}

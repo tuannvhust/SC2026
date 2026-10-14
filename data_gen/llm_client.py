@@ -8,7 +8,6 @@ import time
 
 from .config import MODEL
 
-
 _last_request_at: float | None = None
 
 
@@ -37,49 +36,26 @@ def _retry_after_seconds(exc: Exception) -> float | None:
 
 
 def _retry_delay(exc: Exception, attempt: int) -> float:
-    retry_after = _retry_after_seconds(exc)
-    if retry_after is not None:
-        return retry_after
-    return min(60.0, (2.0 ** attempt) * 2.0 + random.uniform(0.0, 1.5))
+    delay = _retry_after_seconds(exc)
+    return delay if delay is not None else min(60.0, (2.0 ** attempt) * 2.0 + random.uniform(0.0, 1.5))
 
 
-def _offline_dialogue(user: str, seed: int) -> str:
+def _offline_customer_turns(user: str) -> str:
     data = json.loads(user)
-    facts = data["fact_pack"]
-    call = data["call"]
-    product = facts.get("products", [{}])[0]
-    catalog = (product.get("catalog", {}).get("items") or [{}])[0]
-    quote = product.get("quote", {})
-    name = catalog.get("name", "sản phẩm")
-    price = quote.get("final_price_vnd")
-    price_text = f"{price:,}".replace(",", ".") + "đ" if isinstance(price, int) else "em kiểm tra lại giá giúp anh/chị ạ"
-    customer_facts = facts.get("customer_facts", {})
-    area = customer_facts.get("room_area_m2")
-    outcome = call.get("expected_outcome")
-    customer = facts.get("customer", {})
-    honorific = customer.get("honorific") or "anh/chị"
+    facts = data.get("facts_established", {})
+    details = ", ".join(f"{key}: {value}" for key, value in facts.items())
     turns = [
-        {"role": "customer", "text": f"Alo, {honorific} cho hỏi {name} giá bao nhiêu ạ?"},
-        {"role": "agent", "text": f"Dạ em kiểm tra theo ngày gọi, {name} hiện có giá {price_text} ạ."},
-        {"role": "customer", "text": f"Phòng nhà {honorific} khoảng {area}m2, sản phẩm có phù hợp không?" if area else "Sản phẩm này dùng có ổn không em?"},
-        {"role": "agent", "text": "Dạ em sẽ tư vấn theo thông tin sản phẩm trong hệ thống ạ."},
-        {"role": "customer", "text": "Nếu có chương trình phù hợp thì em nói rõ điều kiện giúp anh/chị nhé."},
-        {"role": "agent", "text": "Dạ chương trình và điều kiện áp dụng sẽ được kiểm tra theo ngày, sản phẩm và hồ sơ khách hàng ạ."},
+        f"Alo, em muốn trao đổi về nhu cầu này: {data.get('call_goal', '')}",
+        f"Thông tin phía em là {details}." if details else "Em muốn hỏi thêm thông tin trước khi quyết định ạ.",
+        "Em cần thông tin chính xác và điều kiện áp dụng giúp em nhé.",
+        "Nếu cần thì em sẽ trao đổi thêm rồi phản hồi sau ạ.",
     ]
-    if outcome == "chot_don":
-        turns += [{"role": "customer", "text": "Được rồi, em lên đơn giúp anh/chị nhé."}, {"role": "agent", "text": "Dạ em sẽ xác nhận lại thông tin đơn trước khi tạo ạ."}]
-    elif outcome == "hen_goi_lai":
-        turns += [{"role": "customer", "text": "Để anh/chị trao đổi thêm với gia đình rồi gọi lại em nhé."}, {"role": "agent", "text": "Dạ vâng, em ghi nhận và hỗ trợ mình khi gọi lại ạ."}]
-    elif outcome == "chuyen_may":
-        turns += [{"role": "customer", "text": "Câu này em có chắc thông tin không?"}, {"role": "agent", "text": "Dạ nội dung này ngoài phạm vi tư vấn của em, em xin phép chuyển bộ phận phù hợp ạ."}]
-    else:
-        turns += [{"role": "customer", "text": "Vậy em kiểm tra giúp anh/chị nhé."}, {"role": "agent", "text": "Dạ hiện em chưa có thông tin chắc chắn để trả lời ạ."}]
     return json.dumps(turns, ensure_ascii=False)
 
 
 def complete(system: str, user: str, *, seed: int, temperature: float, dry_run: bool = False) -> str:
     if dry_run:
-        return _offline_dialogue(user, seed)
+        return _offline_customer_turns(user)
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY (or GOOGLE_API_KEY) is required unless --dry-run is used")
@@ -100,16 +76,17 @@ def complete(system: str, user: str, *, seed: int, temperature: float, dry_run: 
                 config=types.GenerateContentConfig(
                     system_instruction=system,
                     temperature=temperature,
-                    max_output_tokens=1800,
+                    max_output_tokens=1200,
                     response_mime_type="application/json",
                     seed=seed,
                 ),
             )
-            text = getattr(response, "text", None)
-            if not text:
+            result = getattr(response, "text", None)
+            if not result:
                 raise RuntimeError("Gemini returned an empty response")
-            return text.strip()
+            return result.strip()
         except Exception as exc:
             last_error = exc
-            if attempt < 2: time.sleep(_retry_delay(exc, attempt))
+            if attempt < 2:
+                time.sleep(_retry_delay(exc, attempt))
     raise RuntimeError(f"Gemini request failed after 3 attempts: {last_error}")

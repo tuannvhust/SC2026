@@ -1,0 +1,19 @@
+{
+  "brief_id": "SC-DEMO-01",
+  "call_index": 2,
+  "customer_turns": [
+    "Em ơi, chị đây, hôm trước chị đã trao đổi với em về cái sản phẩm đấy rồi.",
+    "Chị hỏi lại người nhà rồi, mọi người đồng ý cho mua đấy.",
+    "Chị quyết định đặt luôn nhé, ship COD giúp chị nha.",
+    "Địa chỉ thì hôm trước chị đọc rồi đấy, em cứ gửi theo đó nhé."
+  ],
+  "generation_meta": {
+    "provider": "gemini",
+    "prompt_version": "customer_turns_v2",
+    "prompt_digest": "b1ccea5b08c038f3faf1208cb9af5a40150c8cfc697b08f0b256b31ea591989b",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "dry_run": false,
+    "brief_digest": "a46650f5ef0f7fd92eb3178b72999afd5416bf7c2e0376925643cf76cc2fd7e7"
+  }
+}

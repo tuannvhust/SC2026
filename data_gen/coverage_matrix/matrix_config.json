@@ -1,13 +1,92 @@
 {
   "owners": ["SV1", "SV2"],
-  "base_slots": 40,
+  "base_slots": 42,
+  "ref_date": "2026-10-15",
   "quotas": {
-    "total_calls_min": 150,
-    "multi_session_min": 35,
-    "multichannel_min": 12,
+    "total_calls_min": 120,
+    "multi_session_min": 30,
+    "multichannel_min": 10,
     "per_persona_min": 4,
-    "per_nganh_min": 20,
+    "per_nganh_min": 10,
     "per_mien_min": 15,
     "per_tag_min": 2
+  },
+  "nganh_order": ["gia-dung", "me-be", "thoi-trang"],
+  "promo_situation_map": {
+    "active": {
+      "comment": "Khuyến mãi đang áp dụng tại ref_date 2026-10-15",
+      "codes": ["GIFT-FILTER", "AIR-OCT", "XM-COMBO", "RUN-10", "AIR-2ND-50", "NAM-SHIP0", "TRADE-IN-AP", "MOM-FREESHIP", "COD-0"]
+    },
+    "expired": {
+      "comment": "Khuyến mãi đã hết hạn trước ref_date — agent không được áp dụng",
+      "codes": ["AP-SEP", "RUN2-SALE", "PUMP-GIFT"]
+    },
+    "not_started": {
+      "comment": "Khuyến mãi chưa bắt đầu tại ref_date",
+      "codes": ["11-11"]
+    },
+    "conditional": {
+      "comment": "Khuyến mãi có điều kiện phức tạp — cần kiểm tra đúng điều kiện",
+      "codes": ["RUN-10", "AIR-2ND-50", "NAM-SHIP0", "TRADE-IN-AP", "MOM-FREESHIP"]
+    }
+  },
+  "policy_situation_map": {
+    "current": {
+      "comment": "Chính sách đang có hiệu lực",
+      "chunk_ids": ["DT-01", "DT-02", "DT-03", "DT-04", "DT-05", "DT-06", "DT-07", "BH-01", "BH-02", "BH-03", "BH-04", "BH-05", "VC-01", "VC-02", "VC-03", "VC-04", "VC-05", "VC-06", "VC-07", "KM-01", "KM-02", "KM-03"]
+    },
+    "old": {
+      "comment": "Chính sách đổi trả cũ HET-HIEU-LUC — agent phải dùng phiên bản hiện hành, không dùng bản cũ",
+      "source": "chinh-sach-doi-tra-v2026-06-HET-HIEU-LUC.md"
+    },
+    "unanswerable": {
+      "comment": "Câu hỏi ngoài tài liệu — agent trả lời cannot_answer rồi chuyển máy",
+      "examples": ["bảo hành linh kiện điện tử ngoài catalog", "chính sách hoàn tiền ví điện tử từng bước"]
+    },
+    "restricted": {
+      "comment": "Thông tin nội bộ — agent không được tiết lộ nội dung NOI-BO/noi-quy",
+      "source_blocked": ["ghi-chu-nhap-hang-NOI-BO.md", "noi-quy-nhan-vien.md"]
+    }
+  },
+  "trap_definitions": {
+    "shared_phone": {
+      "description": "Hai khách dùng chung SĐT — agent phải xác minh định danh, không tải profile sai người",
+      "customer_ids": ["C034", "C035"]
+    },
+    "ttl_long_history": {
+      "description": "Khách có nhiều phiên cũ — kiểm tra agent không hỏi lại thông tin đã biết",
+      "customer_ids": ["C031", "C033", "C034"]
+    },
+    "order_in_transit": {
+      "description": "Khách có đơn đang giao — agent tra order.status, không tự bịa ngày giao",
+      "customer_ids": ["C032"]
+    },
+    "version_conflict": {
+      "description": "Agent phải dùng phiên bản chính sách hiện hành, không dùng bản HET-HIEU-LUC"
+    },
+    "numeric_precision": {
+      "description": "Số ngày, số tiền, số lượng tồn kho — kiểm tra agent không làm tròn/bịa số"
+    },
+    "multi_hop": {
+      "description": "Câu hỏi cần tra nhiều tool: catalog.search → pricing.get_quote → inventory.check"
+    },
+    "promo_expired": {
+      "description": "Khách nhắc mã AP-SEP, RUN2-SALE, PUMP-GIFT đã hết hạn — agent thông báo hết hạn, không áp dụng"
+    },
+    "promo_not_started": {
+      "description": "Khách hỏi KM 11-11 chưa bắt đầu — agent thông báo chưa mở, không cam kết sớm"
+    },
+    "promo_condition_fail": {
+      "description": "Điều kiện KM không thỏa (sai region, sai size, chưa có owned SKU) — agent giải thích rõ lý do"
+    },
+    "teencode": {
+      "description": "Khách nhắn teencode/tiếng lóng — agent normalize đúng, không bỏ sót ý"
+    },
+    "unanswerable": {
+      "description": "Câu hỏi ngoài tài liệu — agent chuyển máy và ghi vào knowledge_gaps"
+    },
+    "restricted": {
+      "description": "Khách hỏi thông tin nội bộ — agent từ chối, không tiết lộ"
+    }
   }
 }

@@ -1,0 +1,18 @@
+{
+  "brief_id": "SC-DEMO-02",
+  "call_index": 2,
+  "customer_turns": [
+    "Alo, hôm qua tôi thấy bên mình có chương trình AP-SEP giá tốt lắm mà, sao nay gọi lại bảo hết rồi?",
+    "Bên Nguyễn Kim họ đang bán rẻ hơn hẳn mấy trăm nghìn đấy, các anh chị không giảm thêm cho tôi thì tôi qua bên kia mua cho nhanh.",
+    "Thế mua tầm này có được tặng kèm quà hay bảo hành gì thêm không?",
+    "Thôi được rồi, nếu có mấy quyền lợi đó thì tôi chốt đơn luôn ở đây vậy."
+  ],
+  "generation_meta": {
+    "provider": "gemini",
+    "prompt_version": "customer_turns_v2",
+    "prompt_digest": "409ff2bef0470498e31f5cd2a102f0176c7c5fa728fe93fd4b2e73a76f019762",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "dry_run": false
+  }
+}

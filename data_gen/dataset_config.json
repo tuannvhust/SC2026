@@ -1,0 +1,58 @@
+{
+	"version": 1,
+	"description": "Target and generation order for the M1/M2 transcript dataset.",
+	"source_of_truth": "data_gen/briefs/*.json",
+	"ordering": {
+		"levels": ["M1", "M2"],
+		"case_id_format": "SC-{level}-{case_number:03d}",
+		"case_number_scope": "global",
+		"m2_starts_after_m1": true
+	},
+	"milestones": {
+		"M1": {
+			"transcripts_min": 120,
+			"audio": {
+				"transcripts_min": 40,
+				"hours_min": 1.0,
+				"accepted_sources": ["recorded", "tts"]
+			},
+			"multi_session_customers_min": 30,
+			"multichannel_customers_min": 10,
+			"industry_count": 1,
+			"region_count": 2,
+			"industries": ["thoi-trang"],
+			"regions": ["bac", "nam"],
+			"noisy_audio_fraction_min": 0.0,
+			"catalog_sku_min": 30,
+			"catalog_policy_fields": ["price", "promotion", "return", "shipping"]
+		},
+		"M2": {
+			"transcripts_min": 250,
+			"audio": {
+				"transcripts_min": 100,
+				"hours_min": 3.0,
+				"accepted_sources": ["recorded", "tts"]
+			},
+			"multi_session_customers_min": 60,
+			"multichannel_customers_min": 30,
+			"industry_count": 3,
+			"region_count": 3,
+			"industries": ["gia-dung", "me-be", "thoi-trang"],
+			"regions": ["bac", "trung", "nam"],
+			"noisy_audio_fraction_min": 0.2,
+			"catalog_sku_min": 100,
+			"catalog_policy_fields": ["price", "promotion", "return", "shipping"]
+		}
+	},
+	"generation": {
+		"prefer_level": "M1",
+    "include_levels": ["M1"],
+		"default_level_for_legacy_briefs": "M1",
+		"require_contiguous_global_case_numbers": true,
+		"numbering_note": "M2 case numbers continue after the last M1 case."
+	},
+	"coverage_matrix": {
+      "base_slots": { "M1": 42, "M2": 84 },
+		"repeat_hard_case_traps_per_level": true
+	}
+}

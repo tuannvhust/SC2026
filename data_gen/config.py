@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -14,9 +15,10 @@ RAW_DIR = DATA_GEN_DIR / "raw"
 SCENARIOS_DIR = DATA_GEN_DIR / "scenarios"
 DRYRUN_DIR = DATA_GEN_DIR / "scenarios_dryrun"
 REPORTS_DIR = DATA_GEN_DIR / "reports"
+DATASET_CONFIG = DATA_GEN_DIR / "dataset_config.json"
 PROVIDER = "gemini"
 MODEL = os.getenv("HARNESS_GEN_MODEL", os.getenv("HARNESS_MODEL", "gemini-2.5-flash"))
-PROMPT_VERSION = "dialogue_v2"
+PROMPT_VERSION = "customer_turns_v2"
 REFERENCE_DATE = "2026-10-15"
 
 for _directory in (BRIEFS_DIR, FACT_PACKS_DIR, RAW_DIR, SCENARIOS_DIR, DRYRUN_DIR, REPORTS_DIR):
@@ -25,3 +27,7 @@ for _directory in (BRIEFS_DIR, FACT_PACKS_DIR, RAW_DIR, SCENARIOS_DIR, DRYRUN_DI
 
 def json_path(relative: str) -> Path:
     return BTC_DIR / relative
+
+
+def load_dataset_config() -> dict:
+    return json.loads(DATASET_CONFIG.read_text(encoding="utf-8"))
