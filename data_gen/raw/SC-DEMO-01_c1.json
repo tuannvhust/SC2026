@@ -2,15 +2,16 @@
   "brief_id": "SC-DEMO-01",
   "call_index": 1,
   "customer_turns": [
-    "Em ơi, chị đang tìm máy lọc không khí cho phòng khoảng 25 mét vuông, tầm giá khoảng 8 triệu đổ lại nhé.",
-    "Hôm trước chị nói rồi mà, diện tích phòng là 25m2 và ngân sách của chị khoảng 8 triệu đó.",
-    "Dạ rồi, để chị xem tính năng có phù hợp không đã.",
-    "Chị phải về hỏi ý kiến người nhà đã rồi mới quyết định được em nhé."
+    "Alo, chị muốn tìm một chiếc máy lọc không khí cho phòng có diện tích khoảng 25m2.",
+    "Hôm trước chị nói rồi mà, ngân sách của chị là khoảng 8 triệu đồng nhé.",
+    "Chị thấy dòng Máy lọc không khí AirPure Pro này không biết có phù hợp với diện tích phòng và mức giá đó không em?",
+    "Chị cần phải trao đổi lại với người nhà trong gia đình đã rồi mới quyết định được.",
+    "Để chị hỏi lại người nhà xem thế nào rồi sẽ phản hồi lại cho shop sau nhé."
   ],
   "generation_meta": {
     "provider": "gemini",
-    "prompt_version": "customer_turns_v2",
-    "prompt_digest": "f29b636a6b19dbf0f07033f6160739e7ba3a71b8dd335857689d379944e64dfa",
+    "prompt_version": "customer_turns_v3",
+    "prompt_digest": "6dab0ebe464411525ad0f14c217b10bfb2ac484474572ce462d673afb613d050",
     "model": "gemini-3.5-flash-lite",
     "seed": 7,
     "dry_run": false,

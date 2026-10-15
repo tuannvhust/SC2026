@@ -14,6 +14,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from src import build_graph, handle_customer_turn  # noqa: E402
 
 
+def customer_turns_for_call(call_spec: dict) -> tuple[list[str], str]:
+    """Pass the declared noisy/teencode variant to the agent when the scenario requests it."""
+    mode = call_spec.get("input_mode", "clean")
+    if mode in {"asr_transcript", "chat_teencode"}:
+        turns = call_spec.get("customer_turns_asr")
+        if not isinstance(turns, list) or not turns:
+            raise ValueError(f"input_mode={mode} requires customer_turns_asr")
+        return turns, mode
+    return call_spec.get("customer_turns", []), mode
+
+
 def run_file(path: Path, out: str, config: str) -> None:
     spec = json.loads(path.read_text(encoding="utf-8"))
     graph = build_graph()
@@ -21,8 +32,7 @@ def run_file(path: Path, out: str, config: str) -> None:
     for call_name, call_spec in spec.get("calls", {}).items():
         call_date = date.fromisoformat(call_spec["call_date"]) if call_spec.get("call_date") else previous + timedelta(days=call_spec.get("days_later", 0))
         previous = call_date
-        turns = call_spec.get("customer_turns_asr") if call_spec.get("customer_turns_asr") else call_spec.get("customer_turns", [])
-        mode = call_spec.get("input_mode", "clean")
+        turns, mode = customer_turns_for_call(call_spec)
         for turn, text in enumerate(turns, 1):
             handle_customer_turn(
                 graph, f"{spec['scenario_id']}-{call_name}", spec["customer_phone"],

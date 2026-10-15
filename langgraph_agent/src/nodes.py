@@ -1,6 +1,7 @@
 import json
 import re
 import time
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from datetime import datetime
 from typing import Any, Dict
@@ -19,20 +20,36 @@ _executor = ThreadPoolExecutor(max_workers=4)
 def resolve_identity(state: CallState) -> CallState:
     """Resolve phone/channel identity; ambiguous phones must not load facts."""
     started = time.perf_counter()
-    data = crm_get_customer(phone=state.get("customer_phone"),
-                            zalo_id=state.get("channel_identity") if state.get("channel") == "zalo_oa" else None,
-                            fb_id=state.get("channel_identity") if state.get("channel") == "chat_fanpage" else None)
+    confirmed_id = state.get("confirmed_customer_id")
+    data = crm_get_customer(customer_id=confirmed_id) if confirmed_id else crm_get_customer(
+        phone=state.get("customer_phone"),
+        zalo_id=state.get("channel_identity") if state.get("channel") == "zalo_oa" else None,
+        fb_id=state.get("channel_identity") if state.get("channel") == "chat_fanpage" else None,
+    )
     if data.get("ambiguous"):
-        return {"crm_result": data, "needs_identity_confirm": True,
-                "candidates": data.get("candidates", []), "call_brief": None,
-                "call_brief_latency_ms": int((time.perf_counter() - started) * 1000)}
+        text = state.get("raw_customer_text") or ""
+        fold = lambda value: "".join(ch for ch in unicodedata.normalize("NFKD", value.casefold()) if not unicodedata.combining(ch))
+        normalized_text = fold(text)
+        matches = [c for c in data.get("candidates", []) if c.get("name") and re.search(
+            rf"(?<!\w){re.escape(fold(c['name']))}(?!\w)", normalized_text
+        )]
+        if len(matches) == 1:
+            data = crm_get_customer(customer_id=matches[0]["customer_id"])
+        else:
+            return {"crm_result": data, "needs_identity_confirm": True,
+                    "confirmed_customer_id": None, "customer_id": None,
+                    "customer_name": None, "honorific": None, "profile": {},
+                    "episodic_summaries": [], "orders": [], "call_brief": None,
+                    "candidates": data.get("candidates", []),
+                    "call_brief_latency_ms": int((time.perf_counter() - started) * 1000)}
     if not data.get("found") and state.get("customer_phone"):
         cid, returning = get_or_create_customer(state["customer_phone"])
         data.update({"found": True, "customer_id": cid, "name": None, "honorific": None,
                      "orders": [], "sessions": [], "ambiguous": False})
     cid = data.get("customer_id")
     profile = {} if state.get("config") == "baseline_no_memory" else load_profile(cid) if cid else {}
-    return {"crm_result": data, "customer_id": cid, "customer_name": data.get("name"),
+    return {"crm_result": data, "customer_id": cid, "confirmed_customer_id": cid, "needs_identity_confirm": False,
+            "candidates": [], "customer_name": data.get("name"),
             "honorific": data.get("honorific"), "is_returning_customer": data.get("found", False),
             "profile": profile, "episodic_summaries": (data.get("sessions", []) + load_episodic(cid)) if cid and state.get("config") != "baseline_no_memory" else data.get("sessions", []),
             "orders": data.get("orders", []), "call_id": state.get("call_id", ""),
@@ -106,6 +123,15 @@ def retrieve_context(state: CallState) -> CallState:
 
 def plan_step(state: CallState) -> CallState:
     """Node lập kế hoạch: quyết định hành động tiếp theo (gọi tool, trả lời, làm rõ, chuyển máy)."""
+    if state.get("needs_identity_confirm"):
+        names = [c.get("name") for c in state.get("candidates", []) if c.get("name")]
+        choices = " hay ".join(names)
+        return {
+            "plan_action": "ask_clarify",
+            "tool_calls": [],
+            "draft_response": f"Dạ số điện thoại này đang dùng chung. Anh/chị cho em xin tên người đang liên hệ là {choices} ạ?",
+            "facts_to_persist": {},
+        }
     try:
         out = (
             fake_plan(state)

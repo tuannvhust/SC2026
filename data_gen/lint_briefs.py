@@ -40,6 +40,15 @@ def validate_hard_case(brief: dict, ref: dict) -> list[str]:
         customer = ref["customers"].get(brief.get("customer_id"), {})
         require(bool(customer.get("shared_phone_with")), "customer must be a shared-phone CRM record")
         require(any(call.get("facts_to_establish", {}).get("caller_identity") for call in calls), "caller identity confirmation must be represented")
+        if len(calls) >= 2:
+            caller_ids = [call.get("customer_id") for call in calls]
+            require(all(caller_ids), "each call must identify its expected caller by CRM customer_id")
+            require(len(set(caller_ids)) >= 2, "shared-phone calls must represent at least two distinct callers")
+            people = [ref["customers"].get(cid) for cid in caller_ids]
+            require(all(person and person.get("phone") == customer.get("phone") for person in people), "callers must be CRM records sharing the same phone")
+            for call, person in zip(calls, people):
+                if person:
+                    require(call.get("facts_to_establish", {}).get("caller_identity") == person.get("name"), f"call {call.get('call_index')} caller_identity must match that call's CRM person")
     if "ttl_long_history" in tags:
         require(any(call.get("facts_to_establish", {}).get("customer_history_months") == 8 for call in calls), "must encode the 8-month history")
     if "version_conflict" in tags:
@@ -81,10 +90,16 @@ def lint_one(path: Path, ref: dict) -> list[str]:
     except Exception as exc: return [f"invalid JSON: {exc}"]
     for key in ("brief_id", "persona_id", "customer_id", "channel", "calls"):
         if key not in brief: errors.append(f"missing {key}")
+    brief_id = brief.get("brief_id", "")
+    if not re.fullmatch(r"SC-\d{3}", brief_id) and not brief_id.startswith("SC-DEMO-"):
+        errors.append("brief_id must use SC-NNN")
     if brief.get("level", "M1") not in {"M1", "M2"}: errors.append("level must be M1 or M2")
     if "case_number" in brief and (not isinstance(brief["case_number"], int) or brief["case_number"] < 1): errors.append("case_number must be a positive integer")
+    if isinstance(brief.get("case_number"), int) and brief_id != f"SC-{brief['case_number']:03d}":
+        errors.append("brief_id must match case_number as SC-NNN")
     if brief.get("persona_id") not in ref["personas"]: errors.append("invalid persona_id")
     customer = str(brief.get("customer_id", ""))
+    tags = set(brief.get("hard_case_tags", []))
     if not (customer.startswith("NEW:") or customer in ref["crm"]): errors.append("invalid customer_id")
     if not isinstance(brief.get("calls"), list) or not brief.get("calls"):
         errors.append("calls must be a non-empty list")
@@ -92,26 +107,21 @@ def lint_one(path: Path, ref: dict) -> list[str]:
     errors.extend(validate_hard_case(brief, ref))
     indices = [c.get("call_index") for c in brief.get("calls", [])]
     if indices != list(range(1, len(indices) + 1)): errors.append("call_index must be continuous from 1")
-    crm = ref["customers"].get(customer)
-    hints = brief.get("_matrix_hints", {})
-    expected_pattern = hints.get("channel_pattern", "").split("-") if hints.get("channel_pattern") else []
-    if crm:
-        if hints.get("customer_id") and hints["customer_id"] != customer:
-            errors.append("customer_id differs from reviewed matrix assignment")
-        if hints.get("persona_id") and hints["persona_id"] != brief.get("persona_id"):
-            errors.append("persona_id differs from reviewed matrix assignment")
     valid_outcomes = {"hen_goi_lai", "chot_don", "chuyen_may", "tu_choi"}
     for call in brief.get("calls", []):
+        if call.get("customer_id") and call.get("customer_id") not in ref["crm"]:
+            errors.append(f"call {call.get('call_index')}: invalid customer_id")
+        call_customer = ref["customers"].get(call.get("customer_id", customer))
         channel = call.get("channel", brief.get("channel"))
         if channel not in {"hotline", "chat_fanpage", "zalo_oa"}: errors.append(f"call {call.get('call_index')}: invalid channel")
-        if crm and channel:
+        if call_customer and channel:
             identity_key = {"hotline": "phone", "chat_fanpage": "fb_id", "zalo_oa": "zalo_id"}[channel]
-            identity = call.get("channel_identity", crm.get(identity_key))
-            if not identity or (identity_key != "phone" and identity != crm.get(identity_key)):
+            identity = call.get("channel_identity", call_customer.get(identity_key))
+            if not identity or identity != call_customer.get(identity_key):
                 errors.append(f"call {call.get('call_index')}: missing/mismatched CRM channel_identity")
         call_index = call.get("call_index", 1)
-        if expected_pattern and call_index <= len(expected_pattern) and channel != expected_pattern[call_index - 1]:
-            errors.append(f"call {call_index}: channel differs from reviewed matrix pattern")
+        if call_index == 1 and channel != brief.get("channel"):
+            errors.append("top-level channel must match call_1 channel")
         days_later = call.get("days_later", 0)
         if not isinstance(days_later, (int, float)) or isinstance(days_later, bool): errors.append(f"call {call.get('call_index')}: days_later must be numeric")
         elif days_later < 0: errors.append(f"call {call.get('call_index')}: days_later < 0")
@@ -129,9 +139,9 @@ def lint_one(path: Path, ref: dict) -> list[str]:
                 errors.append(f"call {call.get('call_index')}: success_if.must_say_any must be a list")
             if "max_agent_questions" in condition and (not isinstance(condition["max_agent_questions"], int) or condition["max_agent_questions"] < 0):
                 errors.append(f"call {call.get('call_index')}: success_if.max_agent_questions must be a non-negative integer")
-        for required in ("customer_goal", "story_hint"):
-            if not isinstance(call.get(required), str) or not call[required].strip() or "TODO" in call[required].upper():
-                errors.append(f"call {call.get('call_index')}: {required} is missing or TODO")
+        required = "story_hint"
+        if not isinstance(call.get(required), str) or not call[required].strip() or "TODO" in call[required].upper():
+            errors.append(f"call {call.get('call_index')}: {required} is missing or TODO")
         products = call.get("products", [])
         if not isinstance(products, list): errors.append(f"call {call.get('call_index')}: products must be a list")
         for product in products if isinstance(products, list) else []:
@@ -139,10 +149,6 @@ def lint_one(path: Path, ref: dict) -> list[str]:
             if product.get("sku") in {None, "", "TODO"}: errors.append(f"call {call.get('call_index')}: product SKU is missing")
             if product.get("sku") not in ref["skus"]: errors.append(f"call {call.get('call_index')}: invalid SKU")
             if product.get("variant_id") and product["variant_id"] not in ref["skus"]: errors.append(f"call {call.get('call_index')}: invalid variant_id")
-            assigned_industry = brief.get("_matrix_hints", {}).get("nganh")
-            actual_industry = ref["sku_category"].get(product.get("variant_id") or product.get("sku"))
-            if assigned_industry and actual_industry and assigned_industry != actual_industry:
-                errors.append(f"call {call.get('call_index')}: SKU category {actual_industry} differs from matrix {assigned_industry}")
             if not isinstance(product.get("qty", 1), int) or product.get("qty", 1) < 1: errors.append(f"call {call.get('call_index')}: qty must be a positive integer")
         for promo in call.get("promo_codes_in_play", []):
             if promo not in ref["promos"]: errors.append(f"call {call.get('call_index')}: invalid promotion")
@@ -156,8 +162,12 @@ def lint_one(path: Path, ref: dict) -> list[str]:
         facts_text = json.dumps(call.get("facts_to_establish", {}), ensure_ascii=False)
         if re.search(r"(?<!\d)0\d{9}(?!\d)|\b0\d{11}\b|[\w.+-]+@[\w.-]+", facts_text): errors.append(f"call {call.get('call_index')}: unmasked PII in facts_to_establish")
         asr_turns = call.get("customer_turns_asr")
-        if asr_turns is not None and (not isinstance(asr_turns, list) or any(not isinstance(t, str) or not t.strip() for t in asr_turns)):
-            errors.append(f"call {call.get('call_index')}: customer_turns_asr must be a list of non-empty strings")
+        if asr_turns is not None and (
+            not isinstance(asr_turns, list)
+            or any(not isinstance(t, str) or not t.strip() for t in asr_turns)
+            or (isinstance(asr_turns, list) and len(asr_turns) != len(call.get("customer_turns", [])))
+        ):
+            errors.append(f"call {call.get('call_index')}: customer_turns_asr must match clean turn count and contain non-empty strings")
     return errors
 
 

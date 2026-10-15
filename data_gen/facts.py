@@ -49,8 +49,17 @@ def extract_policy_chunks(chunk_ids: list[str]) -> list[dict[str, Any]]:
 def build_fact_pack(brief: dict, call_index: int) -> dict[str, Any]:
     tools = load_mock_tools(); call = calls_by_index(brief)[call_index]
     crm = load("catalog/crm_seed.json")["customers"]
-    customer = next((c for c in crm if c["customer_id"] == brief.get("customer_id")), None)
-    customer_lookup = tools.crm_get_customer(phone=customer["phone"]) if customer else {"found": False, "customer_id": None}
+    customer_id = call.get("customer_id", brief.get("customer_id"))
+    customer = next((c for c in crm if c["customer_id"] == customer_id), None)
+    # A shared phone is ambiguous by design. Fact packs must follow the call's
+    # explicitly assigned caller, without merging the other member's CRM data.
+    customer_lookup = ({
+        "found": True, "ambiguous": False, "customer_id": customer["customer_id"],
+        "name": customer.get("name"), "honorific": customer.get("honorific"),
+        "phone": customer.get("phone"),
+        "identities": {k: customer.get(k) for k in ("phone", "zalo_id", "fb_id")},
+        "orders": customer.get("orders", []), "sessions": customer.get("sessions", []),
+    } if customer else {"found": False, "customer_id": None})
     safe_crm = {
         k: v for k, v in customer_lookup.items()
         if k not in {"phone", "identities", "candidates", "orders", "sessions"}
@@ -76,7 +85,7 @@ def build_fact_pack(brief: dict, call_index: int) -> dict[str, Any]:
     return {
         "brief_id": brief["brief_id"], "call_index": call_index, "call_date": call["call_date"],
         "reference_date": REFERENCE_DATE, "persona_id": brief["persona_id"], "channel": brief["channel"],
-        "customer": {"customer_id": brief.get("customer_id"), "name": brief.get("customer_name"), "honorific": brief.get("honorific"), "crm": safe_crm},
+        "customer": {"customer_id": customer_id, "name": customer.get("name") if customer else brief.get("customer_name"), "honorific": customer.get("honorific") if customer else brief.get("honorific"), "crm": safe_crm},
         "customer_facts": call.get("facts_to_establish", {}), "products": product_facts,
         "policy": safe_policy, "internal_policy_ids": [p["chunk_id"] for p in policies if p["type"] == "internal"],
         "promo_codes_in_play": call.get("promo_codes_in_play", []),

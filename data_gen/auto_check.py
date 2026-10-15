@@ -17,6 +17,7 @@ from typing import Any
 
 from .assemble_scenario import derive_ground_truth, derive_success_if
 from .config import BRIEFS_DIR, BTC_DIR, FACT_PACKS_DIR, RAW_DIR, REPORTS_DIR
+from .scenario_metadata import hard_case_label, scenario_summary_path
 
 
 MONEY_SUFFIX = r"(?:₫|đồng|đ|vnd|triệu|tr(?:iệu)?|nghìn|ngàn|k)"
@@ -39,6 +40,10 @@ REPORT_DESCRIPTIONS = {
     "E1_CALLS_INVALID": "Scenario phải có object calls không rỗng.",
     "E1_BRIEF_SCENARIO_MISMATCH": "Thông tin persona/customer_id/level không khớp brief.",
     "E1_HARD_CASE_MISMATCH": "Danh sách hard case không khớp brief.",
+    "E1_NOTES_MISMATCH": "Ghi chú scenario không khớp bối cảnh brief.",
+    "E1_CUSTOMER_GOAL_MISMATCH": "customer_goal không đúng vị trí hoặc ý nghĩa trong brief.",
+    "E1_SCENARIO_SUMMARY_MISSING": "Thiếu summary artifact đã sinh cho notes/customer_goal.",
+    "E1_STORY_HINTS_MISMATCH": "story_hints trong scenario metadata không khớp brief.",
     "E1_CALL_COUNT_MISMATCH": "Số cuộc gọi trong scenario không khớp brief.",
     "E1_CALL_KEY_INVALID": "Tên cuộc gọi không đúng định dạng call_N.",
     "E1_CALL_INVALID": "Thông tin cuộc gọi phải là object.",
@@ -123,7 +128,10 @@ def _safe_excerpt(text: str, limit: int = 180) -> str:
 
 def _customer_text(call: dict) -> str:
     turns = call.get("customer_turns", [])
-    return "\n".join(t for t in turns if isinstance(t, str)) if isinstance(turns, list) else ""
+    asr_turns = call.get("customer_turns_asr", [])
+    clean_text = "\n".join(t for t in turns if isinstance(t, str)) if isinstance(turns, list) else ""
+    asr_text = "\n".join(t for t in asr_turns if isinstance(t, str)) if isinstance(asr_turns, list) else ""
+    return f"{clean_text}\n{asr_text}".strip()
 
 
 def _error(rows: list[dict], sid: str, call_index: str, code: str, message: str,
@@ -177,6 +185,15 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
         _error(rows, sid, "*", "E1_CALLS_INVALID", "calls must be a non-empty object")
         calls = {}
     expected_specs = {str(c.get("call_index")): c for c in (brief or {}).get("calls", [])}
+    try:
+        sidecar = _read(path.parent.with_name(f"{path.parent.name}_metadata") / f"{sid}.json")
+    except Exception:
+        sidecar = {}
+    summary = None
+    try:
+        summary = _read(scenario_summary_path(raw_dir, sid))
+    except Exception:
+        _error(rows, sid, "*", "E1_SCENARIO_SUMMARY_MISSING", "scenario metadata summary artifact is missing or invalid")
     customer = None
     if brief:
         try:
@@ -184,13 +201,27 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
                              if c.get("customer_id") == brief.get("customer_id")), None)
         except Exception:
             pass
-        for field, expected in (("persona", brief.get("persona_id")), ("customer_id", brief.get("customer_id")),
+        for field, expected in (("persona", brief.get("persona_id")),
                                 ("level", brief.get("level", "M1"))):
             if scenario.get(field) != expected:
                 _error(rows, sid, "*", "E1_BRIEF_SCENARIO_MISMATCH", f"{field} differs from brief")
-        expected_hard = "_".join(brief.get("hard_case_tags", [])) or None
+        expected_hard = hard_case_label(brief.get("hard_case_tags", []))
         if scenario.get("hard_case") != expected_hard:
             _error(rows, sid, "*", "E1_HARD_CASE_MISMATCH", "hard_case differs from brief")
+        if not isinstance(summary, dict) or summary.get("scenario_id") != sid:
+            _error(rows, sid, "*", "E1_SCENARIO_SUMMARY_MISSING", "scenario metadata summary does not match brief")
+        else:
+            if scenario.get("notes") != summary.get("notes"):
+                _error(rows, sid, "*", "E1_NOTES_MISMATCH", "notes differ from saved scenario metadata summary")
+            expected_goal = summary.get("customer_goal")
+            if calls.get("call_1", {}).get("customer_goal") != expected_goal:
+                _error(rows, sid, "*", "E1_CUSTOMER_GOAL_MISMATCH", "call_1 customer_goal differs from saved scenario metadata summary")
+        expected_story_hints = {
+            f"call_{call.get('call_index')}": call.get("story_hint", "")
+            for call in brief.get("calls", [])
+        }
+        if sidecar.get("story_hints") != expected_story_hints:
+            _error(rows, sid, "*", "E1_STORY_HINTS_MISMATCH", "scenario metadata story_hints differ from brief")
         if len(calls) != len(brief.get("calls", [])):
             _error(rows, sid, "*", "E1_CALL_COUNT_MISMATCH", "scenario call count differs from brief")
 
@@ -209,11 +240,17 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
         if not isinstance(call, dict):
             _error(rows, sid, idx, "E1_CALL_INVALID", "call must be an object")
             continue
+        if spec:
+            if idx != "1" and "customer_goal" in call:
+                _error(rows, sid, idx, "E1_CUSTOMER_GOAL_MISMATCH", "customer_goal belongs on call_1 only")
         turns = call.get("customer_turns")
         if not isinstance(turns, list) or not 4 <= len(turns) <= 8 or any(not isinstance(t, str) or not t.strip() for t in turns):
             _error(rows, sid, idx, "E1_TURN_COUNT", "customer_turns must contain 4-8 non-empty customer turns", str(turns))
         elif any(ROLE_LEAK_RE.search(t) for t in turns):
             _error(rows, sid, idx, "E1_AGENT_TEXT_IN_CUSTOMER_TURNS", "customer_turns contains an agent/assistant line", _customer_text(call))
+        asr_turns = call.get("customer_turns_asr")
+        if not isinstance(asr_turns, list) or len(asr_turns) != (len(turns) if isinstance(turns, list) else -1) or any(not isinstance(t, str) or not t.strip() for t in asr_turns):
+            _error(rows, sid, idx, "E1_ASR_TURN_CONTRACT", "customer_turns_asr must match clean turn count and contain non-empty strings")
 
         raw_path = raw_dir / f"{sid}_c{idx}.json"
         if not raw_path.exists():
@@ -226,6 +263,9 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
                     raw_turns = [x.get("text") for x in raw.get("dialogue", []) if x.get("role") == "customer"]
                 if raw_turns != turns:
                     _error(rows, sid, idx, "E1_RAW_SCENARIO_TURNS_MISMATCH", "scenario turns differ from raw generated turns")
+                raw_asr_turns = raw.get("customer_turns_asr")
+                if raw_asr_turns is not None and raw_asr_turns != asr_turns:
+                    _error(rows, sid, idx, "E1_RAW_SCENARIO_ASR_MISMATCH", "scenario ASR turns differ from raw generated turns")
                 meta = raw.get("generation_meta", {})
                 if meta.get("scenario_id") and meta["scenario_id"] != sid:
                     _error(rows, sid, idx, "E1_RAW_METADATA_MISMATCH", "raw artifact scenario_id differs")
@@ -242,12 +282,23 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
         nums = money_values(text)
         used_numbers |= nums
         if spec:
+            call_customer_id = spec.get("customer_id", brief.get("customer_id"))
+            call_customer = None
+            if call_customer_id:
+                try:
+                    call_customer = next((c for c in _read(BTC_DIR / "catalog" / "crm_seed.json")["customers"]
+                                          if c.get("customer_id") == call_customer_id), None)
+                except Exception:
+                    pass
+            recorded_customer_id = sidecar.get("call_customer_ids", {}).get(f"call_{idx}")
+            if recorded_customer_id and recorded_customer_id != call_customer_id:
+                _error(rows, sid, idx, "E1_CALL_CUSTOMER_MISMATCH", "call customer_id differs from brief caller")
             if call.get("call_date") != spec.get("call_date") and spec.get("call_date"):
                 _error(rows, sid, idx, "E1_CALL_DATE_MISMATCH", "call_date differs from brief")
             channel = spec.get("channel", brief.get("channel", "hotline"))
             if call.get("channel") != channel:
                 _error(rows, sid, idx, "E1_CHANNEL_MISMATCH", "channel differs from brief")
-            identity = spec.get("channel_identity") or _expected_channel_identity(customer, channel)
+            identity = spec.get("channel_identity") or _expected_channel_identity(call_customer or customer, channel)
             if identity and call.get("channel_identity") != identity:
                 _error(rows, sid, idx, "E1_CHANNEL_IDENTITY_MISMATCH", "channel_identity differs from CRM/brief")
             try:
@@ -325,7 +376,17 @@ def main() -> None:
     parser.add_argument("--raw", type=Path, default=RAW_DIR)
     args = parser.parse_args()
     rows: list[dict] = []
-    for path in sorted(args.scenarios.glob("*.json")):
+    scenario_paths = sorted(args.scenarios.glob("*.json"))
+    checked_paths = []
+    orphan_count = 0
+    for path in scenario_paths:
+        if not (args.briefs / path.name).exists():
+            orphan_count += 1
+            rows.append({"scenario_id": path.stem, "call_index": "*", "error_code": "W0_ORPHAN_SCENARIO",
+                         "description": "Scenario has no matching source brief and is excluded from dataset acceptance.",
+                         "excerpt": path.name, "hard": "false"})
+            continue
+        checked_paths.append(path)
         rows.extend(check_one(path, args.briefs, args.fact_packs, args.raw))
     try:
         validator = BTC_DIR / "eval" / "validate_scenarios.py"
@@ -343,7 +404,7 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     hard = [r for r in rows if r.get("hard") == "true"]
-    print(json.dumps({"scenarios": len(list(args.scenarios.glob('*.json'))), "issues": len(rows),
+    print(json.dumps({"scenarios": len(checked_paths), "orphan_scenarios_excluded": orphan_count, "issues": len(rows),
                       "hard_errors": len(hard), "report": str(report)}, ensure_ascii=False, indent=2))
     raise SystemExit(1 if hard else 0)
 

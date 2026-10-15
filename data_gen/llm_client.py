@@ -45,7 +45,7 @@ def _offline_customer_turns(user: str) -> str:
     facts = data.get("facts_established", {})
     details = ", ".join(f"{key}: {value}" for key, value in facts.items())
     turns = [
-        f"Alo, em muốn trao đổi về nhu cầu này: {data.get('call_goal', '')}",
+        f"Alo, em muốn trao đổi về nhu cầu này: {data.get('story_hint', '')}",
         f"Thông tin phía em là {details}." if details else "Em muốn hỏi thêm thông tin trước khi quyết định ạ.",
         "Em cần thông tin chính xác và điều kiện áp dụng giúp em nhé.",
         "Nếu cần thì em sẽ trao đổi thêm rồi phản hồi sau ạ.",

@@ -2,16 +2,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 from .config import BTC_DIR, DRYRUN_DIR, FACT_PACKS_DIR, RAW_DIR, SCENARIOS_DIR
 from .facts import build_fact_pack
+from .scenario_metadata import (
+    customer_goal_for_call,
+    hard_case_label,
+    scenario_notes,
+    scenario_summary_path,
+)
 
 
-def crm_record(brief: dict) -> dict:
+def crm_record(brief: dict, customer_id: str | None = None) -> dict:
     customers = json.loads((BTC_DIR / "catalog/crm_seed.json").read_text(encoding="utf-8"))["customers"]
-    return next((c for c in customers if c["customer_id"] == brief.get("customer_id")), {
-        "customer_id": brief.get("customer_id"), "name": "Khách hàng", "honorific": "anh/chị", "phone": "<NEW>"
+    customer_id = customer_id or brief.get("customer_id")
+    return next((c for c in customers if c["customer_id"] == customer_id), {
+        "customer_id": customer_id, "name": "Khách hàng", "honorific": "anh/chị", "phone": "<NEW>"
     })
 
 
@@ -71,18 +79,31 @@ def derive_ground_truth(pack: dict) -> dict:
     return result
 
 
-def assemble_scenario(brief: dict, raw_by_call: dict[int, dict], packs_by_call: dict[int, dict]) -> dict:
+def assemble_scenario(
+    brief: dict,
+    raw_by_call: dict[int, dict],
+    packs_by_call: dict[int, dict],
+    summary: dict | None = None,
+) -> dict:
     """Convert reviewed brief + deterministic facts + customer-only turns into evaluator input."""
     customer = crm_record(brief)
-    previous_facts: dict = {}
+    previous_facts_by_customer: dict[str, dict] = {}
     calls = {}
     for call_index in sorted(c["call_index"] for c in brief["calls"]):
         spec = next(c for c in brief["calls"] if c["call_index"] == call_index)
+        call_customer_id = spec.get("customer_id", brief.get("customer_id"))
+        caller = crm_record(brief, call_customer_id)
+        previous_facts = previous_facts_by_customer.setdefault(call_customer_id or "", {})
         pack = packs_by_call[call_index]
         raw = raw_by_call[call_index]
         turns = raw.get("customer_turns")
         if turns is None:  # accept legacy review data, but newly generated data is customer-only
             turns = [item["text"] for item in raw.get("dialogue", []) if item.get("role") == "customer"]
+        asr_turns = raw.get("customer_turns_asr")
+        if asr_turns is None and isinstance(turns, list):
+            # Compatibility for frozen legacy raw records; newly generated raw
+            # records always contain an ASR-style variant.
+            asr_turns = [re.sub(r"[.!?,;:…]+", "", turn).lower().strip() for turn in turns]
 
         known = set(previous_facts) | {"customer_id", "customer_name", "honorific"}
         must_not_ask = sorted(known & {
@@ -95,47 +116,50 @@ def assemble_scenario(brief: dict, raw_by_call: dict[int, dict], packs_by_call: 
         })
         channel = spec.get("channel", brief.get("channel", "hotline"))
         identity_field = {"zalo_oa": "zalo_id", "chat_fanpage": "fb_id"}.get(channel)
-        identity = spec.get("channel_identity") or (customer.get(identity_field) if identity_field else customer.get("phone"))
-        call_out = {
-            "call_date": pack["call_date"], "channel": channel, "channel_identity": identity,
-            "customer_goal": spec["customer_goal"], "customer_turns": turns,
-            "facts_established": spec.get("facts_to_establish", {}),
-            "must_carry_over": spec.get("must_carry_over", carry),
-            "must_not_ask": spec.get("must_not_ask", must_not_ask),
-            "success_if": derive_success_if(spec, pack),
-            "ground_truth_facts": derive_ground_truth(pack),
-            "expected_outcome": spec["expected_outcome"],
-        }
-        for field in (
-            "input_mode", "customer_turns_asr", "seed_history", "memory_expectation",
-            "forbidden_claims", "trace_must_not_match", "brief_must_contain",
-            "agent_must_say", "max_agent_questions",
-        ):
-            if field in spec:
-                call_out[field] = spec[field]
-        calls[f"call_{call_index}"] = call_out
+        identity = spec.get("channel_identity") or (caller.get(identity_field) if identity_field else caller.get("phone"))
+        call_out = {}
+        call_out["call_date"] = pack["call_date"]
+        call_out["channel"] = channel
+        call_out["channel_identity"] = identity
+        if call_index == 1:
+            call_out["customer_goal"] = (
+                summary["customer_goal"] if summary else customer_goal_for_call(brief, spec)
+            )
+        call_out["input_mode"] = spec.get("input_mode", brief.get("input_mode", "clean"))
+        if asr_turns is not None:
+            call_out["customer_turns_asr"] = asr_turns
+        call_out["customer_turns"] = turns
         previous_facts.update(spec.get("facts_to_establish", {}))
         for item in pack.get("products", []):
             previous_facts["product_advised"] = item.get("sku")
             previous_facts["price_quoted_vnd"] = item.get("quote", {}).get("final_price_vnd")
+        call_out["facts_established"] = previous_facts.copy()
+        for field in (
+            "expected_outcome", "must_carry_over", "must_not_ask", "success_if", "ground_truth_facts", "seed_history", "memory_expectation",
+        ):
+            if field in spec:
+                call_out[field] = spec[field]
+        calls[f"call_{call_index}"] = call_out
+        
 
     scenario = {
-        "scenario_id": brief["brief_id"], "customer_id": brief.get("customer_id"),
+        "scenario_id": brief["brief_id"],
         "level": brief.get("level", "M1"), "persona": brief["persona_id"],
-        "hard_case": "_".join(brief.get("hard_case_tags", [])) or None,
+        "hard_case": hard_case_label(brief.get("hard_case_tags", [])),
         "customer_phone": customer.get("phone"), "customer_name": customer.get("name"),
         "honorific": customer.get("honorific"),
-        "notes": "Generated from reviewed brief; raw generation contains customer turns only.",
+        "notes": summary["notes"] if summary else scenario_notes(brief),
         "calls": calls,
     }
-    if brief.get("case_number") is not None:
-        scenario["case_number"] = brief["case_number"]
     return scenario
 
 
 def validate_scenario(scenario: dict) -> None:
     if not scenario.get("scenario_id") or scenario.get("level") not in {"M1", "M2"}:
         raise ValueError("scenario_id/level missing or invalid")
+    scenario_id = scenario["scenario_id"]
+    if not re.fullmatch(r"SC-\d{3}", scenario_id) and not scenario_id.startswith("SC-DEMO-"):
+        raise ValueError("scenario_id must use SC-NNN")
     calls = scenario.get("calls")
     if not isinstance(calls, dict) or not calls:
         raise ValueError("scenario must contain calls")
@@ -150,6 +174,13 @@ def validate_scenario(scenario: dict) -> None:
             raise ValueError(f"{name}: expected 4-8 customer turns")
         if any(not isinstance(turn, str) or not turn.strip() for turn in call["customer_turns"]):
             raise ValueError(f"{name}: customer turns must be non-empty strings")
+        asr_turns = call.get("customer_turns_asr")
+        if asr_turns is not None and (
+            not isinstance(asr_turns, list)
+            or len(asr_turns) != len(call["customer_turns"])
+            or any(not isinstance(turn, str) or not turn.strip() for turn in asr_turns)
+        ):
+            raise ValueError(f"{name}: customer_turns_asr must match clean turn count and contain non-empty strings")
         if call.get("expected_outcome") not in {"hen_goi_lai", "chot_don", "chuyen_may", "tu_choi"}:
             raise ValueError(f"{name}: invalid outcome")
         if not isinstance(call.get("success_if"), dict):
@@ -169,12 +200,49 @@ def run(brief_path: Path, dry_run: bool, out_dir: Path | None = None) -> Path:
             raise FileNotFoundError(f"Missing raw customer turns {raw_path}; run gen_dialogue first")
         packs[index] = json.loads(pack_path.read_text(encoding="utf-8"))
         raw[index] = json.loads(raw_path.read_text(encoding="utf-8"))
-    scenario = assemble_scenario(brief, raw, packs)
+    summary_path = scenario_summary_path(RAW_DIR, brief["brief_id"])
+    if not summary_path.exists():
+        raise FileNotFoundError(f"Missing scenario metadata artifact {summary_path}; run the generation batch first")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if summary.get("scenario_id") != brief["brief_id"]:
+        raise ValueError(f"Scenario metadata artifact does not match {brief['brief_id']}")
+    if not isinstance(summary.get("notes"), str) or not summary["notes"].strip():
+        raise ValueError(f"{brief['brief_id']}: summary notes are required")
+    if not isinstance(summary.get("customer_goal"), str) or not summary["customer_goal"].strip():
+        raise ValueError(f"{brief['brief_id']}: summary customer_goal is required")
+    scenario = assemble_scenario(brief, raw, packs, summary)
     validate_scenario(scenario)
     out_dir = out_dir or (DRYRUN_DIR if dry_run else SCENARIOS_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{brief['brief_id']}.json"
     out.write_text(json.dumps(scenario, ensure_ascii=False, indent=2), encoding="utf-8")
+    metadata_dir = out_dir.with_name(f"{out_dir.name}_metadata")
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+    metadata = {
+        "scenario_id": brief["brief_id"],
+        "case_number": brief.get("case_number"),
+        "customer_id": brief.get("customer_id"),
+        "call_customer_ids": {
+            f"call_{call['call_index']}": call.get("customer_id", brief.get("customer_id"))
+            for call in brief["calls"]
+        },
+        "call_customer_names": {
+            f"call_{call['call_index']}": crm_record(brief, call.get("customer_id", brief.get("customer_id"))).get("name")
+            for call in brief["calls"]
+        },
+        "teencode_levels": {
+            f"call_{call['call_index']}": call.get("teencode_level", "light" if call.get("input_mode") == "chat_teencode" else "none")
+            for call in brief["calls"]
+        },
+        "story_hints": {
+            f"call_{call['call_index']}": call.get("story_hint", "")
+            for call in brief["calls"]
+        },
+        "scenario_metadata_generation": summary.get("generation_meta", {}),
+    }
+    (metadata_dir / f"{brief['brief_id']}.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return out
 
 

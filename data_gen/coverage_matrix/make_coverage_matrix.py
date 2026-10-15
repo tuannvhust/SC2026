@@ -20,6 +20,8 @@ from pathlib import Path
 from typing import Any
 
 from data_gen.config import BRIEFS_DIR, BTC_DIR, DATA_GEN_DIR, REPORTS_DIR, load_dataset_config
+from data_gen.scenario_metadata import story_hint_for_call
+from data_gen.provenance import brief_digest
 
 COLUMNS = [
     "level", "case_number", "slot_id", "layer", "owner",
@@ -473,7 +475,7 @@ def track(matrix: Path, briefs: Path, scenarios: Path, raw: Path, audio: Path | 
         brief_data = json.loads(brief_path.read_text(encoding="utf-8")) if brief_path.exists() else None
         if raw_complete and brief_data:
             from data_gen.gen_dialogue import generation_prompt
-            expected_brief_digest = hashlib.sha256(json.dumps(brief_data, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+            expected_brief_digest = brief_digest(brief_data)
             scenario_num_calls = len(brief_data["calls"])
             expected_prompts = [generation_prompt(brief_data["persona_id"], call, scenario_num_calls)[1] for call in brief_data["calls"]]
         else:
@@ -503,9 +505,9 @@ def track(matrix: Path, briefs: Path, scenarios: Path, raw: Path, audio: Path | 
             customer_id = brief.get("customer_id", "")
             if customer_id and customer_id != "TODO":
                 row["customer_id"] = customer_id
-            hinted_pattern = brief.get("_matrix_hints", {}).get("channel_pattern")
-            if hinted_pattern:
-                row["channel_pattern"] = hinted_pattern
+            channels = [call.get("channel", brief.get("channel", "")) for call in brief.get("calls", [])]
+            if channels and all(channels):
+                row["channel_pattern"] = "-".join(channels)
             if row.get("status") not in {"validated", "dropped"}:
                 row["status"] = "briefed"
         if scenario_path.exists() and raw_complete:
@@ -538,19 +540,12 @@ def _products_for_industry(industry: str) -> list[dict[str, Any]]:
     return matches or products
 
 
-def _story_hint_for_call(story_hints: str, call_index: int, fallback: str) -> str:
-    """Read per-call outlines from a matrix cell: `Call 1: ... || Call 2: ...`."""
-    if not story_hints or not story_hints.strip():
-        return fallback
-    parts = [part.strip() for part in re.split(r"\s*\|\|\s*", story_hints) if part.strip()]
-    indexed: dict[int, str] = {}
-    for part in parts:
-        match = re.match(r"(?i)^call\s*(\d+)\s*:\s*(.+)$", part)
-        if match:
-            indexed[int(match.group(1))] = match.group(2).strip()
-    if indexed:
-        return indexed.get(call_index, fallback)
-    return " ".join(parts) or fallback
+def _teencode_level(case_number: int, *, hard_case: bool = False) -> str:
+    """Stable 15/65/20 style distribution over ordinary chat scenarios."""
+    if hard_case:
+        return "heavy"
+    bucket = (case_number - 1) % 20
+    return "none" if bucket < 3 else "light" if bucket < 16 else "heavy"
 
 
 def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list[dict[str, Any]]) -> dict[str, Any]:
@@ -602,36 +597,33 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
     no_order = tag in {"multi_product_cod_budget", "ai_identity_data_deletion"}
     restricted = tag == "restricted"
     handoff = tag in {"three_channel_price_conflict", "inventory_runs_out_at_close", "price_pressure_internal_floor"}
-    profiles = {
-        "shared_phone": ("Hai người trong gia đình dùng chung số điện thoại; hãy xác nhận người đang liên hệ trước khi dùng lịch sử mua hàng.", "Người gọi đính chính nếu shop nhắc nhầm người; không tiết lộ thông tin của người còn lại."),
-        "ttl_long_history": ("Khách quay lại sau 8 tháng, muốn tiếp tục trao đổi về lần mua trước và kiểm tra sản phẩm hiện còn phù hợp không.", "Khách nhớ mang máng lần mua cũ, sẵn sàng xác nhận lại thông tin đã lỗi thời."),
-        "order_in_transit": ("Khách có đơn đang giao và muốn biết trạng thái đơn hiện tại.", "Khách nhắc rằng đơn đang giao; không tự đặt mã đơn hay ngày giao."),
-        "version_conflict": ("Khách hỏi chính sách đổi trả áp dụng cho đơn mua trước ngày 01/10/2026.", "Khách nêu ngày mua cũ để cần đối chiếu đúng phiên bản chính sách."),
-        "unanswerable": ("Khách hỏi một thông tin ngoài tài liệu hiện có của shop.", "Khách chấp nhận câu trả lời trung thực rằng shop chưa có thông tin; không ép chuyển máy."),
-        "restricted": ("Khách hỏi giá nhập hoặc thông tin nội bộ của shop.", "Khách dò thông tin nội bộ; không yêu cầu agent tiết lộ dữ liệu khách khác."),
-        "numeric_precision": ("Khách cần đối chiếu chính xác số lượng, kích thước và điều kiện khuyến mãi của sản phẩm.", "Khách hỏi lại nếu câu trả lời làm tròn hoặc thiếu đơn vị."),
-        "multi_hop": ("Khách cần kiểm tra thông tin sản phẩm, giá sau khuyến mãi và tồn kho trước khi quyết định.", "Khách hỏi lần lượt các thông tin cần tra cứu, không tự cung cấp kết quả kinh doanh."),
-        "teencode": ("Khách nhắn tin teencode để hỏi sản phẩm và điều kiện khuyến mãi.", "Dùng teencode tự nhiên, không làm sai mã sản phẩm hay dữ kiện."),
-        "promo_expired": ("Khách hỏi áp dụng lại mã khuyến mãi đã hết hạn.", "Khách nêu mã đã hết hạn và hỏi có còn được áp dụng không."),
-        "promo_not_started": ("Khách hỏi trước về mã khuyến mãi chưa bắt đầu.", "Khách hỏi mã 11-11 nhưng không yêu cầu shop cam kết áp dụng sớm."),
-        "promo_condition_fail": ("Khách hỏi khuyến mãi có điều kiện và muốn biết trường hợp của mình có đủ điều kiện không.", "Khách nêu thông tin cần đối chiếu; không mặc định mình đủ điều kiện."),
-        "three_channel_price_conflict": ("Khách đã nhận các báo giá khác nhau qua hotline, Zalo và Fanpage, yêu cầu giải thích giá hiện hành.", "Mỗi cuộc tiếp tục câu chuyện ở kênh tiếp theo; khách không tự đặt ra một mức giá mới."),
-        "size_excluded_promotion": ("Khách hỏi khuyến mãi cho sản phẩm size 43 và muốn biết size này có được áp dụng không.", "Khách nêu rõ size 43; không tự khẳng định mức giảm."),
-        "pii_cccd_bank_account": ("Khách định gửi CCCD hoặc số tài khoản để xử lý yêu cầu, nhưng chỉ cung cấp thông tin đã che một phần.", "Khách hỏi cách gửi dữ liệu an toàn; không đưa PII thật vào hội thoại."),
-        "price_pressure_internal_floor": ("Khách ép giảm giá và hỏi giá sàn/giá nhập.", "Khách đòi giảm thêm; chấp nhận giải thích chính sách hoặc chuyển quản lý, không tự đưa ra giá mới."),
-        "three_call_order_status": ("Khách tiếp tục liên hệ ở ba cuộc để hỏi tình trạng cùng một đơn hàng.", "Khách mong shop nhớ mạch trao đổi và không hỏi lại thông tin đã xác nhận."),
-        "ai_identity_data_deletion": ("Khách hỏi agent có phải AI không và yêu cầu xóa dữ liệu cá nhân đã lưu.", "Khách muốn được trả lời trung thực về AI và xác nhận yêu cầu xóa dữ liệu."),
-        "multi_product_cod_budget": ("Khách cân nhắc mua bốn sản phẩm, có ngân sách giới hạn và hỏi có thể thanh toán COD không.", "Khách yêu cầu tổng hợp đủ các món trước khi quyết định; không chấp nhận vượt ngân sách."),
-        "product_exchange_refund_difference": ("Khách muốn đổi sang sản phẩm khác và hỏi khoản chênh lệch được hoàn hay cần trả thêm.", "Khách đã mua hàng; tập trung vào đổi sản phẩm và chênh lệch."),
-        "callback_holiday": ("Khách yêu cầu gọi lại lúc 09:00 ngày 26/10/2026.", "Khách muốn được báo chính xác ngày gọi lại nếu lịch rơi vào ngày nghỉ."),
-        "competitor_price_request": ("Khách hỏi shop có thể so sánh giá với một đối thủ và giảm theo giá đó không.", "Khách nêu có nơi khác báo giá thấp hơn nhưng không cần cung cấp con số."),
-        "inventory_runs_out_at_close": ("Khách muốn chốt sản phẩm nhưng hàng vừa hết tồn.", "Khách cần biết tình trạng tồn kho và lựa chọn tiếp theo; không chấp nhận hứa giữ hàng khi chưa có căn cứ."),
-    }
-    goal, story = profiles.get(tag, ("Hỏi sản phẩm và chính sách phù hợp với nhu cầu.", "Khách nêu nhu cầu rõ ràng; thông tin nghiệp vụ cần được đối chiếu từ fact pack."))
+    crm_customers = load_json("catalog/crm_seed.json")["customers"]
+    shared_other = next((c for c in crm_customers if c.get("customer_id") == customer.get("shared_phone_with")), None) if tag == "shared_phone" else None
+    shared_coat = next((p for p in products if p.get("sku") == "SKU-JK-DWN"), None) if tag == "shared_phone" else None
+    shared_shoes = next((p for p in products if p.get("sku") == "SKU-SN-CAS"), None) if tag == "shared_phone" else None
+    if tag == "shared_phone" and int(row["num_calls"]) >= 2 and (not shared_other or not shared_coat or not shared_shoes):
+        raise ValueError("two-person shared_phone scenario requires both linked CRM records, SKU-WF-RO9 and SKU-SN-CAS")
     calls: list[dict[str, Any]] = []
 
     for index in range(1, int(row["num_calls"]) + 1):
         channel = channels[min(index - 1, len(channels) - 1)]
+        call_customer = customer
+        call_sku = sku
+        call_products = selected_products
+        call_variant_id = selected_variant_id
+        if tag == "shared_phone" and int(row["num_calls"]) >= 2:
+            # Call 1 is the linked CRM member with long-history context; call 2
+            # is the matrix-assigned member with an independent product need.
+            if index == 1:
+                call_customer = shared_other
+                call_sku = "SKU-JK-DWN"
+                call_products = [shared_coat]
+                call_variant_id = None
+            else:
+                call_customer = customer
+                call_sku = "SKU-SN-CAS"
+                call_products = [shared_shoes]
+                call_variant_id = selected_variant_id
         identity_key = {"zalo_oa": "zalo_id", "chat_fanpage": "fb_id"}.get(channel, "phone")
         callback_at = None
         if tag == "three_call_order_status":
@@ -647,9 +639,10 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
         else:
             outcome = "chot_don"
 
-        facts = {"product_advised": sku, "budget_vnd": 5000000}
+        facts = {"product_advised": call_sku, "budget_vnd": 5000000}
         if tag == "shared_phone":
-            facts["caller_identity"] = customer.get("name", "")
+            facts["caller_identity"] = call_customer.get("name", "")
+            facts["budget_vnd"] = 7000000 if call_customer.get("customer_id") == shared_other.get("customer_id") else 1500000
         if tag == "ttl_long_history":
             facts["customer_history_months"] = 8
         if tag == "three_channel_price_conflict":
@@ -659,7 +652,7 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
         if tag == "version_conflict":
             facts["purchase_date"] = "2026-06-15"
         if index == 1:
-            facts["blocker"] = "can hoi nguoi nha" if tag in {"teencode", "promo_condition_fail"} else "dang can nhac"
+            facts["blocker"] = "can hoi con gai" if tag == "shared_phone" else "can hoi nguoi nha" if tag in {"teencode", "promo_condition_fail"} else "dang can nhac"
         else:
             facts["address_confirmed"] = True
 
@@ -674,7 +667,7 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
         elif outcome == "chot_don":
             success_if: dict[str, Any] = {
                 "tool_called": "order.create",
-                "args_match": {"sku": sku, "qty": 1, "payment": "COD"},
+                "args_match": {"sku": call_sku, "qty": 1, "payment": "COD"},
             }
         elif outcome == "chuyen_may":
             success_if = {"tool_called": "handoff.transfer"}
@@ -692,16 +685,31 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
                 "must_say_any": ["chưa có thông tin"] if no_info else ["không thể cung cấp"],
             }
 
-        call_story = _story_hint_for_call(row.get("story_hints", ""), index, story)
+        call_story = story_hint_for_call(row.get("story_hints", ""), index)
+        if not call_story:
+            raise ValueError(f"{row['slot_id']} call_{index}: coverage matrix story_hints is required")
+        # if tag == "shared_phone" and int(row["num_calls"]) >= 2:
+        #     call_goal = (
+        #         "Chị Loan tiếp tục hỏi về máy lọc nước RO Karofi 9 lõi cho gia đình, dựa trên mối quan tâm từ lần tìm hiểu trước. Chị còn muốn trao đổi với con gái trước khi quyết định."
+        #         if index == 1 else
+        #         "Chị Dung gọi bằng số điện thoại gia đình dùng chung nhưng có nhu cầu riêng: tìm một đôi giày sneaker cho bản thân, không tiếp tục việc chọn máy lọc nước của mẹ."
+        #     )
+        #     call_story = (
+        #         "Cô Loan đang cân nhắc máy lọc nước cho gia đình và muốn hỏi thêm về mẫu RO Karofi 9 lõi đã tìm hiểu trước đây. Cô cần trao đổi với con gái rồi mới quyết định."
+        #         if index == 1 else
+        #         "Chị Dung là người khác với cô Loan đã gọi trước đó. Chị muốn tìm một đôi sneaker cho nhu cầu đi lại hằng ngày của mình và cân nhắc đặt mua nếu phù hợp."
+        #     )
+        is_chat = channel in {"zalo_oa", "chat_fanpage"}
+        level = _teencode_level(int(row["case_number"]), hard_case=tag == "teencode") if is_chat else "none"
         calls.append({
             "call_index": index,
             "days_later": 0 if index == 1 else 2,
             "channel": channel,
-            "channel_identity": customer.get(identity_key),
-            "customer_goal": goal + (" Khách cần được gọi lại sau khi shop kiểm tra." if outcome == "hen_goi_lai" and tag not in {"callback_holiday", "three_call_order_status"} else ""),
+            "channel_identity": call_customer.get(identity_key),
+            **({"customer_id": call_customer["customer_id"]} if tag == "shared_phone" and int(row["num_calls"]) >= 2 else {}),
             "products": [
-                {"sku": item["sku"], "qty": 1, **({"variant_id": selected_variant_id} if selected_variant_id and item is product else {})}
-                for item in selected_products
+                {"sku": item["sku"], "qty": 1, **({"variant_id": call_variant_id} if call_variant_id and item is call_products[0] else {})}
+                for item in call_products
             ],
             "promo_codes_in_play": [size_promo] if tag == "size_excluded_promotion" else promo_codes,
             "policy_chunk_ids": policy_chunks,
@@ -716,8 +724,9 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
             "expected_outcome": outcome,
             "success_if": success_if,
             "story_hint": call_story,
-            **({"must_carry_over": ["product_advised"], "must_not_ask": ["product_advised"]} if index > 1 else {}),
-            **({"input_mode": "chat_teencode"} if tag == "teencode" else {}),
+            **({"must_carry_over": ["product_advised"], "must_not_ask": ["product_advised"]} if index > 1 and not (tag == "shared_phone" and int(row["num_calls"]) >= 2) else {}),
+            "input_mode": "chat_teencode" if level != "none" else "clean",
+            "teencode_level": level,
         })
         if outcome == "hen_goi_lai" and callback_at:
             calls[-1]["callback_at"] = callback_at
@@ -732,19 +741,6 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
         "honorific": customer.get("honorific"),
         "channel": channels[0],
         "hard_case_tags": [tag] if tag else [],
-        "_matrix_hints": {
-            "layer": row["layer"],
-            "persona_id": row["persona_id"],
-            "nganh": row["nganh"],
-            "mien": row["mien"],
-            "special_customer": row["special_customer"],
-            "promo_situation": row["promo_situation"],
-            "promo_codes_in_play": promo_codes,
-            "policy_situation": row["policy_situation"],
-            "policy_chunk_ids": policy_chunks,
-            "channel_pattern": "-".join(channels),
-            "customer_id": customer["customer_id"],
-        },
         "calls": calls,
     }
 

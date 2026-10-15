@@ -1,10 +1,10 @@
-# Hướng dẫn sinh dataset hội thoại
+﻿# Hướng dẫn sinh dataset hội thoại
 
 > Hướng dẫn này dành cho thành viên thiết kế, sinh và review dataset trong `data_gen/`. Làm theo thứ tự từng bước; không chạy batch Gemini trên brief chưa review.
 
 ## 1. Phạm vi hiện tại
 
-- Đợt hiện tại tập trung vào **M1, hội thoại text**. Mục tiêu M1 trong `dataset_config.json`: tối thiểu 120 transcript, 30 khách đa phiên, 10 khách đa kênh, một ngành hàng (`thoi-trang`) và hai miền (`bac`, `nam`). Audio/ASR là đợt bổ sung; chưa tính là hoàn tất M1. M2 chưa được bật.
+- Đợt hiện tại tập trung vào **M1, hội thoại text**. Mục tiêu M1 trong `dataset_config.json`: tối thiểu 120 transcript, 30 khách đa phiên, 10 khách đa kênh, một ngành hàng (`thoi-trang`) và hai miền (`bac`, `nam`). Audio is not generated in this phase; clean `customer_turns` and text `customer_turns_asr` are still generated, so M1 remains incomplete. M2 chưa được bật.
 - Coverage matrix hiện là kế hoạch, không phải dataset đã sinh hay đã được duyệt. Mỗi dòng là một scenario; `num_calls` là số transcript/cuộc trong scenario.
 - Lượt khách được sinh bằng LLM hoặc dry-run. Agent không được sinh trong dataset: scenario chỉ chứa `customer_turns` cùng facts và điều kiện chấm do pipeline tạo từ brief/mock tools.
 - Giá, khuyến mãi, tồn kho, chính sách, ngày và dữ kiện CRM phải khớp dữ liệu BTC. Thư mục `data/` chỉ đọc; không sửa hoặc đưa PII thật vào brief, prompt, log hay báo cáo.
@@ -78,13 +78,13 @@ Lệnh này giúp điền thông tin vào trong cấu trúc brief và không ghi
 Người phụ trách cần đọc và hoàn thiện từng brief, bảo đảm:
 
 1. `level`, `case_number`, `brief_id`, `persona_id`, `customer_id` khớp matrix.
-2. Mỗi call có `call_index` liên tục, `days_later`, `channel`, `customer_goal`, `products`/variant và `expected_outcome` hợp lý.
+2. Mệi call có `call_index` liên tục, `days_later`, `channel`, `products`/variant và `expected_outcome` hợp lý. Pipeline sinh `customer_goal` sau khi có customer turns và chỉ đặt ở `call_1`.
 3. Dữ kiện khách nói nằm trong `facts_to_establish`; không tự điền giá cuối, kết quả tồn kho/khuyến mãi hay nội dung policy. Pipeline lấy factual values từ catalog/mock tools.
 4. `story_hint`/diễn biến call làm cho hard case xảy ra rõ ràng. Ví dụ: callback nêu đúng thời điểm; hàng hết giữa các cuộc phải có mốc ngày; shared phone phải xác minh người gọi; khách thiếu kiên nhẫn phải giới hạn câu hỏi; đổi hàng cần có lịch sử mua và SKU cụ thể.
 5. `success_if` kiểm thử đúng hành vi mong đợi. `story_hints` chỉ hướng dẫn diễn biến phía khách, không thay thế điều kiện chấm hoặc danh sách tool bị cấm.
 6. Không có PII thật, giá nội bộ, giá nhập, thông tin nhà cung cấp hoặc dữ kiện khuyến mãi chưa bắt đầu bị lộ cho khách.
 
-Brief cần đủ dữ kiện để khách simulator bám kịch bản. `gen_dialogue` kết hợp `system_prompt` của persona trong BTC `personas.json` với prompt chung `data_gen/prompts/customer_turns_v2.txt`; mỗi call còn nhận `style`, vị trí `call_index/scenario_num_calls` và `patience_initial` tương ứng. Persona định hình cách nói/hành vi, còn brief quy định mục tiêu, facts, diễn biến và giới hạn. Không dựa vào persona để tự tạo facts còn thiếu.
+Brief cần đủ dữ kiện để khách simulator bám kịch bản. `gen_dialogue` kết hợp `system_prompt` của persona trong BTC `personas.json` với prompt chung `data_gen/prompts/customer_turns_v5.txt`; mỗi call nhận `story_hint` trực tiếp từ coverage matrix, cùng `style`, vị trí `call_index/scenario_num_calls` và `patience_initial`. Sau khi sinh turns, pipeline tổng hợp `notes` và `customer_goal` từ persona, hard case và lời khách, lưu kết quả vào `data_gen/raw/<SC-ID>_scenario_metadata.json` để tái sử dụng. Brief quy định facts và diễn biến; không dựa vào persona để tự tạo facts còn thiếu.
 
 ## 6. Lint brief trước khi sinh
 
@@ -140,8 +140,22 @@ python -m data_gen.run_batch `
 ```
 
 Đọc log, `data_gen/reports/manifest.jsonl`, các file trong `data_gen/raw/` và `data_gen/scenarios/`. Nếu ổn, bỏ `--limit 3` để chạy toàn bộ brief M1 đã pass lint. Không chạy đồng thời nhiều batch dùng chung API key; nếu gặp giới hạn tốc độ, tăng `GEMINI_MIN_INTERVAL_SECONDS` trong `.env`.
+| `data_gen/scenarios_metadata/` | Sidecar lưu customer IDs nội bộ theo call, case_number, teencode_level, `story_hints` từ brief và provenance summary. |
 
 `run_batch` có thể reuse raw tương thích theo seed, prompt, model/provider và brief. Chỉ thêm `--force` khi muốn tái sinh có chủ đích; lệnh này có thể thay output hiện tại. Khi đổi brief/prompt, kiểm tra kỹ trước khi force để không mất artifact đã được review.
+
+Chế độ `--assemble-only` dựng scenario từ artifact đã lưu mà không gọi LLM; raw turns, fact packs và summary artifact tương thích đều phải có sẵn. Nếu story_hints, customer turns hoặc prompt summary thay đổi, chạy batch thường để sinh lại artifact summary cần thiết:
+
+```powershell
+python -m data_gen.run_batch `
+  --briefs data_gen/briefs/ `
+  --out data_gen/scenarios/ `
+  --level M1 `
+  --ready-only `
+  --assemble-only
+```
+
+Chế độ này yêu cầu raw/fact pack có sẵn cho mọi call, không sinh lại lời khách; output digest và code digest vẫn được ghi vào manifest.
 
 ## 9. Review scenario
 
@@ -185,7 +199,7 @@ Nếu có lỗi, sửa brief/prompt/code/story_hints theo đúng nguồn, sinh l
 | `data_gen/scenarios_dryrun/`                        | Output offline để thử contract; không phải dữ liệu đánh giá.         |
 | `data_gen/reports/manifest.jsonl`                   | Nhật ký batch, trạng thái, model/prompt/seed và digest.              |
 | `data_gen/reports/coverage_tracking.csv`            | Trạng thái slot suy ra từ brief/raw/scenario; không thay matrix gốc. |
-| `data_gen/prompts/customer_turns_v2.txt`            | Prompt chung hiện hành; kết hợp system prompt persona BTC.           |
+| `data_gen/prompts/customer_turns_v4.txt`            | Prompt chung hiện hành; kết hợp system prompt persona BTC.           |
 | `data_gen/auto_check.py`, `data_gen/lint_briefs.py` | Kiểm tra cấu trúc brief và lỗi scenario tự động.                     |
 
 ## 12. Lệnh nhanh

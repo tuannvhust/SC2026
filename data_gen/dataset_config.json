@@ -4,7 +4,7 @@
 	"source_of_truth": "data_gen/briefs/*.json",
 	"ordering": {
 		"levels": ["M1", "M2"],
-		"case_id_format": "SC-{level}-{case_number:03d}",
+		"case_id_format": "SC-{case_number:03d}",
 		"case_number_scope": "global",
 		"m2_starts_after_m1": true
 	},

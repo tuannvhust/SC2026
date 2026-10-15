@@ -21,6 +21,7 @@ class CallState(TypedDict, total=False):
     messages: Annotated[List[Dict[str, str]], operator.add]
 
     customer_id: Optional[str]
+    confirmed_customer_id: Optional[str]
     customer_name: Optional[str]
     honorific: Optional[str]
     crm_result: Dict[str, Any]

@@ -39,8 +39,8 @@ def _region(address: str | None) -> str | None:
     return None
 
 
-def crm_get_customer(phone=None, zalo_id=None, fb_id=None, **_) -> Dict[str, Any]:
-    pairs = (("phone", phone), ("zalo_id", zalo_id), ("fb_id", fb_id))
+def crm_get_customer(phone=None, zalo_id=None, fb_id=None, customer_id=None, **_) -> Dict[str, Any]:
+    pairs = (("phone", phone), ("zalo_id", zalo_id), ("fb_id", fb_id), ("customer_id", customer_id))
     matches = [c for c in CRM if any(v and c.get(k) == v for k, v in pairs)]
     if not matches:
         return {"found": False, "customer_id": None, "name": None, "honorific": None,

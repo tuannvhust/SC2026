@@ -2,17 +2,18 @@
   "brief_id": "SC-DEMO-02",
   "call_index": 2,
   "customer_turns": [
-    "Alo, hôm qua tôi thấy bên mình có chương trình AP-SEP giá tốt lắm mà, sao nay gọi lại bảo hết rồi?",
-    "Bên Nguyễn Kim họ đang bán rẻ hơn hẳn mấy trăm nghìn đấy, các anh chị không giảm thêm cho tôi thì tôi qua bên kia mua cho nhanh.",
-    "Thế mua tầm này có được tặng kèm quà hay bảo hành gì thêm không?",
-    "Thôi được rồi, nếu có mấy quyền lợi đó thì tôi chốt đơn luôn ở đây vậy."
+    "Alo, hôm trước mình có hỏi cái máy lọc không khí AirPure X và được hẹn cái chương trình AP-SEP gì đó, nay mình quay lại lấy đây.",
+    "Sao lại hết hạn rồi bạn, đợt trước tư vấn viên nói mình vẫn được áp dụng cơ mà, bên cửa hàng Điện Máy X đang bán mềm hơn chút đấy.",
+    "Thế bây giờ mua thì có được hỗ trợ thêm quà tặng hay bảo hành gì bù vào khoản chênh lệch đó không?",
+    "Thôi được rồi, nếu có bảo hành hai mươi bốn tháng và yên tâm chất lượng thì mình chốt lấy một cái máy lọc không khí AirPure X này luôn nhé."
   ],
   "generation_meta": {
     "provider": "gemini",
-    "prompt_version": "customer_turns_v2",
-    "prompt_digest": "409ff2bef0470498e31f5cd2a102f0176c7c5fa728fe93fd4b2e73a76f019762",
+    "prompt_version": "customer_turns_v3",
+    "prompt_digest": "d37c699c6f1c42fe227afd864d3dc76d055c0884512392c14fb4ef6fe53093b4",
     "model": "gemini-3.5-flash-lite",
     "seed": 7,
-    "dry_run": false
+    "dry_run": false,
+    "brief_digest": "7dab207c171e523ee87b7ddceea243b3dd8e723917e1a2e60ba0094591c659da"
   }
 }

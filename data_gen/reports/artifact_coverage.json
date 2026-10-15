@@ -1,0 +1,21 @@
+{
+  "scenario_count": 49,
+  "transcript_count": 81,
+  "clean_transcript_count": 81,
+  "asr_transcript_count": 81,
+  "paired_clean_asr_transcripts": 81,
+  "multi_session_customers": 17,
+  "multichannel_customers": 9,
+  "industries": [
+    "thoi-trang"
+  ],
+  "regions": [
+    "bac",
+    "nam"
+  ],
+  "catalog_sku_count": 136,
+  "audio_transcripts": 0,
+  "audio_hours": 0.0,
+  "text_targets_met": false,
+  "m1_complete": false
+}

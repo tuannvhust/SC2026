@@ -55,3 +55,9 @@ data/**
 runs/
 trace_demo.jsonl
 AGENTS.md
+brief/
+facts_pack/
+data_gen/scenarios*/
+data_gen/briefs/
+data_gen/fact_packs/
+data_gen/raw/

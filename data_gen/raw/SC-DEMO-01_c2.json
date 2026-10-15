@@ -2,15 +2,15 @@
   "brief_id": "SC-DEMO-01",
   "call_index": 2,
   "customer_turns": [
-    "Em ơi, chị đây, hôm trước chị đã trao đổi với em về cái sản phẩm đấy rồi.",
-    "Chị hỏi lại người nhà rồi, mọi người đồng ý cho mua đấy.",
-    "Chị quyết định đặt luôn nhé, ship COD giúp chị nha.",
-    "Địa chỉ thì hôm trước chị đọc rồi đấy, em cứ gửi theo đó nhé."
+    "Alo, hôm trước mình có gọi hỏi về mẫu máy lọc không khí AirPure Pro rồi đấy ạ.",
+    "Hôm nay gia đình mình đồng ý rồi, mình chốt lấy mẫu này nhé.",
+    "Shop gửi hàng cho mình theo hình thức COD nha.",
+    "Địa chỉ nhận hàng thì hôm trước chị nói rồi mà, cứ giao theo địa chỉ cũ giúp chị nhé."
   ],
   "generation_meta": {
     "provider": "gemini",
-    "prompt_version": "customer_turns_v2",
-    "prompt_digest": "b1ccea5b08c038f3faf1208cb9af5a40150c8cfc697b08f0b256b31ea591989b",
+    "prompt_version": "customer_turns_v3",
+    "prompt_digest": "087dfed90c54da3ac556878673019dd938e9b87b5fdbf00aac8249b2544a90f6",
     "model": "gemini-3.5-flash-lite",
     "seed": 7,
     "dry_run": false,

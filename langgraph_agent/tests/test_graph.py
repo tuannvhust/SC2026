@@ -79,6 +79,26 @@ def test_call_2_returning_customer_and_order(test_setup):
     assert "ORD-" in r3["final_response"]
 
 
+def test_shared_phone_confirmation_keeps_each_callers_memory_separate(test_setup):
+    g = test_setup["graph"]
+    phone = "0958421083"  # CRM C034 (Loan) and C035 (Dung)
+
+    ask = handle_customer_turn(g, "shared-call-1", phone, "hotline", "Alo, em muốn hỏi sản phẩm")
+    assert "Loan" in ask["final_response"] and "Dung" in ask["final_response"]
+    assert ask.get("customer_id") is None
+
+    loan = handle_customer_turn(g, "shared-call-1", phone, "hotline", "Em là Loan, ngân sách của em khoảng 7 triệu")
+    assert loan["customer_id"] == "C034"
+    assert load_profile("C034")["budget_vnd"] == 7_000_000
+    assert "budget_vnd" not in load_profile("C035")
+
+    dung = handle_customer_turn(g, "shared-call-2", phone, "hotline", "Chị Dung đây, chị tìm giày cho mình")
+    assert dung["customer_id"] == "C035"
+    handle_customer_turn(g, "shared-call-2", phone, "hotline", "Ngân sách chị khoảng 1 triệu")
+    assert load_profile("C035")["budget_vnd"] == 1_000_000
+    assert load_profile("C034")["budget_vnd"] == 7_000_000
+
+
 def test_customer_changes_mind_slot_deactivation(test_setup):
     """Khách hàng thay đổi ý kiến: giá trị slot cũ bị hủy kích hoạt (active=0), chỉ còn đúng 1 slot active=1."""
     g = test_setup["graph"]

@@ -6,7 +6,7 @@ Matrix là kế hoạch theo số lượng slot. `stubs` chuyển hard-case tag 
 
 Các case đặc biệt hiện có gồm callback ngày nghỉ, ba kênh báo giá, giỏ bốn món vượt giới hạn COD/ngân sách, size bị loại khỏi khuyến mãi, shared phone, lịch sử 8 tháng, và SKU hết tồn giữa hai cuộc. Ca bốn món có thể chọn ngành hàng khác ngành M1 mặc định để đủ tổng giá trị; ngành ở matrix phản ánh đúng catalog đã chọn.
 
-Persona được gán trong matrix sẽ dùng `system_prompt` tương ứng từ BTC khi sinh lượt khách. Chỉ dẫn an toàn và giới hạn dữ kiện trong prompt chung `customer_turns_v2.txt` luôn áp dụng.
+Persona được gán trong matrix sẽ dùng `system_prompt` tương ứng từ BTC khi sinh lượt khách. Chỉ dẫn an toàn và giới hạn dữ kiện trong prompt chung `customer_turns_v4.txt` luôn áp dụng.
 
 Folder này lập kế hoạch độ phủ trước khi viết nhiều brief. Mỗi dòng trong matrix là một scenario dự kiến, không phải một ô nhân chéo persona × ngành × miền.
 
@@ -33,7 +33,7 @@ Script không hard-code persona, SKU, customer ID hoặc promotion ID. Các giá
 | `README.md` | Hướng dẫn vận hành. |
 | `__init__.py` | Cho phép chạy script bằng `python -m data_gen.coverage_matrix...`. |
 
-Matrix CSV mặc định được ghi vào `data_gen/reports/coverage_matrix.csv`; brief stub mặc định được ghi vào `data_gen/briefs/`. Matrix mới có `level`, `case_number` global và `slot_id` dạng `SC-M1-001`, `SC-M2-...`. Generation config hiện bật M1; M2 chỉ được mở lại khi chủ động đổi cấu hình. M1 hiện dùng `thoi-trang` và miền `bac`, `nam` theo `dataset_config.json`.
+Matrix CSV mặc định được ghi vào `data_gen/reports/coverage_matrix.csv`; brief stub mặc định được ghi vào `data_gen/briefs/`. Matrix mới có `level`, `case_number` global và `slot_id` dạng `SC-001`, `SC-002`, ...`. Generation config hiện bật M1; M2 chỉ được mở lại khi chủ động đổi cấu hình. M1 hiện dùng `thoi-trang` và miền `bac`, `nam` theo `dataset_config.json`.
 
 ## Ý nghĩa cột `layer`
 
@@ -42,7 +42,7 @@ Matrix CSV mặc định được ghi vào `data_gen/reports/coverage_matrix.csv
 - `A` — **hard-case/trap coverage**: các ca bắt buộc để kiểm thử biên như shared phone, policy cũ, promotion hết hạn, unanswerable, restricted, numeric và teencode. Các dòng này phải được ưu tiên viết và review.
 - `B` — **baseline diversity coverage**: các ca nền để trải đều persona, ngành hàng, miền, promotion và kênh mà không gắn hard-case cụ thể.
 
-`layer` được giữ trong CSV để reviewer biết lý do slot tồn tại và ưu tiên xử lý. Khi tạo brief stub, thông tin này được lưu lại trong `_matrix_hints.layer` để không mất trace; field này không được đưa vào output scenario BTC.
+`layer` và các trường phân loại coverage được giữ trong CSV để reviewer biết lý do slot tồn tại và ưu tiên xử lý. Brief chỉ giữ dữ liệu cần cho sinh và kiểm tra scenario; channel được đọc trực tiếp từ từng call, ngành hàng suy ra từ SKU, vùng suy ra từ CRM. Không lưu bản sao các trường matrix trong brief.
 
 ## Quy trình làm việc
 
@@ -95,6 +95,7 @@ Mở CSV bằng spreadsheet. Mỗi dòng cần review các cột:
 - Nếu cột `customer_id` để trống, slot chưa khóa vào customer cụ thể. Thành viên phụ trách phải chọn một customer hợp lệ từ `data/catalog/crm_seed.json` phù hợp với câu chuyện và điền vào brief; không được tự bịa ID.
 - Với scenario khách mới, chỉ dùng dạng `NEW:<id>` khi story thực sự cần khách chưa có CRM record và toàn bộ pipeline/mock tools đã hỗ trợ trường hợp đó. Không dùng `TODO` khi commit brief.
 - `customer_id` trong CSV là hướng dẫn cho brief, không phải factual data để LLM tự quyết định. Sau khi điền brief, chạy `lint_briefs` để kiểm tra ID.
+- Với hard case `shared_phone` có nhiều cuộc gọi và hai người thật sự dùng chung số, `customer_id` ở brief là thành viên gốc của slot; mỗi `calls[]` phải gắn `customer_id` của đúng người gọi trong cuộc đó. Dùng cùng số điện thoại nhưng nhu cầu/facts tách theo người. Chỉ carry over facts khi hai cuộc thuộc cùng `customer_id`; không kế thừa profile hoặc nhu cầu của người kia.
 
 Quy tắc cộng tác:
 

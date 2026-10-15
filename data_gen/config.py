@@ -18,7 +18,7 @@ REPORTS_DIR = DATA_GEN_DIR / "reports"
 DATASET_CONFIG = DATA_GEN_DIR / "dataset_config.json"
 PROVIDER = "gemini"
 MODEL = os.getenv("HARNESS_GEN_MODEL", os.getenv("HARNESS_MODEL", "gemini-2.5-flash"))
-PROMPT_VERSION = "customer_turns_v2"
+PROMPT_VERSION = "customer_turns_v5"
 REFERENCE_DATE = "2026-10-15"
 
 for _directory in (BRIEFS_DIR, FACT_PACKS_DIR, RAW_DIR, SCENARIOS_DIR, DRYRUN_DIR, REPORTS_DIR):
