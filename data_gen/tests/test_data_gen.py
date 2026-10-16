@@ -295,13 +295,14 @@ def test_customer_turn_output_contract():
 
 
 def test_persona_system_prompt_is_used_and_fingerprinted():
-    call = {"call_index": 2, "customer_goal": "goal sentinel", "facts_to_establish": {"budget_vnd": 8_000_000}, "story_hint": "outline sentinel"}
+    call = {"call_index": 2, "customer_id": "C001", "customer_goal": "goal sentinel", "facts_to_establish": {"budget_vnd": 8_000_000}, "story_hint": "outline sentinel"}
     system, digest = generation_prompt("khach_so_gia", call, scenario_num_calls=3)
     assert "outline sentinel" in system
     assert "4–8" in system
     assert "Style: thực dụng, nhắc giá đối thủ, đòi giảm" in system
     assert "Vị trí cuộc gọi: 2/3" in system
     assert "Patience ban đầu của cuộc gọi: 3" in system
+    assert "khách tự xưng ‘chị’, gọi nhân viên là ‘em’" in system
     assert "thực dụng" in system or "thá»±c dá»¥ng" in system
     changed_system, changed_digest = generation_prompt("khach_so_gia", {**call, "story_hint": "different outline"}, scenario_num_calls=3)
     assert changed_system != system and changed_digest != digest
@@ -314,8 +315,8 @@ def test_generation_payload_includes_call_count_and_patience():
         "persona_id": "khach_so_gia",
         "channel": "hotline",
         "calls": [
-            {"call_index": 1, "customer_goal": "goal 1"},
-            {"call_index": 2, "customer_goal": "goal 2", "channel": "zalo_oa"},
+            {"call_index": 1, "customer_id": "C001", "customer_goal": "goal 1"},
+            {"call_index": 2, "customer_id": "C001", "customer_goal": "goal 2", "channel": "zalo_oa"},
             {"call_index": 3, "customer_goal": "goal 3"},
         ],
     }
@@ -325,6 +326,7 @@ def test_generation_payload_includes_call_count_and_patience():
     assert payload["persona"]["style"] == "thực dụng, nhắc giá đối thủ, đòi giảm"
     assert payload["persona"]["patience_initial"] == 3
     assert payload["channel"] == "zalo_oa"
+    assert payload["caller_identity"]["honorific"] == "chị"
 
 
 def test_hard_case_brief_builder_encodes_callback_channels_basket_and_stock():

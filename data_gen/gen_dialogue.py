@@ -108,6 +108,8 @@ def generation_prompt(persona_id: str, call: dict, scenario_num_calls: int | Non
     )
     outline = call.get("story_hint", "")
     specific = persona.get("system_prompt", "")
+    honorific = customer.get("honorific")
+    self_pronoun = {"anh": "anh", "chị": "chị", "cô": "cô"}.get(honorific, "mình")
     for key, value in {
         "goal": outline,
         "facts": facts,
@@ -120,6 +122,7 @@ def generation_prompt(persona_id: str, call: dict, scenario_num_calls: int | Non
         f"\n- Vị trí cuộc gọi: {call_index}/{scenario_num_calls} trong scenario của cùng khách hàng."
         f"\n- Patience ban đầu của cuộc gọi: {patience_initial if patience_initial is not None else 'không khai báo'}"
         + (f"\n- Người đang liên hệ trong cuộc gọi này: {customer.get('honorific', '')} {customer.get('name', '')}." if customer.get("name") else "")
+        + (f"\n- Cách xưng hô bắt buộc: khách tự xưng ‘{self_pronoun}’, gọi nhân viên là ‘em’; giữ đúng honorific ‘{honorific}’ nếu cần xưng hô." if honorific else "")
     )
     product_context = (
         "\n\nMô tả sản phẩm công khai khách có thể biết từ website/bài đăng "
