@@ -1,78 +1,152 @@
-# Paired transcript corpus
+# Bộ dữ liệu hội thoại theo cặp lượt (Paired Transcript Corpus)
 
-## Separate deliverables
+## 1. Các đầu ra dữ liệu riêng biệt
 
-`scenarios/` remains BTC-shaped **customer-input evaluation data**. Its calls contain customer turns, ground truth and success criteria; scenario calls never count as transcript deliverables. `transcripts/` is the distinct paired-turn corpus, with `customer` and `agent` turns and schema in `schemas/transcript.schema.json`. Generated transcripts enter `pending_review`; only a human review can set `accepted`. Failed validation cannot be accepted.
+Thư mục `scenarios/` tiếp tục giữ cấu trúc theo BTC, là dữ liệu đánh giá đầu vào của khách hàng. Các cuộc gọi trong đó bao gồm lượt thoại của khách hàng, đáp án chuẩn (ground truth) và tiêu chí thành công. Các cuộc gọi thuộc `scenarios/` không được tính là sản phẩm bàn giao transcript.
 
-The BTC package in this checkout has no paired-transcript schema or validator. BTC transcript-validator compatibility therefore remains **unverified**. Do not present local checks as BTC validation.
+Thư mục `transcripts/` là bộ dữ liệu riêng biệt, chứa các lượt thoại theo cặp giữa `customer` (khách hàng) và `agent` (tác nhân AI), với schema được định nghĩa tại `schemas/transcript.schema.json`.
 
-## Configured M1 targets
+Transcript được sinh ra sẽ được đưa vào trạng thái `pending_review` (chờ duyệt). Chỉ người đánh giá mới có quyền chuyển trạng thái thành `accepted` (được chấp nhận). Transcript không vượt qua bước kiểm định hợp lệ (validation) không được phép chấp nhận.
 
-The official minimums and internal buffer live in `dataset_config.json`: 120 accepted paired transcripts (internal target 140), 40 accepted transcripts with actual audio files and at least 3,600 verified audio seconds, 30 customers with at least two distinct `session_id` values, 10 customers with both hotline and chat, one industry, two regions, three required personas, and at least 30 catalog SKUs. BTC clarification `data/DIEU-CHINH-DE.md` additionally requires ASR WER/CER/Entity Accuracy on BTC-provided audio **plus at least 20 team audio files**. BTC assets under `data/asr/` are read-only; team audio and its separate ground truth live under `data_gen/audio/`.
+Gói BTC trong repository hiện tại không có schema hoặc validator dành cho paired transcript. Vì vậy, khả năng tương thích với validator transcript của BTC vẫn ở trạng thái chưa được xác minh. Không được trình bày kết quả kiểm tra cục bộ như thể đó là kết quả xác thực của BTC.
 
-| BTC requirement | Source | Configuration / implementation | Current evidence |
-|---|---|---|---|
-| ≥120 transcripts; internal safety target 140 | Official brief C.1; team target requested for this work | `milestones.M1.transcripts_min` / `transcripts_target`; accepted paired records only | 0 accepted; 81 prior scenario calls are not transcripts |
-| ≥40 audio conversations / ≥1 hour | Official brief C.1 | M1 `audio`; count hash-verified WAVs linked to accepted transcript IDs and sum actual WAV duration | 0 / 0 seconds |
-| ≥30 customers with ≥2 calls | Official brief C.1 | Distinct accepted `session_id`s grouped by `customer_id` | 0; plan has 33 but planned != accepted |
-| ≥10 phone + chat customers | Official brief C.1; mentor clarification Q&A #1 | Actual accepted channel records grouped by stable customer ID | 0; plan has 10 |
-| One industry, two regions; three specific personas; ≥30 SKUs | Official brief C.1 | Configured values and actual accepted `coverage` metadata | 0 coverage; plan is 1 industry / 3 regions / 12 personas |
-| ASR locally; WER/CER and exact entity accuracy on ≥20 files, plus BTC audio | Official brief C.1; `DIEU-CHINH-DE.md` §2 | `group_generated_asr_evaluation_files_min=20`; team GT is separate and uses BTC dialogue/turn layout | 0 team audio; BTC directory currently has GT JSON only in this checkout; no team ASR metric run |
-| Human acceptance; no fake accepted samples | Explicit acceptance lifecycle added for this corpus | `pending_review` queue and reviewer identity/time/notes; acceptance rejects validation errors and near-duplicates | No queue entries until generation; no accepted records |
-| Official transcript validator compatibility | No transcript schema/validator in available BTC package | Kept separate local schema/checks; validator status field | Unverified; no BTC validator present |
+## 2. Các mục tiêu M1 đã cấu hình
 
-The current plan matrix has 99 M1 slots / 161 planned calls, with planned coverage of 33 multi-session customers and 10 multichannel customers. Only 49 scenarios / 81 calls are currently briefed and generated. This leaves planned work to complete before the corpus can reach its target; counts above are intentionally separate.
+Các ngưỡng tối thiểu chính thức và mức dự phòng nội bộ được lưu trong `dataset_config.json`.
 
-## Generation, review, audio, and packaging
+| Yêu cầu                            | Mục tiêu                                                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Transcript theo cặp được chấp nhận | Tối thiểu 120; mục tiêu nội bộ 140                                                                                    |
+| Transcript có audio thực tế        | Tối thiểu 40 transcript được chấp nhận, có file audio thực tế và tổng thời lượng audio đã xác minh ít nhất 3.600 giây |
+| Khách hàng có nhiều phiên          | 30 khách hàng có ít nhất hai giá trị `session_id` khác nhau                                                           |
+| Khách hàng sử dụng đa kênh         | 10 khách hàng có cả kênh hotline và chat                                                                              |
+| Độ phủ ngành hàng và khu vực       | 1 ngành hàng, 2 khu vực                                                                                               |
+| Persona bắt buộc                   | 3 persona theo yêu cầu M1                                                                                             |
+| Catalog sản phẩm                   | Ít nhất 30 SKU                                                                                                        |
+| Đánh giá ASR                       | Tính WER/CER/Entity Accuracy trên audio do BTC cung cấp, đồng thời có ít nhất 20 file audio do nhóm tự tạo            |
 
-Run from the repository root in PowerShell:
+Các yêu cầu ASR bổ sung được nêu trong tài liệu BTC `data/DIEU-CHINH-DE.md`. Audio BTC trong `data/asr/` chỉ được đọc, không chỉnh sửa. Audio do nhóm tạo và ground truth tương ứng phải được lưu riêng trong `data_gen/audio/`.
 
-```powershell
-# Fill remaining reviewed scenario briefs without overwriting existing briefs.
+| Yêu cầu BTC                                                                                    | Nguồn                                                  | Cấu hình / cách triển khai                                                                                                                   | Bằng chứng hiện tại                                                                          |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Ít nhất 120 transcript; mục tiêu an toàn nội bộ 140                                            | Đề bài chính thức, mục C.1; mục tiêu nội bộ của nhóm   | `milestones.M1.transcripts_min` / `transcripts_target`; chỉ tính các bản ghi transcript theo cặp đã được chấp nhận                           | 0 transcript được chấp nhận; 81 cuộc gọi scenario trước đó không phải transcript             |
+| Ít nhất 40 cuộc hội thoại có audio / ít nhất 1 giờ                                             | Đề bài chính thức, mục C.1                             | Đếm các file WAV đã xác minh hash, được liên kết với ID transcript đã chấp nhận; cộng thời lượng thực tế của các file WAV                    | 0 cuộc / 0 giây                                                                              |
+| Ít nhất 30 khách hàng có từ 2 cuộc gọi trở lên                                                 | Đề bài chính thức, mục C.1                             | Nhóm các `session_id` khác nhau theo `customer_id` trong các bản ghi đã chấp nhận                                                            | 0; kế hoạch có 33 khách hàng nhưng kế hoạch không đồng nghĩa với dữ liệu đã được chấp nhận   |
+| Ít nhất 10 khách hàng sử dụng cả hotline và chat                                               | Đề bài chính thức, mục C.1; giải đáp mentor Q&A số 1   | Nhóm các bản ghi kênh thực tế theo ID khách hàng ổn định                                                                                     | 0; kế hoạch có 10 khách hàng                                                                 |
+| Một ngành hàng, hai khu vực; ba persona cụ thể; ít nhất 30 SKU                                 | Đề bài chính thức, mục C.1                             | Giá trị cấu hình và metadata `coverage` thực tế của các transcript đã chấp nhận                                                              | Độ phủ thực tế bằng 0; kế hoạch có 1 ngành hàng, 3 khu vực và 12 persona                     |
+| ASR chạy cục bộ; WER/CER và Entity Accuracy chính xác trên ít nhất 20 file, cộng với audio BTC | Đề bài chính thức, mục C.1; `DIEU-CHINH-DE.md`, mục 2  | `group_generated_asr_evaluation_files_min=20`; ground truth của nhóm sử dụng cấu trúc hội thoại/lượt thoại của BTC                           | Chưa có audio do nhóm tạo; thư mục BTC hiện chỉ có JSON ground truth; chưa chạy đánh giá ASR |
+| Con người phê duyệt; không tạo dữ liệu giả được đánh dấu chấp nhận                             | Quy trình vòng đời dữ liệu được bổ sung rõ ràng        | Hàng đợi `pending_review`, thông tin người duyệt, thời gian và ghi chú; chỉ chấp nhận khi không có lỗi validation hoặc bản ghi gần trùng lặp | Chưa có mục trong hàng đợi trước khi sinh dữ liệu; chưa có transcript được chấp nhận         |
+| Khả năng tương thích với validator transcript chính thức                                       | Gói BTC hiện có không chứa schema/validator transcript | Trạng thái validator được theo dõi riêng                                                                                                     | Chưa xác minh; không có validator BTC trong gói hiện tại                                     |
+
+Ma trận kế hoạch hiện có 99 slot M1 / 161 cuộc gọi dự kiến, với độ phủ dự kiến gồm 33 khách hàng có nhiều phiên và 10 khách hàng đa kênh. Hiện chỉ có 49 scenario / 81 cuộc gọi đã được xây dựng brief và sinh dữ liệu.
+
+Vì vậy, vẫn còn công việc theo kế hoạch cần hoàn thành trước khi bộ dữ liệu đạt mục tiêu. Các số liệu trên được tách biệt có chủ đích, không cộng gộp dữ liệu kế hoạch với dữ liệu đã được chấp nhận.
+
+## 3. Quy trình sinh dữ liệu, đánh giá, audio và đóng gói
+
+Chạy các lệnh sau từ thư mục gốc của repository bằng PowerShell.
+
+### 3.1. Hoàn thiện brief và sinh scenario
+
+```
+# Bổ sung các brief scenario còn thiếu mà không ghi đè brief hiện có.
 python -m data_gen.coverage_matrix.make_coverage_matrix stubs --matrix data_gen/reports/coverage_matrix.csv --out data_gen/briefs
 python -m data_gen.lint_briefs data_gen/briefs
 
-# Resume/generate scenario customer inputs (LLM use; run only after briefs are reviewed).
+# Tiếp tục sinh đầu vào khách hàng cho scenario (có sử dụng LLM; chỉ chạy sau khi brief đã được duyệt).
 python -m data_gen.run_batch --briefs data_gen/briefs --out data_gen/scenarios --level M1 --seed 7
+```
 
-# Generate two paired transcripts from existing scenarios. This calls the configured LLM.
+### 3.2. Sinh transcript theo cặp
+
+```
+# Sinh hai transcript theo cặp từ các scenario hiện có.
+# Lệnh này gọi LLM đã được cấu hình.
 python -m data_gen.transcripts generate --scenarios data_gen/scenarios --briefs data_gen/briefs --limit 2
 
-# Local-only lifecycle smoke sample; never accept this as quality data.
+# Mẫu kiểm tra nhanh vòng đời dữ liệu chỉ chạy cục bộ.
+# Tuyệt đối không chấp nhận mẫu này làm dữ liệu đánh giá chất lượng.
 python -m data_gen.transcripts generate --scenarios data_gen/scenarios --briefs data_gen/briefs --limit 1 --dry-run
+```
 
-# Validate and inspect actual artifact counts / review queue.
+### 3.3. Kiểm định và xem hàng đợi duyệt
+
+```
+# Kiểm tra tính hợp lệ và xem số lượng artifact thực tế / hàng đợi duyệt.
 python -m data_gen.transcripts validate
 python -m data_gen.transcripts coverage
 Get-Content data_gen/reviews/queue.json
 
-# Explicit human decision; repeat for each transcript reviewed.
+# Đưa ra quyết định duyệt rõ ràng cho từng transcript đã đánh giá.
 python -m data_gen.transcripts review SC-002_call_1 --decision accepted --reviewer reviewer-name --notes "Reviewed paired turns, consistency, facts, privacy and language"
+```
 
-# Audio generation requires an explicitly configured local command, accepting all three placeholders.
+Lệnh duyệt ở trên là ví dụ cho một transcript. Cần thực hiện riêng cho từng transcript được đánh giá.
+
+### 3.4. Sinh audio và tạo manifest
+
+```
+# Sinh audio chỉ khi đã cấu hình rõ lệnh TTS cục bộ.
 $env:DATASET_TTS_COMMAND = 'my-local-tts --input {text_file} --output {wav_file} --speaker {speaker}'
 python -m data_gen.transcripts audio
 
-# Rebuild artifact-derived manifest and coverage report.
+# Xây dựng lại manifest và báo cáo độ phủ dựa trên artifact thực tế.
 python -m data_gen.transcripts manifest
 ```
 
-The audio stage consumes accepted transcripts only, verifies WAV duration and hashes, and writes `audio/team_asr_ground_truth.json` in the BTC `asr/ground_truth.json` dialogue/turn shape. It creates no ASR predictions. Ground truth is never an ASR hypothesis. The external TTS engine and voice are team configuration; nothing is called unless `audio` is explicitly invoked with a command.
+Giai đoạn sinh audio chỉ sử dụng transcript đã được chấp nhận. Quy trình xác minh thời lượng WAV và hash của file, sau đó ghi ground truth ASR của nhóm vào `audio/team_asr_ground_truth.json`, theo cấu trúc hội thoại/lượt thoại của BTC tại `asr/ground_truth.json`.
 
-For ASR, install `faster-whisper` and provide a local model directory (the evaluator will not download one):
+Quy trình này không tạo dự đoán ASR. Ground truth không phải là giả thuyết nhận dạng của ASR (ASR hypothesis).
 
-```powershell
+Công cụ TTS bên ngoài và giọng đọc là cấu hình do nhóm tự lựa chọn. Không có công cụ nào được gọi cho đến khi lệnh `audio` được thực thi một cách tường minh với command đã cấu hình.
+
+### 3.5. Đánh giá ASR
+
+Cài đặt `faster-whisper` và cung cấp đường dẫn đến thư mục chứa model cục bộ. Bộ đánh giá không tự tải model xuống.
+
+```
 python -m data_gen.asr_eval --model-path .models/faster-whisper-small --btc-audio-dir data/asr --team-audio-dir data_gen/audio
 ```
 
-The script writes `reports/asr_metrics.json` and `reports/asr_hypotheses.json`, separates BTC and team sets, lists missing audio IDs, and reports WER/CER plus exact entity accuracy. Text normalization uses NFC, lowercase, punctuation removal, whitespace normalization, and canonicalizes numeric forms for entities declared in that dialogue's ground truth. Hypotheses are generated only by the local ASR model; the evaluator does not put reference entity values into hypothesis output. ASR outputs are team reports, not edits to BTC files.
+Script tạo hai file:
 
-The transcript generator consumes deterministic facts and existing customer turns, generates paired agent replies separately from evaluation scenarios, stores raw generations separately, then validates and queues them for review. It records model, seed, time, source digests, and artifact status. It does not establish runtime agent performance.
+- `reports/asr_metrics.json`: các chỉ số đánh giá ASR.
+- `reports/asr_hypotheses.json`: kết quả nhận dạng ASR.
 
-## Verified requirements and limits
+Script phân tách tập BTC và tập do nhóm tạo, liệt kê các ID audio bị thiếu, đồng thời báo cáo WER/CER và Entity Accuracy chính xác.
 
-- The official brief specifies 120 transcripts, 40 audio conversations / 1 hour, 30 mult-session customers, 10 phone-plus-chat customers, 1 industry across 2 regions, three named M1 personas, 30 SKUs, and ASR WER/CER with exact entity accuracy on 20+ files.
-- The clarification specifies that the 20 ASR files are team-generated in addition to BTC's supplied ASR set.
-- Current evaluation scenarios are customer-only and are not counted as paired transcripts. Existing report values (81 scenario calls, 17 mult-session customers, 9 cross-channel customers) are historical scenario coverage, not accepted corpus evidence.
-- A transcript is accepted only after local structural/privacy/fact checks and recorded human review. Local business-fact checking is conservative and BTC-validator compatibility remains unverified.
-- Current catalog, CRM and policy facts come from BTC source data; the pipeline does not modify those source files.
+Quy tắc chuẩn hóa văn bản bao gồm:
+
+- Chuẩn hóa Unicode NFC.
+- Chuyển chữ thành chữ thường.
+- Loại bỏ dấu câu.
+- Chuẩn hóa khoảng trắng.
+- Chuẩn hóa các dạng số theo quy tắc chuẩn tắc của thực thể được khai báo trong ground truth của từng hội thoại.
+
+Các giả thuyết ASR chỉ được sinh bởi model ASR cục bộ. Bộ đánh giá không đưa giá trị thực thể tham chiếu vào phần giả thuyết đầu ra.
+
+Các báo cáo ASR là sản phẩm do nhóm tạo ra; chúng không được dùng để chỉnh sửa file BTC.
+
+### 3.6. Cách hoạt động của bộ sinh transcript
+
+Bộ sinh transcript sử dụng các dữ kiện xác định trước (deterministic facts) và lượt thoại khách hàng đã có. Nó sinh riêng các câu trả lời của agent theo từng cặp, tách biệt với scenario đánh giá, rồi lưu kết quả sinh thô ở vị trí riêng.
+
+Sau đó, dữ liệu được kiểm định và đưa vào hàng đợi chờ duyệt.
+
+Quy trình ghi nhận:
+
+- Model được sử dụng.
+- Seed.
+- Thời điểm sinh dữ liệu.
+- Digest của các nguồn dữ liệu.
+- Trạng thái của artifact.
+
+Quy trình này không chứng minh hiệu năng của agent khi chạy thực tế.
+
+## 4. Các yêu cầu đã xác minh và giới hạn hiện tại
+
+- Đề bài chính thức yêu cầu 120 transcript, 40 cuộc hội thoại có audio với tổng thời lượng ít nhất 1 giờ, 30 khách hàng có nhiều phiên, 10 khách hàng sử dụng cả hotline và chat, một ngành hàng trên hai khu vực, ba persona M1 được chỉ định, ít nhất 30 SKU và đánh giá ASR bằng WER/CER cùng Entity Accuracy trên ít nhất 20 file.
+- Tài liệu điều chỉnh yêu cầu 20 file ASR do nhóm tạo, bổ sung ngoài tập audio ASR được BTC cung cấp.
+- Scenario đánh giá hiện tại chỉ chứa lượt thoại khách hàng, không được tính vào số lượng transcript theo cặp. Các số liệu trong báo cáo trước đây — 81 cuộc gọi scenario, 17 khách hàng nhiều phiên và 9 khách hàng đa kênh — chỉ phản ánh độ phủ scenario trong quá khứ, không phải bằng chứng về corpus đã được chấp nhận.
+- Một transcript chỉ được chấp nhận sau khi vượt qua kiểm tra cục bộ về cấu trúc, quyền riêng tư, tính chính xác của dữ kiện và được con người ghi nhận quyết định duyệt. Việc kiểm tra dữ kiện nghiệp vụ cục bộ được thực hiện theo hướng thận trọng; khả năng tương thích với validator BTC vẫn chưa được xác minh.
+- Các dữ kiện hiện tại về catalog, CRM và chính sách lấy từ dữ liệu nguồn của BTC. Pipeline không sửa đổi các file nguồn đó.

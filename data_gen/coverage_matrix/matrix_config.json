@@ -9,7 +9,8 @@
     "per_persona_min": 4,
     "per_nganh_min": 10,
     "per_mien_min": 15,
-    "per_tag_min": 2
+    "per_tag_min": 2,
+    "per_outcome_calls_min": 10
   },
   "nganh_order": ["gia-dung", "me-be", "thoi-trang"],
   "promo_situation_map": {

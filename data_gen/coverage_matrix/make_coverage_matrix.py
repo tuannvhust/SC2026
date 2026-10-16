@@ -23,15 +23,18 @@ from data_gen.config import BRIEFS_DIR, BTC_DIR, DATA_GEN_DIR, REPORTS_DIR, load
 from data_gen.scenario_metadata import story_hint_for_call
 from data_gen.provenance import brief_digest
 
-COLUMNS = [
-    "level", "case_number", "slot_id", "layer", "owner",
-    "persona_id", "nganh", "mien",
-    "num_calls", "channel_pattern",
-    "hard_case_tag", "special_customer",
-    "promo_codes_in_play", "promo_situation",
-    "policy_chunk_ids", "policy_situation",
-    "customer_id", "audio_source", "audio_hours", "audio_noisy", "status", "story_hints",
+SCENARIO_COLUMNS = [
+    "level", "case_number", "slot_id", "layer", "owner", "persona_id",
+    "nganh", "mien", "hard_case_tag", "special_customer",
+    "audio_source", "audio_hours", "audio_noisy", "status",
 ]
+CALL_COLUMNS = [
+    "slot_id", "call_index", "customer_id", "channel", "products_json",
+    "story_hint", "expected_outcome", "promotion_code", "promotion_time_status",
+    "promotion_condition_focus", "policy_chunk_ids", "policy_case_type",
+    "order_date", "crm_order_id", "existing_order_sku", "blocked_policy_sources",
+]
+COLUMNS = SCENARIO_COLUMNS  # public scenario-level CSV contract
 
 LAYER_DESCRIPTIONS = {
     "A": "hard-case/trap coverage: required edge cases and policy/promotion/identity traps",
@@ -59,7 +62,7 @@ TRAPS = [
     ("three_call_order_status", 2, "order_in_transit", "none", "current"),
     ("ai_identity_data_deletion", 2, "none", "none", "current"),
     ("multi_product_cod_budget", 2, "none", "conditional", "current"),
-    ("product_exchange_refund_difference", 2, "order_in_transit", "none", "current"),
+    ("product_exchange_refund_difference", 2, "delivered_order", "none", "current"),
     ("callback_holiday", 2, "none", "none", "current"),
     ("competitor_price_request", 2, "none", "none", "current"),
     ("inventory_runs_out_at_close", 2, "none", "none", "current"),
@@ -103,6 +106,7 @@ PERSONA_BY_TAG = {
     "ai_identity_data_deletion": "khach_hoi_ngoai_tai_lieu",
     "multi_product_cod_budget": "khach_mua_nhieu_mon",
     "product_exchange_refund_difference": "khach_da_mua_doi_size",
+    "source_gap_product_exchange": "khach_da_mua_doi_size",
     "callback_holiday": "khach_do_du_hoi_nguoi_nha",
     "competitor_price_request": "khach_so_gia",
     "inventory_runs_out_at_close": "khach_mua_nhieu_mon",
@@ -134,6 +138,16 @@ def discover_promos() -> dict[str, list[str]]:
             if conds:
                 result["conditional"].append(code)
     return result
+
+
+def promotion_time_status(code: str) -> str:
+    if not code:
+        return "none"
+    promo = next((p for p in load_json("catalog/promotions.json").get("promotions", []) if p["promo_code"] == code), None)
+    if not promo:
+        return "none"
+    start, end = date.fromisoformat(promo["start"]), date.fromisoformat(promo["end"])
+    return "expired" if end < REF_DATE else "not_started" if start > REF_DATE else "active"
 
 
 def discover_policy_chunks() -> dict[str, list[str]]:
@@ -214,7 +228,12 @@ def _promo_codes_for(
     skus = {p.get("sku") for p in products}
 
     if tag == "promo_not_started":
-        candidates = [code for code in candidates if code == "11-11"]
+        candidates = [code for code in candidates if code in by_code and any(
+            "*" in by_code[code].get("applies_to", [])
+            or sku in by_code[code].get("applies_to", [])
+            or any(t.startswith("category:") and industry == t.split(":", 1)[1].split("/", 1)[0] for t in by_code[code].get("applies_to", []))
+            for sku in skus
+        )]
     elif tag == "promo_expired":
         candidates = [code for code in candidates if any(
             code in by_code and (
@@ -248,16 +267,11 @@ def _promo_codes_for(
             return target_match or (tag == "promo_condition_fail" and sibling_target)
         candidates = [code for code in candidates if code in by_code and applies(by_code[code])]
 
-    if tag == "promo_expired" and not candidates:
-        # Expiration traps can ask about an older named offer even when the
-        # current item is outside its SKU scope. Keep one dated offer so the
-        # temporal policy question remains reproducible.
-        candidates = list(data["promos"].get("expired", []))[:1]
-    elif tag == "promo_expired":
+    if tag == "promo_expired":
         candidates = candidates[:1]
 
     # The size-exclusion case is specifically tied to RUN-10 and size 43.
-    if tag == "size_excluded_promotion":
+    if tag in {"size_excluded_promotion", "promo_condition_fail"}:
         candidates = [code for code in candidates if code == "RUN-10"]
     return "|".join(dict.fromkeys(candidates[:3]))
 
@@ -422,7 +436,7 @@ def synchronize_context_assignments(matrix_path: Path, briefs_dir: Path) -> int:
     with matrix_path.open("w", newline="", encoding="utf-8-sig") as stream:
         writer = csv.DictWriter(stream, fieldnames=COLUMNS)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows([{key: row.get(key, "") for key in SCENARIO_COLUMNS} for row in rows])
     return changed
 
 
@@ -454,6 +468,12 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
         return True
 
     def choose_customer(level: str, row_index: int, special: str, pattern: tuple[str, str], region: str) -> dict[str, Any]:
+        if special == "delivered_order":
+            delivered = [c for c in data["customers"] if any(o.get("status") == "delivered" for o in c.get("orders", []))]
+            match = next((c for c in delivered if customer_matches(c, pattern, region)), None) or (delivered[0] if delivered else None)
+            if not match:
+                raise ValueError(f"delivered_order requires an eligible CRM order in configured region {region}")
+            return match
         if special == "shared_phone":
             shared = [c for c in data["customers"] if c.get("shared_phone_with")]
             if not shared:
@@ -467,9 +487,7 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
         if not candidates:
             candidates = [c for c in data["customers"] if customer_matches(c, pattern, region)]
         if not candidates:
-            candidates = [c for c in data["customers"] if c["customer_id"] not in assigned_customer_ids]
-        if not candidates:
-            candidates = data["customers"]
+            raise ValueError(f"No CRM customer in configured region {region} with the required channel identity ({level})")
         return candidates[row_index % len(candidates)]
 
     def add(level: str, layer: str, tag: str, special: str, promo_sit: str, policy_sit: str, calls: int) -> None:
@@ -488,10 +506,20 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
         if not allowed_nganh or not allowed_mien:
             raise ValueError(f"No valid industry/region configured for {level}")
         cur_nganh = allowed_nganh[i % len(allowed_nganh)]
-        if tag == "multi_product_cod_budget":
+        if tag == "shared_phone" and "thoi-trang" in allowed_nganh:
+            cur_nganh = "thoi-trang"
+        if tag in {"size_excluded_promotion", "promo_condition_fail", "promo_expired"} and "thoi-trang" in allowed_nganh:
+            # RUN-10 and the apparel expired offer have source support only in clothing.
+            cur_nganh = "thoi-trang"
+        if tag == "product_exchange_refund_difference" and level == "M2" and "gia-dung" in allowed_nganh:
+            cur_nganh = "gia-dung"
+        if tag == "promo_not_started" and level == "M2" and "gia-dung" in allowed_nganh:
+            # 11-11 is catalog-backed only for home appliances.
+            cur_nganh = "gia-dung"
+        if tag == "multi_product_cod_budget" and level != "M1":
             by_industry: dict[str, list[dict[str, Any]]] = {}
             for product in load_json("catalog/products.json")["products"]:
-                if not product.get("discontinued"):
+                if not product.get("discontinued") and not product.get("attributes", {}).get("discontinued"):
                     by_industry.setdefault(product["category"].split("/", 1)[0], []).append(product)
             viable = [
                 (industry, sorted(items, key=lambda p: p.get("list_price_vnd", 0), reverse=True)[:4])
@@ -501,6 +529,13 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
             if not viable:
                 raise ValueError("multi_product_cod_budget requires four products over the COD threshold in one catalog industry")
             cur_nganh = viable[0][0]
+        if level == "M1" and tag in {"multi_product_cod_budget", "promo_not_started"}:
+            # Keep the existing M1 slot number while assigning an apparel
+            # hard case. Cross-industry promotion/COD traps are M2-only.
+            tag = "numeric_precision" if tag == "multi_product_cod_budget" else "promo_condition_fail"
+        if level == "M1" and tag == "product_exchange_refund_difference":
+            tag = "source_gap_product_exchange"
+            special = "none"
         persona_id = PERSONA_BY_TAG.get(tag, personas[i % len(personas)])
         region = allowed_mien[i % len(allowed_mien)]
         selected_customer = choose_customer(level, i, special, pattern, region)
@@ -511,7 +546,11 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
 
         row_products = _products_for_industry(cur_nganh)
         selected_product = row_products[int(global_case_number) % len(row_products)]
-        if tag == "size_excluded_promotion":
+        if tag == "promo_not_started" and level == "M2":
+            selected_product = next((p for p in row_products if p["sku"] == "SKU-AP-X"), selected_product)
+        if tag == "promo_condition_fail":
+            selected_product = next((p for p in row_products if p["sku"] == "SKU-SN-RUN1"), selected_product)
+        if tag in {"size_excluded_promotion", "promo_condition_fail"}:
             selected_product = next(
                 (p for p in row_products if any(v.get("size") == 43 for v in p.get("variants", []))),
                 selected_product,
@@ -542,7 +581,7 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
             "special_customer":   special,
             "promo_codes_in_play": row_promos,
             "promo_situation":    promo_sit,
-            "policy_chunk_ids":   _policy_chunks_for(policy_sit, data, tag=tag, industry=cur_nganh, sku=selected_sku),
+            "policy_chunk_ids":   "" if tag == "source_gap_product_exchange" else _policy_chunks_for(policy_sit, data, tag=tag, industry=cur_nganh, sku=selected_sku),
             "policy_situation":   policy_sit,
             "customer_id":        selected_customer["customer_id"] if selected_customer else "",
             "audio_source":      "",
@@ -561,17 +600,88 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
         # --- Layer B: baseline diversity slots ---
         for i in range(base_slots.get(level, config.get("base_slots", 40))):
             add(level, "B", "", "none", PROMO_SITUATIONS[i % len(PROMO_SITUATIONS)], POLICY_SITUATIONS[i % len(POLICY_SITUATIONS)], 3 if i % 3 == 2 else 2)
+        # Preserve all established IDs and append four source-backed M1
+        # handoff calls to meet the per-outcome floor without padding sales.
+        if level == "M1":
+            add(level, "A", "price_pressure_internal_floor", "none", "none", "restricted", 2)
+            add(level, "A", "price_pressure_internal_floor", "none", "none", "restricted", 2)
+            add(level, "A", "three_channel_price_conflict", "none", "none", "none", 2)
+            add(level, "A", "inventory_runs_out_at_close", "none", "none", "current", 2)
+
+    # Split scenario metadata from call-level assignments.  The call table is
+    # authoritative for every per-call fact; scenario fields below are only
+    # planning/review metadata.
+    call_rows: list[dict[str, str]] = []
+    customer_by_id = {c["customer_id"]: c for c in data["customers"]}
+    product_by_sku = {p["sku"]: p for p in load_json("catalog/products.json")["products"]}
+    for row in rows:
+        tag = row["hard_case_tag"]
+        channels = row["channel_pattern"].split("-")
+        if tag == "three_channel_price_conflict":
+            channels = ["hotline", "zalo_oa", "chat_fanpage"]
+        product_pool = _products_for_industry(row["nganh"])
+        selected = product_pool[int(row["case_number"]) % len(product_pool)]
+        selected_skus = [selected["sku"]]
+        if tag == "shared_phone":
+            selected_skus = ["SKU-JK-DWN", "SKU-SN-CAS"]
+        elif tag in {"size_excluded_promotion", "promo_condition_fail"}:
+            selected_skus = [next((p["sku"] for p in product_pool if any(v.get("size") == 43 for v in p.get("variants", []))), selected["sku"])]
+        elif tag == "multi_product_cod_budget":
+            selected_skus = [p["sku"] for p in sorted(product_pool, key=lambda p: p.get("list_price_vnd", 0), reverse=True)[:4]]
+        elif tag == "inventory_runs_out_at_close":
+            # This case is source-backed only if an in-scope SKU has a matching timeline event.
+            events = load_json("catalog/inventory_timeline.json").get("events", [])
+            event_skus = {e["sku"] for e in events}
+            candidate = next((p["sku"] for p in product_pool if p["sku"] in event_skus), selected["sku"])
+            selected_skus = [candidate]
+        promo_codes = [x for x in row["promo_codes_in_play"].split("|") if x]
+        policy_ids = [x for x in row["policy_chunk_ids"].split("|") if x]
+        for call_index in range(1, int(row["num_calls"]) + 1):
+            customer_id = row["customer_id"]
+            if tag == "shared_phone" and call_index == 1:
+                primary = customer_by_id[row["customer_id"]]
+                customer_id = primary.get("shared_phone_with") or row["customer_id"]
+            outcome = (
+                "tu_choi" if tag in {"unanswerable", "restricted", "multi_product_cod_budget", "ai_identity_data_deletion", "source_gap_product_exchange"}
+                else "chuyen_may" if tag in {"three_channel_price_conflict", "inventory_runs_out_at_close", "price_pressure_internal_floor"}
+                else "hen_goi_lai" if call_index < int(row["num_calls"]) or tag in {"order_in_transit", "three_call_order_status", "callback_holiday"}
+                else "chot_don"
+            )
+            per_call_skus = [selected_skus[min(call_index - 1, len(selected_skus) - 1)]] if tag == "shared_phone" else selected_skus
+            story = story_hint_for_call(row.get("story_hints", ""), call_index)
+            call_rows.append({
+                "slot_id": row["slot_id"], "call_index": str(call_index), "customer_id": customer_id,
+                "channel": channels[min(call_index - 1, len(channels) - 1)],
+            "products_json": json.dumps([
+                {"sku": sku, "qty": 1, **({"variant_id": next((v["variant_sku"] for p in product_pool if p["sku"] == sku for v in p.get("variants", []) if v.get("size") == 43), "")} if tag in {"size_excluded_promotion", "promo_condition_fail"} else {})}
+                for sku in per_call_skus
+            ], ensure_ascii=False),
+                "story_hint": story or f"Call {call_index}: tiếp tục tình huống {tag or 'tư vấn sản phẩm'} theo dữ kiện đã xác minh.", "expected_outcome": outcome,
+                "promotion_code": promo_codes[min(call_index - 1, len(promo_codes) - 1)] if promo_codes else "",
+                "promotion_time_status": promotion_time_status(promo_codes[min(call_index - 1, len(promo_codes) - 1)]) if promo_codes else "none",
+                "promotion_condition_focus": "variant_size_43" if tag == "size_excluded_promotion" else "eligibility_failure" if tag == "promo_condition_fail" else "none",
+                "policy_chunk_ids": "|".join(policy_ids), "policy_case_type": row["policy_situation"],
+                "order_date": "2026-06-15" if tag == "version_conflict" else "",
+                "crm_order_id": next((o.get("order_id", "") for o in customer_by_id[customer_id].get("orders", []) if o.get("status") == "delivered"), "") if tag == "product_exchange_refund_difference" else "",
+                "existing_order_sku": next((o.get("sku", "") for o in customer_by_id[customer_id].get("orders", []) if o.get("status") == "delivered"), "") if tag == "product_exchange_refund_difference" else "",
+                "blocked_policy_sources": "|".join(data["blocked_policy_sources"]) if tag == "restricted" else "",
+            })
 
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS)
+        writer = csv.DictWriter(f, fieldnames=SCENARIO_COLUMNS)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows([{key: row.get(key, "") for key in SCENARIO_COLUMNS} for row in rows])
+    calls_path = out.with_name("coverage_calls.csv")
+    with calls_path.open("w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=CALL_COLUMNS)
+        writer.writeheader()
+        writer.writerows(call_rows)
 
     print(f"Generated {len(rows)} slots -> {out}")
     for level in levels:
         level_rows = [row for row in rows if row["level"] == level]
-        print(f"  {level}: {len(level_rows)} slots / {sum(int(row['num_calls']) for row in level_rows)} transcripts")
+        print(f"  {level}: {len(level_rows)} slots / {sum(1 for call in call_rows if any(r['slot_id'] == call['slot_id'] and r['level'] == level for r in level_rows))} call rows")
     print(f"  Personas ({len(personas)}): {personas}")
     print(f"  Categories: {nganh}")
     print(f"  Regions: {mien}")
@@ -585,7 +695,209 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
 
 def read_rows(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8-sig") as f:
+        rows = list(csv.DictReader(f))
+    calls_path = path.with_name("coverage_calls.csv")
+    if calls_path.exists():
+        calls = read_call_rows(calls_path)
+        by_slot: dict[str, list[dict[str, str]]] = {}
+        for call in calls:
+            by_slot.setdefault(call["slot_id"], []).append(call)
+        for row in rows:
+            assigned = by_slot.get(row["slot_id"], [])
+            row["num_calls"] = str(len(assigned))
+            row["channel_pattern"] = "-".join(c["channel"] for c in assigned)
+            row["customer_id"] = assigned[0]["customer_id"] if assigned else ""
+            row["story_hints"] = " || ".join(f"Call {c['call_index']}: {c['story_hint']}" for c in assigned if c.get("story_hint"))
+            row["promo_codes_in_play"] = "|".join(dict.fromkeys(c["promotion_code"] for c in assigned if c.get("promotion_code")))
+            row["promo_situation"] = next((c["promotion_time_status"] for c in assigned if c.get("promotion_time_status")), "none")
+            row["policy_chunk_ids"] = "|".join(dict.fromkeys(x for c in assigned for x in c.get("policy_chunk_ids", "").split("|") if x))
+            row["policy_situation"] = assigned[0].get("policy_case_type", "none") if assigned else "none"
+            row["status"] = row.get("status", "todo")
+    return rows
+
+
+def read_call_rows(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
+
+
+def validate_matrix(matrix_path: Path, *, outcome_floor: int = 10, include_all_levels: bool = False) -> list[str]:
+    """Validate scenario/call contracts against the read-only BTC source data."""
+    errors: list[str] = []
+    scenarios = read_rows(matrix_path)
+    calls_path = matrix_path.with_name("coverage_calls.csv")
+    if not calls_path.exists():
+        return [f"Missing call-level matrix: {calls_path}"]
+    calls = read_call_rows(calls_path)
+    with matrix_path.open(newline="", encoding="utf-8-sig") as stream:
+        scenario_fields = set(csv.DictReader(stream).fieldnames or [])
+    with calls_path.open(newline="", encoding="utf-8-sig") as stream:
+        call_fields = set(csv.DictReader(stream).fieldnames or [])
+    if scenario_fields != set(SCENARIO_COLUMNS):
+        errors.append("Scenario matrix columns do not match the scenario-level schema")
+    if call_fields != set(CALL_COLUMNS):
+        errors.append("Call matrix columns do not match the call-level schema")
+    known = {c["customer_id"]: c for c in load_json("catalog/crm_seed.json")["customers"]}
+    products = {p["sku"]: p for p in load_json("catalog/products.json")["products"]}
+    promo_by_code = {p["promo_code"]: p for p in load_json("catalog/promotions.json")["promotions"]}
+    policy_ids = set(discovered_data()["policy_chunks"] + discovered_data()["old_policy_chunks"])
+    old_policy_ids = set(discovered_data()["old_policy_chunks"])
+    scenario_by_id = {s["slot_id"]: s for s in scenarios}
+    if len({s["slot_id"] for s in scenarios}) != len(scenarios):
+        errors.append("Scenario IDs must be unique")
+    numbers = [int(s["case_number"]) for s in scenarios]
+    if numbers and numbers != list(range(min(numbers), max(numbers) + 1)):
+        errors.append("Scenario case_number values must be continuous")
+    seen_m2 = False
+    for scenario in scenarios:
+        if scenario.get("level") == "M2":
+            seen_m2 = True
+        elif scenario.get("level") == "M1" and seen_m2:
+            errors.append("All M1 scenarios must precede M2 scenarios")
+        if scenario.get("level") == "M1" and scenario.get("nganh") != "thoi-trang":
+            errors.append(f"{scenario['slot_id']}: M1 must stay in thoi-trang")
+        milestone = load_dataset_config().get("milestones", {}).get(scenario.get("level", "M1"), {})
+        if include_all_levels and scenario.get("level") in {"M1", "M2"}:
+            if scenario.get("nganh") not in milestone.get("industries", []):
+                errors.append(f"{scenario['slot_id']}: industry is outside {scenario.get('level')} configuration")
+            if scenario.get("mien") not in milestone.get("regions", []) and scenario.get("special_customer") in {"", "none"}:
+                errors.append(f"{scenario['slot_id']}: region is outside {scenario.get('level')} configuration")
+    by_slot: dict[str, list[dict[str, str]]] = {}
+    for call in calls:
+        by_slot.setdefault(call["slot_id"], []).append(call)
+        if call["customer_id"] not in known:
+            errors.append(f"{call['slot_id']} call {call['call_index']}: unknown CRM customer {call['customer_id']}")
+        elif call["customer_id"] in known and call["slot_id"] in scenario_by_id:
+            customer = known[call["customer_id"]]
+            if customer.get("region") != scenario_by_id[call["slot_id"]].get("mien") and scenario_by_id[call["slot_id"]].get("special_customer") in {"", "none"}:
+                errors.append(f"{call['slot_id']} call {call['call_index']}: CRM region differs from scenario region")
+        try:
+            items = json.loads(call["products_json"])
+        except (TypeError, json.JSONDecodeError):
+            errors.append(f"{call['slot_id']} call {call['call_index']}: invalid products_json")
+            continue
+        for item in items:
+            product = products.get(item.get("sku"))
+            if not product:
+                errors.append(f"{call['slot_id']} call {call['call_index']}: unknown SKU {item.get('sku')}")
+            elif product.get("category", "").split("/", 1)[0] != next((s["nganh"] for s in scenarios if s["slot_id"] == call["slot_id"]), ""):
+                errors.append(f"{call['slot_id']} call {call['call_index']}: SKU/category does not match scenario industry")
+            elif (product.get("discontinued") or product.get("attributes", {}).get("discontinued") or item.get("sku", "").endswith("-OLD")) and call.get("expected_outcome") == "chot_don":
+                errors.append(f"{call['slot_id']} call {call['call_index']}: discontinued SKU cannot be a closing item")
+        for code in filter(None, call.get("promotion_code", "").split("|")):
+            promo = promo_by_code.get(code)
+            if not promo:
+                errors.append(f"{call['slot_id']} call {call['call_index']}: unknown promotion {code}")
+                continue
+            applies = promo.get("applies_to", [])
+            compatible = any("*" in applies or item.get("sku") in applies or any(
+                target.startswith("category:") and products.get(item.get("sku"), {}).get("category", "").startswith(target.split(":", 1)[1])
+                for target in applies
+            ) for item in items)
+            if not compatible:
+                errors.append(f"{call['slot_id']} call {call['call_index']}: promotion {code} does not apply to assigned SKU/category")
+            expected_time = promotion_time_status(code)
+            if call.get("promotion_time_status") != expected_time:
+                errors.append(f"{call['slot_id']} call {call['call_index']}: promotion {code} has time status {expected_time}, not {call.get('promotion_time_status')}")
+            if code in {"AP-SEP", "11-11"} and scenario_by_id.get(call["slot_id"], {}).get("level") != "M2":
+                errors.append(f"{call['slot_id']} call {call['call_index']}: {code} is reserved for M2 source context")
+            if call.get("promotion_condition_focus") == "conditional_without_matching_promotion":
+                errors.append(f"{call['slot_id']} call {call['call_index']}: conditional case lacks a compatible promotion")
+        for chunk in filter(None, call.get("policy_chunk_ids", "").split("|")):
+            if chunk not in policy_ids:
+                errors.append(f"{call['slot_id']} call {call['call_index']}: unknown policy chunk {chunk}")
+        if scenario_by_id.get(call["slot_id"], {}).get("hard_case_tag") == "version_conflict":
+            if not call.get("order_date") or not set(filter(None, call.get("policy_chunk_ids", "").split("|"))) & old_policy_ids:
+                errors.append(f"{call['slot_id']} call {call['call_index']}: old-policy case needs order_date and old-version chunks")
+        if call.get("blocked_policy_sources") and call.get("policy_chunk_ids"):
+            errors.append(f"{call['slot_id']} call {call['call_index']}: blocked policy source must not enter agent policy chunks")
+        if not call.get("promotion_code") and call.get("promotion_time_status") != "none":
+            errors.append(f"{call['slot_id']} call {call['call_index']}: promotion time status must be none without a promotion")
+        if call["expected_outcome"] not in {"hen_goi_lai", "chot_don", "chuyen_may", "tu_choi"}:
+            errors.append(f"{call['slot_id']} call {call['call_index']}: invalid outcome {call['expected_outcome']}")
+    for scenario in scenarios:
+        own = sorted(by_slot.get(scenario["slot_id"], []), key=lambda c: int(c["call_index"]))
+        if len(own) < 1:
+            errors.append(f"{scenario['slot_id']}: no calls")
+        if [int(c["call_index"]) for c in own] != list(range(1, len(own) + 1)):
+            errors.append(f"{scenario['slot_id']}: call_index must be continuous from 1")
+        if scenario.get("hard_case_tag") == "shared_phone":
+            ids = {c["customer_id"] for c in own}
+            if len(own) < 2 or len(ids) < 2 or not any(known.get(cid, {}).get("shared_phone_with") in ids for cid in ids):
+                errors.append(f"{scenario['slot_id']}: shared_phone needs two calls for linked CRM customers")
+        if scenario.get("hard_case_tag") == "source_gap_product_exchange":
+            if any(c.get("expected_outcome") != "tu_choi" or c.get("policy_chunk_ids") for c in own):
+                errors.append(f"{scenario['slot_id']}: source-gap exchange must not assert an order action or unsupported policy")
+        if scenario.get("hard_case_tag") == "product_exchange_refund_difference" and scenario.get("level") == "M2":
+            for call in own:
+                crm_orders = known.get(call["customer_id"], {}).get("orders", [])
+                matching = next((o for o in crm_orders if o.get("order_id") == call.get("crm_order_id") and o.get("status") == "delivered" and o.get("sku") == call.get("existing_order_sku")), None)
+                chunks = set(filter(None, call.get("policy_chunk_ids", "").split("|")))
+                if not matching or not {"DT-03", "DT-04"}.issubset(chunks):
+                    errors.append(f"{scenario['slot_id']} call {call['call_index']}: exchange needs a matching delivered CRM order and DT-03/DT-04 source")
+    enabled = set(s.get("level", "M1") for s in scenarios) if include_all_levels else set(load_dataset_config().get("generation", {}).get("include_levels", ["M1"]))
+    for level in dict.fromkeys(s.get("level", "M1") for s in scenarios if s.get("level", "M1") in enabled):
+        counts = Counter(c["expected_outcome"] for c in calls if next((s["level"] for s in scenarios if s["slot_id"] == c["slot_id"]), "") == level)
+        for outcome in ("hen_goi_lai", "chot_don", "chuyen_may", "tu_choi"):
+            if counts[outcome] < outcome_floor:
+                errors.append(f"{level}: {outcome} quota {counts[outcome]} < {outcome_floor}")
+    return errors
+
+
+def migrate_legacy_matrix(matrix_path: Path, briefs_dir: Path) -> tuple[int, int]:
+    """Split a reviewed legacy matrix into scenario and per-call CSVs in place."""
+    with matrix_path.open(newline="", encoding="utf-8-sig") as stream:
+        reader = csv.DictReader(stream)
+        if "call_index" not in (reader.fieldnames or []) and set(SCENARIO_COLUMNS).issubset(set(reader.fieldnames or [])):
+            raise ValueError("Matrix already uses the scenario-level schema; refusing to migrate it again")
+        legacy = list(reader)
+    scenarios: list[dict[str, str]] = []
+    calls: list[dict[str, str]] = []
+    for row in legacy:
+        scenarios.append({key: row.get(key, "") for key in SCENARIO_COLUMNS})
+        brief_path = briefs_dir / f"{row['slot_id']}.json"
+        brief = json.loads(brief_path.read_text(encoding="utf-8")) if brief_path.exists() else None
+        brief_calls = (brief or {}).get("calls", [])
+        count = int(row.get("num_calls") or len(brief_calls) or 1)
+        legacy_channels = row.get("channel_pattern", "hotline").split("-")
+        promo_codes = [x for x in row.get("promo_codes_in_play", "").split("|") if x]
+        policy_chunks = [x for x in row.get("policy_chunk_ids", "").split("|") if x]
+        for index in range(1, count + 1):
+            old = next((c for c in brief_calls if int(c.get("call_index", 0)) == index), {})
+            customer_id = old.get("customer_id") or (brief or {}).get("customer_id") or row.get("customer_id", "")
+            products = old.get("products", [])
+            if not products:
+                pool = _products_for_industry(row.get("nganh", ""))
+                products = [{"sku": pool[(int(row.get("case_number", 1)) + index - 1) % len(pool)]["sku"], "qty": 1}] if pool else []
+            promo_call = old.get("promo_codes_in_play", promo_codes)
+            if isinstance(promo_call, list):
+                promo_call = promo_call[0] if promo_call else ""
+            outcome = old.get("expected_outcome")
+            if outcome not in {"hen_goi_lai", "chot_don", "chuyen_may", "tu_choi"}:
+                tag = row.get("hard_case_tag", "")
+                outcome = "chuyen_may" if tag in {"three_channel_price_conflict", "inventory_runs_out_at_close", "price_pressure_internal_floor"} and index == count else "tu_choi" if tag in {"unanswerable", "restricted", "multi_product_cod_budget", "ai_identity_data_deletion"} else "hen_goi_lai" if index < count or tag in {"order_in_transit", "three_call_order_status", "callback_holiday"} else "chot_don"
+            facts = old.get("facts_to_establish", {})
+            calls.append({
+                "slot_id": row["slot_id"], "call_index": str(index), "customer_id": customer_id,
+                "channel": old.get("channel") or legacy_channels[min(index - 1, len(legacy_channels) - 1)],
+                "products_json": json.dumps(products, ensure_ascii=False),
+                "story_hint": old.get("story_hint") or story_hint_for_call(row.get("story_hints", ""), index),
+                "expected_outcome": outcome, "promotion_code": promo_call or "",
+                "promotion_time_status": promotion_time_status(promo_call) if promo_call else "none",
+                "promotion_condition_focus": "variant_size_43" if row.get("hard_case_tag") == "size_excluded_promotion" else "eligibility_failure" if row.get("hard_case_tag") == "promo_condition_fail" else "none",
+                "policy_chunk_ids": "|".join(old.get("policy_chunk_ids", policy_chunks) or []),
+                "policy_case_type": row.get("policy_situation", "none"),
+                "order_date": facts.get("purchase_date", ""),
+                "crm_order_id": facts.get("existing_order_id", ""),
+                "existing_order_sku": facts.get("existing_order_sku", ""),
+                "blocked_policy_sources": "|".join(discovered_data()["blocked_policy_sources"]) if row.get("hard_case_tag") == "restricted" else "",
+            })
+    matrix_path.with_name("coverage_calls.csv").parent.mkdir(parents=True, exist_ok=True)
+    with matrix_path.with_name("coverage_calls.csv").open("w", newline="", encoding="utf-8-sig") as stream:
+        writer = csv.DictWriter(stream, fieldnames=CALL_COLUMNS); writer.writeheader(); writer.writerows(calls)
+    with matrix_path.open("w", newline="", encoding="utf-8-sig") as stream:
+        writer = csv.DictWriter(stream, fieldnames=SCENARIO_COLUMNS); writer.writeheader(); writer.writerows(scenarios)
+    return len(scenarios), len(calls)
 
 
 def sync_regions(path: Path) -> int:
@@ -602,7 +914,7 @@ def sync_regions(path: Path) -> int:
         with path.open("w", newline="", encoding="utf-8-sig") as stream:
             writer = csv.DictWriter(stream, fieldnames=COLUMNS)
             writer.writeheader()
-            writer.writerows(rows)
+            writer.writerows([{key: row.get(key, "") for key in SCENARIO_COLUMNS} for row in rows])
     print(f"Synchronized {changed} matrix region(s) from CRM -> {path}")
     return changed
 
@@ -633,7 +945,7 @@ def _report_level(rows: list[dict[str, str]], level: str, target: dict[str, Any]
         ok &= passed
         print(f"    [{'OK' if passed else 'MISSING'}] {label}: {actual:g} (need >= {minimum:g})")
 
-    print(f"  {level}: {len(level_rows)} planned slots; briefed={sum(r.get('status') != 'todo' for r in level_rows)}")
+    print(f"  {level}: {len(level_rows)} planned slots; briefed={sum(r.get('status') not in {'todo', 'source_gap'} for r in level_rows)}")
     check("transcripts", calls, target.get("transcripts_min", 0))
     check("multi-session customers", len(multi_session_customers), target.get("multi_session_customers_min", 0))
     check("multi-channel customers", len(multichannel_customers), target.get("multichannel_customers_min", 0))
@@ -672,6 +984,26 @@ def report(config: dict[str, Any], path: Path, dataset_config: dict[str, Any] | 
         or dataset_config.get("ordering", {}).get("levels", ["M1"])
     )
     active_rows = [r for r in rows if r.get("level", "M1") in enabled_levels]
+    calls_path = path.with_name("coverage_calls.csv")
+    if calls_path.exists():
+        plan_slots = {r["slot_id"] for r in rows}
+        call_rows = [c for c in read_call_rows(calls_path) if c["slot_id"] in plan_slots]
+        print("Outcome by call (level / layer / hard-case / outcome):")
+        scenario_lookup = {r["slot_id"]: r for r in rows}
+        groups: dict[tuple[str, str, str], Counter[str]] = {}
+        for call in call_rows:
+            scenario = scenario_lookup[call["slot_id"]]
+            key = (scenario["level"], scenario["layer"], scenario.get("hard_case_tag", "") or "baseline")
+            groups.setdefault(key, Counter())[call["expected_outcome"]] += 1
+        for (level, layer, tag), outcome_counts in sorted(groups.items()):
+            print(f"  {level}/{layer}/{tag}: " + ", ".join(f"{outcome}={outcome_counts[outcome]}" for outcome in ("chot_don", "hen_goi_lai", "chuyen_may", "tu_choi")))
+        print("Outcome totals by level:")
+        for level in sorted({r["level"] for r in rows}):
+            counts = Counter(c["expected_outcome"] for c in call_rows if scenario_lookup[c["slot_id"]]["level"] == level)
+            floor_status = "OK" if all(counts[outcome] >= int(config.get("quotas", {}).get("per_outcome_calls_min", 10)) for outcome in ("chot_don", "hen_goi_lai", "chuyen_may", "tu_choi")) else "MISSING"
+            if level not in enabled_levels:
+                floor_status = "DEFERRED" if floor_status != "OK" else "OK"
+            print(f"  {level} [{floor_status}]: " + ", ".join(f"{outcome}={counts[outcome]}" for outcome in ("chot_don", "hen_goi_lai", "chuyen_may", "tu_choi")))
     print("Artifact states:")
     for status in ("todo", "briefed", "generated_dry_run", "generated_llm", "validated", "dropped"):
         count = sum(r.get("status", "todo") == status for r in active_rows)
@@ -723,7 +1055,7 @@ def track(matrix: Path, briefs: Path, scenarios: Path, raw: Path, audio: Path | 
     """Refresh artifact status without changing the reviewed planning matrix."""
     rows = read_rows(matrix)
     for row in rows:
-        if row["status"] == "dropped":
+        if row["status"] in {"dropped", "source_gap"}:
             continue
         sid = row["slot_id"]
         brief_path = briefs / f"{sid}.json"
@@ -785,7 +1117,7 @@ def track(matrix: Path, briefs: Path, scenarios: Path, raw: Path, audio: Path | 
     with out.open("w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows([{key: row.get(key, "") for key in SCENARIO_COLUMNS} for row in rows])
     print(f"Tracking refreshed: {out}")
 
 
@@ -795,8 +1127,9 @@ def _products_for_industry(industry: str) -> list[dict[str, Any]]:
         product for product in products
         if product.get("category", "").split("/", 1)[0] == industry
         and not product.get("discontinued")
+        and not product.get("attributes", {}).get("discontinued")
     ]
-    return matches or products
+    return matches
 
 
 def _teencode_level(case_number: int, *, hard_case: bool = False) -> str:
@@ -853,7 +1186,7 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
     promo_codes = [code for code in row.get("promo_codes_in_play", "").split("|") if code]
     policy_chunks = [chunk for chunk in row.get("policy_chunk_ids", "").split("|") if chunk]
     no_info = tag == "unanswerable"
-    no_order = tag in {"multi_product_cod_budget", "ai_identity_data_deletion"}
+    no_order = tag in {"multi_product_cod_budget", "ai_identity_data_deletion", "source_gap_product_exchange"}
     restricted = tag == "restricted"
     handoff = tag in {"three_channel_price_conflict", "inventory_runs_out_at_close", "price_pressure_internal_floor"}
     crm_customers = load_json("catalog/crm_seed.json")["customers"]
@@ -906,10 +1239,16 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
             facts["customer_history_months"] = 8
         if tag == "three_channel_price_conflict":
             facts["prior_channel_quotes_differ"] = True
-        if tag == "size_excluded_promotion":
+        if tag in {"size_excluded_promotion", "promo_condition_fail"}:
             facts["requested_variant_size"] = 43
         if tag == "version_conflict":
             facts["purchase_date"] = "2026-06-15"
+        if tag == "product_exchange_refund_difference":
+            delivered_order = next((o for o in customer.get("orders", []) if o.get("status") == "delivered"), None)
+            if not delivered_order:
+                raise ValueError(f"{row['slot_id']}: product exchange requires a delivered CRM order")
+            facts["existing_order_id"] = delivered_order.get("order_id", "")
+            facts["existing_order_sku"] = delivered_order.get("sku", "")
         if index == 1:
             facts["blocker"] = "can hoi con gai" if tag == "shared_phone" else "can hoi nguoi nha" if tag in {"teencode", "promo_condition_fail"} else "dang can nhac"
         else:
@@ -941,7 +1280,7 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
                     "order.create", "order.update", "order.status",
                     "schedule.callback", "handoff.transfer",
                 ],
-                "must_say_any": ["chưa có thông tin"] if no_info else ["không thể cung cấp"],
+                "must_say_any": ["chưa có thông tin"] if no_info or tag == "source_gap_product_exchange" else ["không thể cung cấp"],
             }
 
         call_story = story_hint_for_call(row.get("story_hints", ""), index)
@@ -1007,6 +1346,10 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
 def stubs(matrix: Path, out_dir: Path, *, overwrite: bool = False) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     made = 0
+    call_rows = read_call_rows(matrix.with_name("coverage_calls.csv")) if matrix.with_name("coverage_calls.csv").exists() else []
+    calls_by_slot: dict[str, list[dict[str, str]]] = {}
+    for call_row in call_rows:
+        calls_by_slot.setdefault(call_row["slot_id"], []).append(call_row)
     for row in read_rows(matrix):
         if row["status"] == "dropped":
             continue
@@ -1018,6 +1361,50 @@ def stubs(matrix: Path, out_dir: Path, *, overwrite: bool = False) -> None:
         if customer is None:
             raise ValueError(f"{row['slot_id']}: assign a valid CRM customer_id before creating stubs")
         brief = _brief_for_row(row, customer, _products_for_industry(row["nganh"]))
+        # The call-level CSV is authoritative. Replace all per-call fields in
+        # the deterministic stub from it rather than re-deriving assignments.
+        customer_by_id = {c["customer_id"]: c for c in crm_rows}
+        for call in brief["calls"]:
+            assigned = next((c for c in calls_by_slot.get(row["slot_id"], []) if int(c["call_index"]) == call["call_index"]), None)
+            if not assigned:
+                continue
+            call_customer = customer_by_id[assigned["customer_id"]]
+            channel = assigned["channel"]
+            identity_field = {"zalo_oa": "zalo_id", "chat_fanpage": "fb_id"}.get(channel, "phone")
+            call["customer_id"] = assigned["customer_id"]
+            call["channel"] = channel
+            call["channel_identity"] = call_customer.get(identity_field)
+            call["products"] = json.loads(assigned["products_json"])
+            call["story_hint"] = assigned["story_hint"]
+            call["expected_outcome"] = assigned["expected_outcome"]
+            if row.get("hard_case_tag") == "shared_phone":
+                call.setdefault("facts_to_establish", {})["caller_identity"] = call_customer.get("name", "")
+            call["promo_codes_in_play"] = [assigned["promotion_code"]] if assigned.get("promotion_code") else []
+            call["policy_chunk_ids"] = [x for x in assigned.get("policy_chunk_ids", "").split("|") if x]
+            if assigned.get("order_date"):
+                call.setdefault("facts_to_establish", {})["purchase_date"] = assigned["order_date"]
+            if assigned.get("crm_order_id"):
+                call.setdefault("facts_to_establish", {})["existing_order_id"] = assigned["crm_order_id"]
+                call["facts_to_establish"]["existing_order_sku"] = assigned.get("existing_order_sku", "")
+            if row.get("hard_case_tag") == "product_exchange_refund_difference":
+                call["success_if"] = {"tool_called": "order.update"}
+                call.setdefault("facts_to_establish", {})["exchange_requested"] = True
+            elif row.get("hard_case_tag") == "callback_holiday":
+                callback_at = "2026-10-26T09:00"
+                call["callback_at"] = callback_at
+                call.setdefault("facts_to_establish", {})["callback_requested_at"] = callback_at
+                call["expected_outcome"] = "hen_goi_lai"
+                call["success_if"] = {"tool_called": "schedule.callback", "args_match": {"callback_at": callback_at}}
+            elif assigned["expected_outcome"] == "chuyen_may":
+                call["success_if"] = {"tool_called": "handoff.transfer"}
+            elif assigned["expected_outcome"] == "chot_don":
+                first_product = call["products"][0]
+                call["success_if"] = {"tool_called": "order.create", "args_match": {"sku": first_product["sku"], "qty": first_product.get("qty", 1), "payment": "COD"}}
+            elif assigned["expected_outcome"] == "hen_goi_lai" and call["success_if"].get("tool_called") != "order.status":
+                call["success_if"] = {"tool_called": "schedule.callback"}
+        if calls_by_slot.get(row["slot_id"]):
+            brief["customer_id"] = calls_by_slot[row["slot_id"]][0]["customer_id"]
+            brief["channel"] = calls_by_slot[row["slot_id"]][0]["channel"]
         path.write_text(json.dumps(brief, ensure_ascii=False, indent=2), encoding="utf-8")
         made += 1
     print(f"Generated {made} brief stubs in {out_dir}")
@@ -1025,7 +1412,7 @@ def stubs(matrix: Path, out_dir: Path, *, overwrite: bool = False) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["generate", "report", "stubs", "track", "sync-regions", "sync-context"])
+    parser.add_argument("command", choices=["generate", "report", "stubs", "track", "sync-regions", "sync-context", "validate", "migrate"])
     parser.add_argument("--config", type=Path, default=Path(__file__).with_name("matrix_config.json"))
     parser.add_argument("--matrix", type=Path, default=REPORTS_DIR / "coverage_matrix.csv")
     parser.add_argument("--out", type=Path)
@@ -1034,6 +1421,7 @@ def main() -> None:
     parser.add_argument("--raw", type=Path, default=DATA_GEN_DIR / "raw")
     parser.add_argument("--audio", type=Path)
     parser.add_argument("--defer-audio", action="store_true", help="Report non-audio coverage for a text-only generation phase")
+    parser.add_argument("--all-levels", action="store_true", help="Validate outcome floors in M2 planning rows as well as enabled artifact levels")
     parser.add_argument("--force", action="store_true", help="Replace an existing matrix or regenerate briefs")
     args = parser.parse_args()
 
@@ -1048,9 +1436,17 @@ def main() -> None:
         track(args.matrix, args.briefs, args.scenarios, args.raw, args.audio, args.out or REPORTS_DIR / "coverage_tracking.csv")
     elif args.command == "sync-regions":
         sync_regions(args.matrix)
-    else:
+    elif args.command == "sync-context":
         count = synchronize_context_assignments(args.matrix, args.briefs)
         print(f"Synchronized promotion/policy assignments for {count} matrix row(s)")
+    elif args.command == "migrate":
+        scenario_count, call_count = migrate_legacy_matrix(args.matrix, args.briefs)
+        print(f"Migrated {scenario_count} scenarios and {call_count} calls from reviewed matrix/briefs")
+    else:
+        errors = validate_matrix(args.matrix, outcome_floor=int(config.get("quotas", {}).get("per_outcome_calls_min", 10)), include_all_levels=args.all_levels)
+        if errors:
+            raise SystemExit("Matrix validation failed:\n- " + "\n- ".join(errors))
+        print(f"Matrix validation passed: {len(read_rows(args.matrix))} scenarios, {len(read_call_rows(args.matrix.with_name('coverage_calls.csv')))} calls")
 
 
 if __name__ == "__main__":

@@ -18,6 +18,8 @@ from data_gen.gen_dialogue import generate_turn_array, generation_payload, gener
 from data_gen.gen_dialogue import make_asr_turns
 from data_gen.coverage_matrix.make_coverage_matrix import (
     _brief_for_row, _policy_chunks_for, _products_for_industry, _promo_codes_for, discovered_data,
+    CALL_COLUMNS, SCENARIO_COLUMNS, generate as generate_coverage_matrix, load_config,
+    read_call_rows, validate_matrix,
 )
 from data_gen.coverage_matrix.make_coverage_matrix import sync_regions
 from data_gen.pipeline import validate_btc_contracts, validate_scenario_contract
@@ -119,7 +121,7 @@ def test_facts_match_mock_for_expired_promo():
     assert "AP-SEP" in quote["expired_promos"]
 
 
-def test_ground_truth_projects_each_product_promo_and_policy_without_overwrite():
+def test_ground_truth_matches_public_sample_promo_contract():
     pack = {
         "promo_codes_in_play": ["AIR-OCT", "11-11"],
         "requested_policy_chunk_ids": ["KM-01"],
@@ -132,14 +134,22 @@ def test_ground_truth_projects_each_product_promo_and_policy_without_overwrite()
         ],
     }
     facts = derive_ground_truth(pack)
-    assert facts["promo_codes_in_play"] == ["AIR-OCT", "11-11"]
+    assert facts["promo_active"] is False
+    assert not any(key.startswith("promo_") and key != "promo_active" for key in facts)
     assert facts["policy_chunk_ids"] == ["KM-01"]
     assert facts["policy_evidence"] == pack["policy"]
-    assert facts["promo_AIR-OCT_product_1_eligible"] is False
-    assert facts["promo_AIR-OCT_product_2_eligible"] is True
-    assert facts["promo_11-11_status"] == "not_started"
     assert facts["product_1_price_vnd"] == 90 and facts["product_2_price_vnd"] == 180
     assert facts["product_2_freeship"] is True
+
+
+def test_ground_truth_promo_active_is_true_only_when_quote_applies_promo():
+    pack = {"products": [
+        {"quote": {"applied_promos": [{"promo_code": "AIR-OCT"}]}, "inventory": {}},
+        {"quote": {"applied_promos": []}, "inventory": {}},
+    ]}
+    facts = derive_ground_truth(pack)
+    assert facts["promo_active"] is True
+    assert set(key for key in facts if key.startswith("promo_")) == {"promo_active"}
 
 
 def test_pricing_address_uses_customer_region_only_when_call_has_no_address():
@@ -244,6 +254,17 @@ def test_autocheck_validates_generated_artifacts_without_agent_response():
     turns = ["Tôi muốn hỏi thêm.", "Nhà tôi đang cần tư vấn.", "Tôi đang cân nhắc.", "Để tôi xem lại."]
     raw = {c["call_index"]: {"customer_turns": turns} for c in b["calls"]}
     scenario = assemble_scenario(b, raw, packs)
+    applied_codes = list(dict.fromkeys(
+        promo["promo_code"]
+        for pack in packs.values()
+        for product in pack.get("products", [])
+        for promo in product.get("quote", {}).get("applied_promos", [])
+    ))
+    if applied_codes:
+        recorded = scenario["calls"]["call_1"]["facts_established"].get("promo_code")
+        assert recorded in applied_codes or set(recorded or []) == set(applied_codes)
+    assert scenario["calls"]["call_1"]["ground_truth_facts"]["promo_active"] is bool(applied_codes)
+    assert not any(key.startswith("promo_") and key != "promo_active" for key in scenario["calls"]["call_1"]["ground_truth_facts"])
     with tempfile.TemporaryDirectory(dir=ROOT / "data_gen" / "tests") as temp:
         tmp_path = Path(temp)
         dirs = [tmp_path / name for name in ("scenarios", "briefs", "packs", "raw")]
@@ -540,3 +561,24 @@ def test_generated_scenarios_match_public_sample_contract():
     finally:
         path.unlink(missing_ok=True)
         scenarios.rmdir()
+
+
+def test_coverage_matrix_generation_is_deterministic_and_split_by_call(tmp_path):
+    config_path = ROOT / "data_gen" / "coverage_matrix" / "matrix_config.json"
+    config = load_config(config_path)
+    matrix_a = tmp_path / "a" / "coverage_matrix.csv"
+    matrix_b = tmp_path / "b" / "coverage_matrix.csv"
+    generate_coverage_matrix(config, matrix_a)
+    generate_coverage_matrix(config, matrix_b)
+    assert matrix_a.read_bytes() == matrix_b.read_bytes()
+    calls_a = matrix_a.with_name("coverage_calls.csv")
+    calls_b = matrix_b.with_name("coverage_calls.csv")
+    assert calls_a.read_bytes() == calls_b.read_bytes()
+    with matrix_a.open(encoding="utf-8-sig", newline="") as stream:
+        assert set(next(csv.DictReader(stream))) == set(SCENARIO_COLUMNS)
+    assert set(read_call_rows(calls_a)[0]) == set(CALL_COLUMNS)
+
+
+def test_reviewed_coverage_matrix_satisfies_call_contracts():
+    matrix = ROOT / "data_gen" / "reports" / "coverage_matrix.csv"
+    assert validate_matrix(matrix) == []

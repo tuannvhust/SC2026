@@ -1,5 +1,26 @@
 # Coverage matrix cho data generation
 
+## Scenario / call matrix (current contract)
+
+`reports/coverage_matrix.csv` contains scenario-level metadata only. Per-call assignments live in `reports/coverage_calls.csv`; each `slot_id` plus `call_index` identifies a call. The call table is the source of truth for CRM customer, channel, products, story, expected outcome, promotion timing/condition, and policy references. `stubs` reads these assignments directly.
+
+The old combined matrix can be migrated once, preserving reviewed IDs and using existing briefs where available:
+
+```powershell
+python -m data_gen.coverage_matrix.make_coverage_matrix migrate `
+  --matrix data_gen/reports/coverage_matrix.csv `
+  --briefs data_gen/briefs/
+```
+
+Then validate the CRM/catalog/policy links, continuous call indexes, shared-phone pairs, and the M1 outcome floor:
+
+```powershell
+python -m data_gen.coverage_matrix.make_coverage_matrix validate
+python -m data_gen.coverage_matrix.make_coverage_matrix report --defer-audio
+```
+
+Outcome counts are reported by level, layer, hard-case tag, and call. The configured floor is 10 calls per outcome in each enabled level. M2 remains disabled in `dataset_config.json` until the M1 gate is met; M2 planning rows do not cause M2 artifacts to be generated.
+
 ## Contract đang chạy
 
 Matrix là kế hoạch theo số lượng slot. `stubs` chuyển hard-case tag thành brief có tình huống, facts và điều kiện chấm; `lint_briefs` kiểm tra nội dung cấu trúc đó. Một tag được đếm trong matrix chưa có nghĩa scenario đã thể hiện đúng case.

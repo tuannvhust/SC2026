@@ -62,37 +62,31 @@ def derive_ground_truth(pack: dict) -> dict:
         "price_vnd": quote.get("final_price_vnd"),
         "list_price_vnd": quote.get("list_price_vnd"),
         "in_stock": inventory.get("in_stock"),
+        # Match the BTC public_sample contract: one boolean, not per-promotion
+        # details or a dump of every promotion considered by the quote tool.
+        "promo_active": any(
+            bool((item.get("quote") or {}).get("applied_promos"))
+            for item in products
+        ),
     }
     if inventory.get("restock_expected") is not None:
         result["restock_date"] = inventory["restock_expected"]
     if "freeship" in quote:
         result["freeship"] = quote["freeship"]
-    result["promo_codes_in_play"] = list(pack.get("promo_codes_in_play", []))
     result["policy_chunk_ids"] = [item.get("chunk_id") for item in pack.get("policy", [])]
     result["policy_evidence"] = list(pack.get("policy", []))
-    for index, item in enumerate(products, start=1):
-        item_quote = item.get("quote", {})
-        result[f"product_{index}_sku"] = item.get("sku")
-        result[f"product_{index}_qty"] = item.get("qty", 1)
-        result[f"product_{index}_price_vnd"] = item_quote.get("final_price_vnd")
-        result[f"product_{index}_list_price_vnd"] = item_quote.get("list_price_vnd")
-        result[f"product_{index}_in_stock"] = item.get("inventory", {}).get("in_stock")
-        if "freeship" in item_quote:
-            result[f"product_{index}_freeship"] = item_quote["freeship"]
-        for evidence in item.get("promotion_evidence", []):
-            code = evidence["promo_code"]
-            result[f"promo_{code}_product_{index}_active"] = evidence.get("active")
-            result[f"promo_{code}_product_{index}_eligible"] = evidence.get("eligible")
-            result[f"promo_{code}_product_{index}_status"] = evidence.get("status")
-            if evidence.get("reason") is not None:
-                result[f"promo_{code}_product_{index}_reason"] = evidence["reason"]
-            if index == 1:
-                result[f"promo_{code}_active"] = evidence.get("active")
-                result[f"promo_{code}_eligible"] = evidence.get("eligible")
-                result[f"promo_{code}_status"] = evidence.get("status")
-                if evidence.get("reason") is not None:
-                    result[f"promo_{code}_reason"] = evidence["reason"]
     return result
+
+
+def applied_promo_codes(pack: dict) -> list[str]:
+    """Return only promotion codes actually applied by the deterministic quote."""
+    codes = []
+    for item in pack.get("products", []):
+        for promo in (item.get("quote") or {}).get("applied_promos", []):
+            code = promo.get("promo_code")
+            if code and code not in codes:
+                codes.append(code)
+    return codes
 
 
 def assemble_scenario(
@@ -156,6 +150,9 @@ def assemble_scenario(
         for item in pack.get("products", []):
             previous_facts["product_advised"] = item.get("sku")
             previous_facts["price_quoted_vnd"] = item.get("quote", {}).get("final_price_vnd")
+        applied_promos = applied_promo_codes(pack)
+        if applied_promos:
+            previous_facts["promo_code"] = applied_promos[0] if len(applied_promos) == 1 else applied_promos
         call_out["facts_established"] = previous_facts.copy()
         for field in (
             "expected_outcome", "must_carry_over", "must_not_ask", "success_if", "seed_history", "memory_expectation",
