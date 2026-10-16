@@ -134,6 +134,21 @@ def _customer_text(call: dict) -> str:
     return f"{clean_text}\n{asr_text}".strip()
 
 
+def _ground_truth_matches(call: dict, fact_pack: dict) -> bool:
+    """Validate only explicitly supplied ground-truth assertions.
+
+    The field is optional in the scenario contract, and when present it may
+    intentionally contain a subset of the facts derivable from the fact pack.
+    """
+    if "ground_truth_facts" not in call:
+        return True
+    supplied = call.get("ground_truth_facts")
+    if not isinstance(supplied, dict):
+        return False
+    derived = derive_ground_truth(fact_pack)
+    return all(key in derived and derived[key] == value for key, value in supplied.items())
+
+
 def _error(rows: list[dict], sid: str, call_index: str, code: str, message: str,
            excerpt: str = "", hard: bool = True) -> None:
     # Exception details may be English or expose local filesystem paths.
@@ -310,8 +325,8 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
                 if pack.get("brief_id") != sid or str(pack.get("call_index")) != idx:
                     _error(rows, sid, idx, "E2_FACT_PACK_ID_MISMATCH", "fact pack brief/call ID mismatch")
                 try:
-                    if call.get("ground_truth_facts") != derive_ground_truth(pack):
-                        _error(rows, sid, idx, "E2_GROUND_TRUTH_MISMATCH", "ground_truth_facts differs from deterministic fact pack")
+                    if not _ground_truth_matches(call, pack):
+                        _error(rows, sid, idx, "E2_GROUND_TRUTH_MISMATCH", "a supplied ground_truth_facts assertion differs from the deterministic fact pack")
                     if call.get("success_if") != derive_success_if(spec, pack):
                         _error(rows, sid, idx, "E2_SUCCESS_IF_MISMATCH", "success_if differs from brief/fact pack")
                 except Exception as exc:
