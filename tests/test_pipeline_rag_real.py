@@ -42,6 +42,9 @@ def run(query: str) -> int:
     started = time.perf_counter()
     route_result = route(query)
     _print_stage("1. ROUTER", route_result)
+    if route_result.get("status") == "error":
+        print("\nRouter không thể phân tích câu hỏi; dừng pipeline.", file=sys.stderr)
+        return 1
     if route_result.get("early_response"):
         _print_stage("FINAL ANSWER", route_result["early_response"])
         return 0
@@ -52,11 +55,39 @@ def run(query: str) -> int:
     metadata = route_result.get("metadata", {})
     if route_result.get("collection") == "products":
         documents = engine.search_products(
-            rewritten, top_k=5, category=metadata.get("category"),
-            in_stock_only=metadata.get("in_stock_only", False),
-            min_price=metadata.get("min_price"),
-            max_price=metadata.get("max_price"),
+            rewritten,
+            top_k=30 if any(
+                (
+                    metadata.get("in_stock_only", False),
+                    metadata.get("min_price") is not None,
+                    metadata.get("max_price") is not None,
+                    metadata.get("room_area_m2") is not None,
+                )
+            ) else 5,
+            category=metadata.get("category"),
         )
+        room_area = metadata.get("room_area_m2")
+        if room_area is not None:
+            from src.memory.semantic_rag.orchestrator import _supports_room_area
+
+            documents = [
+                document
+                for document in documents
+                if _supports_room_area(document, float(room_area))
+            ]
+        if (
+            metadata.get("in_stock_only", False)
+            or metadata.get("min_price") is not None
+            or metadata.get("max_price") is not None
+        ):
+            from src.tools.tool_repository import filter_catalog_candidates
+
+            documents = filter_catalog_candidates(
+                documents,
+                min_price_vnd=metadata.get("min_price"),
+                max_price_vnd=metadata.get("max_price"),
+                in_stock_only=metadata.get("in_stock_only", False),
+            )
     else:
         documents = engine.search_policies(rewritten, top_k=5)
     _print_stage("3. GEMINI + QDRANT RETRIEVAL", documents)
@@ -77,7 +108,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "query", nargs="?",
-        default="Mình muốn mua máy lọc không khí dưới 10 triệu còn hàng",
+        default="Tìm cho mình máy lọc không khí phòng 30m2 dưới 5 triệu",
     )
     args = parser.parse_args()
     try:

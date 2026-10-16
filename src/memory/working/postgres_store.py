@@ -216,6 +216,41 @@ class PostgresMemoryStore:
             for row in rows
         ]
 
+    def update_session_customer_id(
+        self, session_id: str, customer_id: str
+    ) -> None:
+        """Backfill a resolved customer ID across every turn in a session."""
+        with self.engine.begin() as connection:
+            rows = connection.execute(
+                text(
+                    """
+                    SELECT event_id, payload_json FROM working_events
+                    WHERE session_id = :session_id
+                    """
+                ),
+                {"session_id": session_id},
+            ).mappings().all()
+            for row in rows:
+                payload = json.loads(row["payload_json"])
+                identity = payload.setdefault("identity", {})
+                identity["customer_id"] = customer_id
+                connection.execute(
+                    text(
+                        """
+                        UPDATE working_events
+                        SET customer_id = :customer_id, payload_json = :payload_json
+                        WHERE event_id = :event_id
+                        """
+                    ),
+                    {
+                        "customer_id": customer_id,
+                        "payload_json": json.dumps(
+                            payload, ensure_ascii=False, separators=(",", ":")
+                        ),
+                        "event_id": row["event_id"],
+                    },
+                )
+
     def save_episode(
         self,
         *,

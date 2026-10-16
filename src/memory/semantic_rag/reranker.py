@@ -29,7 +29,7 @@ class Reranker:
             self._model = CrossEncoder(
                 self.model_name,
                 device="cpu",
-                automodel_args={"local_files_only": True},
+                model_kwargs={"local_files_only": True},
             )
         return self._model
 

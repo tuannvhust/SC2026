@@ -55,7 +55,7 @@ def route_after_persist_turn(
     return "persist_call" if state.get("session_ended", False) else END
 
 
-def build_graph():
+def build_graph(checkpointer=None):
     workflow = StateGraph(AgentState)
 
     workflow.add_node("input_guardrail", input_guardrail_node)
@@ -96,7 +96,87 @@ def build_graph():
         {"persist_call": "persist_call", END: END},
     )
     workflow.add_edge("persist_call", END)
-    return workflow.compile()
+    return workflow.compile(checkpointer=checkpointer)
 
 
-graph = build_graph()
+class GraphRuntime:
+    """Stable graph handle that can receive its persistent checkpointer at startup."""
+
+    def __init__(self):
+        self._graph = build_graph()
+        self.checkpointer_enabled = False
+
+    def invoke(self, *args, **kwargs):
+        return self._graph.invoke(*args, **kwargs)
+
+    def astream(self, *args, **kwargs):
+        return self._graph.astream(*args, **kwargs)
+
+    def install_checkpointer(self, checkpointer):
+        self._graph = build_graph(checkpointer=checkpointer)
+        self.checkpointer_enabled = True
+
+
+graph = GraphRuntime()
+
+_checkpointer_pool = None
+_async_checkpointer_pool = None
+
+
+def initialize_graph_checkpointer() -> None:
+    """Connect LangGraph checkpoints to the configured PostgreSQL database."""
+    global _checkpointer_pool
+    if graph.checkpointer_enabled:
+        return
+
+    from langgraph.checkpoint.postgres import PostgresSaver
+    from psycopg_pool import ConnectionPool
+
+    from src.memory.working.postgres_store import default_database_url
+
+    _checkpointer_pool = ConnectionPool(
+        conninfo=default_database_url(),
+        kwargs={"autocommit": True, "prepare_threshold": 0},
+        open=True,
+    )
+    checkpointer = PostgresSaver(_checkpointer_pool)
+    checkpointer.setup()
+    graph.install_checkpointer(checkpointer)
+
+
+def close_graph_checkpointer() -> None:
+    global _checkpointer_pool
+    if _checkpointer_pool is not None:
+        _checkpointer_pool.close()
+        _checkpointer_pool = None
+    graph.checkpointer_enabled = False
+
+
+async def initialize_graph_async_checkpointer() -> None:
+    """Install an async PostgreSQL checkpointer for graph.astream()."""
+    global _async_checkpointer_pool
+    if graph.checkpointer_enabled:
+        return
+
+    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+    from psycopg_pool import AsyncConnectionPool
+
+    from src.memory.working.postgres_store import default_database_url
+
+    _async_checkpointer_pool = AsyncConnectionPool(
+        conninfo=default_database_url(),
+        kwargs={"autocommit": True, "prepare_threshold": 0},
+        open=False,
+    )
+    await _async_checkpointer_pool.open()
+    checkpointer = AsyncPostgresSaver(_async_checkpointer_pool)
+    await checkpointer.setup()
+    graph.install_checkpointer(checkpointer)
+
+
+async def close_graph_async_checkpointer() -> None:
+    global _async_checkpointer_pool
+    if _async_checkpointer_pool is not None:
+        await _async_checkpointer_pool.close()
+        _async_checkpointer_pool = None
+    graph.checkpointer_enabled = False

@@ -1,14 +1,11 @@
 import json
 import logging
+import uuid
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
-from src.memory.semantic_rag.orchestrator import (
-    process_raw_query,
-    process_raw_query_stream,
-)
-from src.memory.semantic_rag.query_router import route
+from src.api.routers.graph_runner import invoke_customer_turn, response_from_graph
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -19,19 +16,44 @@ class ChatRequest(BaseModel):
     channel: Optional[str] = "chat"
     metadata: Optional[Dict[str, Any]] = None
     stream: bool = False
+    session_id: Optional[str] = None
+    turn_id: Optional[str] = None
+    session_ended: bool = False
 
 @router.post("/chat")
 def handle_chat(request: ChatRequest):
+    turn_id = request.turn_id or str(uuid.uuid4())
+
+    def run_turn():
+        state = invoke_customer_turn(
+            customer_id=request.customer_id,
+            session_id=request.session_id,
+            turn_id=turn_id,
+            message=request.message,
+            channel=request.channel or "web_chat",
+            customer_info=request.metadata,
+            session_ended=request.session_ended,
+        )
+        return response_from_graph(state)
+
     if request.stream:
         def stream_events():
             try:
-                for text in process_raw_query_stream(request.message):
-                    payload = json.dumps({"text": text}, ensure_ascii=False)
-                    yield f"data: {payload}\n\n"
-            except Exception:
+                response = run_turn()
+                payload = json.dumps(
+                    {"text": response["reply"], **response},
+                    ensure_ascii=False,
+                )
+                yield f"data: {payload}\n\n"
+            except Exception as exc:
                 logger.exception("Chat streaming pipeline failed")
                 payload = json.dumps(
-                    {"error": "Phản hồi bị gián đoạn. Vui lòng thử lại."},
+                    {
+                        "error": (
+                            "Phản hồi bị gián đoạn. Vui lòng thử lại. "
+                            f"({type(exc).__name__})"
+                        )
+                    },
                     ensure_ascii=False,
                 )
                 yield f"event: error\ndata: {payload}\n\n"
@@ -47,9 +69,4 @@ def handle_chat(request: ChatRequest):
             },
         )
 
-    route_result = route(request.message)
-    return {
-        "reply": process_raw_query(request.message),
-        "sources": [],
-        "intent": route_result["intent"]
-    }
+    return run_turn()

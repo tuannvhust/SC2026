@@ -13,7 +13,7 @@
       "discount_vnd": 0,
       "start": "2026-09-25",
       "end": "2026-10-22",
-      "stackable": false
+      "stackable": true
     },
     {
       "promo_code": "AIR-OCT",
@@ -38,7 +38,7 @@
       "discount_vnd": 0,
       "start": "2026-10-10",
       "end": "2026-11-14",
-      "stackable": false
+      "stackable": true
     },
     {
       "promo_code": "RUN-10",

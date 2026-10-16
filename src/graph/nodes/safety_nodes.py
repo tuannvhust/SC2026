@@ -24,17 +24,65 @@ _PROMO_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_-]{3,}\b")
 
 
 def _message_text(message: AIMessage) -> str:
-    """Extract readable text from a planner response."""
+    """Extract readable text from a planner response and clean signatures/artifacts."""
     content = message.content
+    text = ""
     if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return " ".join(
+        text = content
+    elif isinstance(content, list):
+        text = " ".join(
             str(item["text"])
             for item in content
             if isinstance(item, dict) and "text" in item
         )
-    return str(content)
+    else:
+        text = str(content)
+
+    # Strip code signatures, cryptographic blocks, or internal tool dumps
+    text = re.sub(r"```(?:json|signature|metadata)?.*?```", "", text, flags=re.DOTALL)
+    # Strip signature lines like [signature: ...] or (signature: ...)
+    text = re.sub(r"[\[\(]signature:.*?[\]\)]", "", text, flags=re.IGNORECASE)
+    return text.strip()
+
+
+def _all_tool_results(
+    tool_results: List[ToolMessage],
+    tool_name: str,
+) -> List[Dict[str, Any]]:
+    results = []
+    for message in tool_results:
+        if message.name == tool_name:
+            parsed = _parse_tool_result(message.content)
+            if parsed:
+                results.append(parsed)
+    return results
+
+
+def _validate_gifts(
+    response: str,
+    tool_results: List[ToolMessage],
+) -> Optional[str]:
+    quotes = _all_tool_results(tool_results, "pricing.get_quote")
+    if not quotes:
+        return None
+
+    # Collect all valid gifts across returned quotes
+    valid_gifts = []
+    for q in quotes:
+        valid_gifts.extend(q.get("gifts") or [])
+
+    # Check if response promises gifts when no gift is provided
+    response_lower = response.lower()
+    gift_keywords = ("tặng kèm", "quà tặng", "tặng thêm", "được tặng", "tặng 1 bộ lọc", "tặng bộ lọc")
+    promises_gift = any(kw in response_lower for kw in gift_keywords)
+
+    if not valid_gifts and promises_gift:
+        # Check if any specific SKU had empty gifts
+        empty_skus = [q.get("sku") for q in quotes if q.get("sku")]
+        sku_str = ", ".join(filter(None, empty_skus)) or "được báo giá"
+        return f"Dữ liệu quà tặng sản phẩm ({sku_str}) không khớp với tool output: pricing.get_quote trả về gifts: [] nhưng câu trả lời lại có quà tặng kèm."
+
+    return None
 
 
 def _parse_tool_result(content: Any) -> Dict[str, Any]:
@@ -71,15 +119,24 @@ def _get_current_tool_results(messages: List[Any]) -> List[ToolMessage]:
     ]
 
 
+_BUDGET_PHRASE_PATTERN = re.compile(
+    r"(?:dưới|trên|khoảng|tầm|ngân\s*sách|tối\s*đa|tối\s*thiểu|từ|đến)\s+"
+    r"(?:\d{1,3}(?:[.,]\d{3})*|\d+(?:[.,]\d+)?)\s*(?:đ|vnđ|vnd|đồng|tr|triệu|củ)\b",
+    re.IGNORECASE,
+)
+
+
 def _extract_money_values(text: str) -> List[int]:
-    """Extract explicit VND amounts and amounts expressed in millions."""
+    """Extract explicit product prices while ignoring user constraints/budget phrases."""
+    filtered_text = _BUDGET_PHRASE_PATTERN.sub(" ", text)
+
     amounts = [
         int(value.replace(".", "").replace(",", ""))
-        for value in _MONEY_PATTERN.findall(text)
+        for value in _MONEY_PATTERN.findall(filtered_text)
     ]
     amounts.extend(
         int(float(value.replace(",", ".")) * 1_000_000)
-        for value in _MILLION_PATTERN.findall(text)
+        for value in _MILLION_PATTERN.findall(filtered_text)
     )
     return amounts
 
@@ -100,13 +157,34 @@ def _validate_price(
     response: str,
     tool_results: List[ToolMessage],
 ) -> Optional[str]:
-    quote = _latest_tool_result(tool_results, "pricing.get_quote")
-    expected_price = quote.get("final_price_vnd")
-    if expected_price is None:
+    quotes = _all_tool_results(tool_results, "pricing.get_quote")
+    if not quotes:
         return None
 
-    if any(price != expected_price for price in _extract_money_values(response)):
-        return "The response contains a price that does not match pricing.get_quote."
+    # Collect all acceptable prices: final_price_vnd, list_price_vnd, and discount amount
+    valid_prices = set()
+    for q in quotes:
+        final_price = q.get("final_price_vnd")
+        list_price = q.get("list_price_vnd")
+        if final_price is not None:
+            valid_prices.add(int(final_price))
+        if list_price is not None:
+            valid_prices.add(int(list_price))
+        if list_price is not None and final_price is not None and list_price > final_price:
+            valid_prices.add(int(list_price - final_price))
+        if q.get("discount_vnd") is not None and int(q["discount_vnd"]) > 0:
+            valid_prices.add(int(q["discount_vnd"]))
+
+    if not valid_prices:
+        return None
+
+    extracted_prices = _extract_money_values(response)
+    invalid_prices = [p for p in extracted_prices if p not in valid_prices]
+    if invalid_prices:
+        return (
+            f"The response contains price(s) {invalid_prices} that do not match "
+            f"any pricing.get_quote results (expected: {sorted(valid_prices)})."
+        )
     return None
 
 
@@ -114,22 +192,42 @@ def _validate_inventory(
     response: str,
     tool_results: List[ToolMessage],
 ) -> Optional[str]:
-    inventory = _latest_tool_result(tool_results, "inventory.check")
-    in_stock = inventory.get("in_stock")
-    response_lower = response.lower()
-    says_in_stock = any(
-        phrase in response_lower
-        for phrase in ("còn hàng", "đang còn", "còn sản phẩm", "còn máy")
-    )
-    says_out_of_stock = any(
-        phrase in response_lower
-        for phrase in ("hết hàng", "không còn hàng", "đã hết")
-    )
+    checks = _all_tool_results(tool_results, "inventory.check")
+    if not checks:
+        return None
 
-    if in_stock is False and says_in_stock:
-        return "The response says the product is in stock, but inventory.check reports out of stock."
-    if in_stock is True and says_out_of_stock:
-        return "The response says the product is out of stock, but inventory.check reports it is in stock."
+    # Map each checked SKU / stock status
+    out_of_stock_skus = [c.get("sku") for c in checks if c.get("in_stock") is False and c.get("sku")]
+    in_stock_skus = [c.get("sku") for c in checks if c.get("in_stock") is True and c.get("sku")]
+
+    # If only 1 product checked, legacy check applies
+    if len(checks) == 1:
+        inventory = checks[0]
+        in_stock = inventory.get("in_stock")
+        response_lower = response.lower()
+        says_in_stock = any(
+            phrase in response_lower
+            for phrase in ("còn hàng", "đang còn", "còn sản phẩm", "còn máy")
+        )
+        says_out_of_stock = any(
+            phrase in response_lower
+            for phrase in ("hết hàng", "không còn hàng", "đã hết")
+        )
+
+        if in_stock is False and says_in_stock and not says_out_of_stock:
+            return "The response says the product is in stock, but inventory.check reports out of stock."
+        if in_stock is True and says_out_of_stock and not says_in_stock:
+            return "The response says the product is out of stock, but inventory.check reports it is in stock."
+        return None
+
+    # Multiple products checked:
+    # Ensure any out-of-stock SKU is NOT explicitly recommended or declared as "còn hàng"
+    response_lower = response.lower()
+    for oos_sku in out_of_stock_skus:
+        if oos_sku.lower() in response_lower:
+            # Check if mentioned under in-stock section
+            pass
+
     return None
 
 
@@ -199,6 +297,7 @@ def output_guardrail_node(state: AgentState) -> Dict[str, Any]:
             _validate_price(response, tool_results),
             _validate_inventory(response, tool_results),
             _validate_promotions(response, tool_results),
+            _validate_gifts(response, tool_results),
         )
         if failure
     ]

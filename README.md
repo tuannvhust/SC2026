@@ -59,16 +59,33 @@ Copy-Item .env.example .env
 | `GEMINI_EMBEDDING_MODEL` | Model embedding Gemini |
 | `GEMINI_EMBEDDING_DIMENSION` | Kích thước vector, mặc định `768` |
 | `SUPABASE_DATABASE_URL` | URL PostgreSQL của Supabase (bắt buộc cho working, episodic và profile facts) |
+| `SUPABASE_URL` | Project URL của Supabase, dùng cho catalog, variants, promotions và inventory |
+| `SUPABASE_KEY` | Supabase API key có quyền đọc các bảng catalog cần thiết |
 | `HF_RERANKER_MODEL` | Model CrossEncoder chạy local/offline, mặc định `BAAI/bge-reranker-base`; model phải có sẵn trong cache Hugging Face |
 | `HOST` / `PORT` | Địa chỉ và port backend |
+
+Các công cụ bán hàng đọc bảng `products`, `product_variants` và `promotions`
+qua Supabase REST API. `product_variants.product_sku` liên kết với
+`products.sku`; `variant_sku` nhận diện một biến thể. API chat và cuộc gọi
+dùng LangGraph, nên cần cấu hình `SUPABASE_DATABASE_URL` để nạp lịch sử phiên
+và ghi persistence.
+Các truy vấn đọc PostgREST có timeout 10 giây và tự retry tối đa hai lần khi
+gặp lỗi transport tạm thời; lỗi quyền truy cập, schema hoặc API không được retry.
 
 Không commit `.env`, không ghi API key vào source code và không in toàn bộ
 environment trong log. Chỉ commit `.env.example`.
 
 Backend dùng chung client MongoDB, Qdrant và Gemini embedding trong một process.
 Các client được tạo khi ứng dụng khởi động và được đóng khi ứng dụng dừng.
+Gemini là model chính cho planner của LangGraph và router truy vấn; khi lời gọi
+Gemini thất bại, các chain này tự fallback sang Groq nếu `GROQ_API_KEY` được
+cấu hình. Bộ sinh câu trả lời RAG cũng có fallback Groq riêng. Gemini embedding
+vẫn cần cấu hình `GEMINI_API_KEY` và không fallback sang Groq.
 Product payloads trong Qdrant chỉ chứa metadata tĩnh; giá và tồn kho phải được
 lấy từ dịch vụ catalog/pricing/inventory hiện hành, không dùng làm bộ lọc Qdrant.
+Semantic RAG phân loại câu hỏi và trích bộ lọc có cấu trúc bằng Gemini; category
+được giới hạn vào category catalog, diện tích phòng lọc theo attributes tĩnh,
+còn giá và tồn kho được hậu lọc bằng dữ liệu Supabase realtime.
 Chạy lại bước đồng bộ catalog để ghi đè payload cũ đã chứa trường biến động.
 Reranker chạy local bằng Sentence Transformers, không gọi Hugging Face Inference
 API và không cần `HF_TOKEN`. Chế độ offline yêu cầu model đã được tải và có sẵn

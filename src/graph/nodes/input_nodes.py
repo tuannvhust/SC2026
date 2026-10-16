@@ -41,6 +41,7 @@ class CallBrief(BaseModel):
     orders: List[Dict[str, Any]] = Field(default_factory=list)
     open_blockers: List[str] = Field(default_factory=list)
     open_questions: List[str] = Field(default_factory=list)
+    current_session_history: List[str] = Field(default_factory=list)
     must_not_ask: List[str] = Field(default_factory=list)
     stale_warnings: List[str] = Field(default_factory=list)
 
@@ -157,7 +158,7 @@ def input_guardrail_node(state: AgentState) -> Dict[str, Any]:
     session_context = {
         "session_id": state.get("session_id") or str(uuid.uuid4()),
         "session_started_at": state.get("session_started_at") or now,
-        "turn_id": str(uuid.uuid4()),
+        "turn_id": state.get("turn_id") or str(uuid.uuid4()),
     }
 
     if not text:
@@ -212,13 +213,20 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
 
     result = crm_get_customer.invoke({"phone": phone, "zalo_id": zalo_id, "fb_id": fb_id})
 
-    customer_info = dict(result)
+    customer_info = {**context, **result}
 
     customer_info["phone"] = result.get("phone") or phone
-
+    customer_info["channel"] = context.get("channel") or result.get("channel")
     customer_info["_input_text"] = text
+    customer_id = state.get("customer_id") or result.get("customer_id")
+    session_id = state.get("session_id")
+    if customer_id and session_id:
+        get_postgres_memory_store().update_session_customer_id(
+            session_id, customer_id
+        )
+
     return {
-        "customer_id": result.get("customer_id"),
+        "customer_id": customer_id,
         "customer_info": customer_info,
     }
 
@@ -303,9 +311,38 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     customer_info = state.get("customer_info") or {}
 
     customer_id = state.get("customer_id")
+    session_id = state.get("session_id")
 
     sessions = customer_info.get("sessions", [])
     orders = customer_info.get("orders", [])
+
+    session_events = (
+        get_postgres_memory_store().get_session_events(session_id)
+        if session_id
+        else []
+    )
+    open_session_events = [
+        event
+        for event in session_events
+        if not event.get("payload", {}).get("status", {}).get("session_ended")
+    ]
+    current_session_history = []
+    for event in open_session_events:
+        for message in event.get("payload", {}).get("messages", []):
+            if not isinstance(message, dict):
+                continue
+            data = message.get("data", {})
+            content = data.get("content", "") if isinstance(data, dict) else ""
+            if isinstance(content, str) and content.strip():
+                current_session_history.append(
+                    f"{message.get('type', 'message')}: {content.strip()}"
+                )
+    current_session_history = current_session_history[-20:]
+    latest_open_brief = (
+        open_session_events[-1].get("payload", {}).get("call_brief", {})
+        if open_session_events
+        else {}
+    )
 
     profile_facts = (
         get_profile_store().get_profile_facts(customer_id)
@@ -334,14 +371,14 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         for product in episode.get("products_advised", [])
     ]
     latest_episode = episodes[0] if episodes else {}
-    open_blockers = latest_episode.get(
-        "open_blockers",
-        [],
+    open_blockers = latest_open_brief.get("open_blockers") or latest_episode.get(
+        "open_blockers", []
     )
-    open_questions = latest_episode.get(
-        "open_questions",
-        [],
+    open_questions = latest_open_brief.get("open_questions") or latest_episode.get(
+        "open_questions", []
     )
+    if latest_open_brief.get("products_advised"):
+        products_advised.extend(latest_open_brief["products_advised"])
     last_session = _get_last_session(sessions)
 
     stale_warnings = []
@@ -383,6 +420,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         orders=orders,
         open_blockers=open_blockers,
         open_questions=open_questions,
+        current_session_history=current_session_history,
         must_not_ask=must_not_ask,
         stale_warnings=stale_warnings,
         suggested_opening=suggested_opening,

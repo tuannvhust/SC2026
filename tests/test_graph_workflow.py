@@ -10,6 +10,7 @@ from src.graph.graph import (
 from src.graph.builder import route_after_persist_turn
 from src.graph.nodes.input_nodes import (
     build_call_brief_node,
+    input_guardrail_node,
     normalize_input_node,
     resolve_identity_node,
 )
@@ -31,6 +32,20 @@ def test_agent_state_uses_messages_without_separate_tool_fields():
     assert "messages" in AgentState.__annotations__
     assert "tool_results" not in AgentState.__annotations__
     assert "plan_action" not in AgentState.__annotations__
+
+
+def test_input_guardrail_preserves_api_turn_id():
+    result = input_guardrail_node(
+        {
+            "messages": [HumanMessage(content="Xin chào")],
+            "session_id": "SESSION-API",
+            "turn_id": "TURN-API",
+        }
+    )
+
+    assert result["input_valid"] is True
+    assert result["session_id"] == "SESSION-API"
+    assert result["turn_id"] == "TURN-API"
 
 
 def test_planner_routes_tool_calls_to_tool_node():
@@ -419,6 +434,42 @@ def test_guardrail_checks_tool_results_only_from_current_customer_turn():
     assert output_guardrail_node({"messages": messages})["output_valid"] is True
 
 
+def test_output_guardrail_ignores_user_budget_constraint():
+    messages = [
+        HumanMessage(content="Tìm máy lọc không khí dưới 10 triệu"),
+        ToolMessage(
+            name="pricing.get_quote",
+            content='{"sku": "SKU-XM-4L", "final_price_vnd": 2990000}',
+            tool_call_id="quote-1",
+        ),
+        AIMessage(
+            content="Dạ bên em có máy lọc dưới 10 triệu phù hợp với anh/chị: Xiaomi Smart 4 Lite giá 2.990.000đ ạ."
+        ),
+    ]
+
+    result = output_guardrail_node({"messages": messages})
+    assert result["output_valid"] is True
+
+
+def test_output_guardrail_allows_discount_amount():
+    messages = [
+        HumanMessage(content="Máy này có giảm giá không?"),
+        ToolMessage(
+            name="pricing.get_quote",
+            content='{"sku": "SKU-AP-PRO", "list_price_vnd": 7990000, "final_price_vnd": 7690000, "discount_vnd": 300000}',
+            tool_call_id="quote-1",
+        ),
+        AIMessage(
+            content="Dạ máy AirPure Pro giá gốc 7.990.000đ, đang giảm 300.000đ còn 7.690.000đ ạ."
+        ),
+    ]
+
+    result = output_guardrail_node({"messages": messages})
+    assert result["output_valid"] is True
+
+
+
+
 def test_output_guardrail_checks_inventory_and_promotions():
     messages = [
         HumanMessage(content="Mẫu này còn hàng và có khuyến mãi không?"),
@@ -442,6 +493,41 @@ def test_output_guardrail_checks_inventory_and_promotions():
     assert result["output_valid"] is False
     assert "inventory.check" in result["guardrail_feedback"]
     assert "PROMO-OLD" in result["guardrail_feedback"]
+
+
+def test_output_guardrail_rejects_hallucinated_gifts():
+    messages = [
+        HumanMessage(content="Máy lọc không khí này có ưu đãi gì không?"),
+        ToolMessage(
+            name="pricing.get_quote",
+            content='{"sku": "SKU-AP-Y", "final_price_vnd": 3500000, "applied_promos": [], "gifts": []}',
+            tool_call_id="quote-1",
+        ),
+        AIMessage(content="Dạ máy có giá 3.500.000đ và được tặng kèm 1 bộ lọc ạ."),
+    ]
+
+    result = output_guardrail_node({"messages": messages})
+    assert result["output_valid"] is False
+    assert "Dữ liệu quà tặng" in result["guardrail_feedback"]
+    assert "SKU-AP-Y" in result["guardrail_feedback"]
+
+
+def test_output_guardrail_cleans_signature_artifacts():
+    messages = [
+        HumanMessage(content="Giá bao nhiêu?"),
+        ToolMessage(
+            name="pricing.get_quote",
+            content='{"final_price_vnd": 1000000}',
+            tool_call_id="quote-1",
+        ),
+        AIMessage(
+            content="Dạ giá là 1.000.000đ ạ.\n```signature\nsig_abc123_encrypted_long_hash\n```\n[signature: meta]"
+        ),
+    ]
+
+    result = output_guardrail_node({"messages": messages})
+    assert result["output_valid"] is True
+
 
 
 def test_retry_routes_to_planner_twice_then_handoff():
@@ -509,3 +595,34 @@ def test_handoff_submits_schema_valid_brief(monkeypatch):
     assert brief["product_advised"] == "SKU-AP-X"
     assert brief["price_quoted_vnd"] == 4_401_000
     assert brief["history_refs"] == ["SESSION-1"]
+
+
+def test_planner_calls_catalog_search_on_shopping_inquiry(monkeypatch):
+    user_message = HumanMessage(content="Tư vấn giúp anh máy lọc không khí dưới 5 triệu")
+    expected_response = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "catalog.search",
+                "args": {"query": "máy lọc không khí", "max_price_vnd": 5_000_000},
+                "id": "call-catalog-1",
+                "type": "tool_call",
+            }
+        ],
+    )
+    invoke = Mock(return_value=expected_response)
+    monkeypatch.setattr(planner_node, "planner_llm", Mock(invoke=invoke))
+
+    result = planner_node.plan_step_node(
+        {
+            "messages": [user_message],
+            "call_brief": {},
+        }
+    )
+
+    prompt_messages = invoke.call_args.args[0]
+    assert prompt_messages[-1] is user_message
+    assert result == {"messages": [expected_response]}
+    assert route_after_plan(result) == "tools"
+    assert result["messages"][0].tool_calls[0]["name"] == "catalog.search"
+

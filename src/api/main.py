@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import close_shared_connections, get_shared_connections
 from src.api.routers import health, chat, calls
+from src.graph.builder import close_graph_checkpointer, initialize_graph_checkpointer
 from src.memory.semantic_rag.orchestrator import clear_components, warmup_reranker
 from src.graph.nodes.persistence_nodes import close_working_memory_store
 
@@ -17,10 +18,12 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     app.state.shared_connections = get_shared_connections()
     try:
+        initialize_graph_checkpointer()
         warmup_reranker()
         yield
     finally:
         clear_components()
+        close_graph_checkpointer()
         close_working_memory_store()
         app.state.shared_connections = None
         close_shared_connections()

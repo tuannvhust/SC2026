@@ -86,6 +86,66 @@ def clear_components() -> None:
         _reranker = None
 
 
+def _retrieve_documents(
+    search_engine: _SearchEngine,
+    rewritten_query: str,
+    route_result: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    collection = route_result.get("collection")
+    metadata = route_result.get("metadata") or {}
+    if collection == "products":
+        has_constraints = any(
+            (
+                metadata.get("in_stock_only", False),
+                metadata.get("min_price") is not None,
+                metadata.get("max_price") is not None,
+                metadata.get("room_area_m2") is not None,
+            )
+        )
+        documents = search_engine.search_products(
+            rewritten_query,
+            top_k=30 if has_constraints else 5,
+            category=metadata.get("category"),
+        )
+
+        room_area = metadata.get("room_area_m2")
+        if room_area is not None:
+            documents = [
+                document
+                for document in documents
+                if _supports_room_area(document, float(room_area))
+            ]
+
+        from src.tools.tool_repository import filter_catalog_candidates
+
+        return filter_catalog_candidates(
+            documents,
+            min_price_vnd=metadata.get("min_price"),
+            max_price_vnd=metadata.get("max_price"),
+            in_stock_only=metadata.get("in_stock_only", False),
+        )
+
+    if collection == "policies":
+        return search_engine.search_policies(rewritten_query, top_k=5)
+    return []
+
+
+def _supports_room_area(document: Dict[str, Any], requested_area: float) -> bool:
+    attributes = document.get("attributes")
+    if not isinstance(attributes, dict):
+        return False
+    supported_area = attributes.get(
+        "room_area_m2",
+        attributes.get("coverage_m2"),
+    )
+    if supported_area is None:
+        return False
+    try:
+        return float(supported_area) >= requested_area
+    except (TypeError, ValueError):
+        return False
+
+
 def process_raw_query(raw_query: str) -> str:
     """Process a raw user query and return a generated answer.
 
@@ -102,25 +162,10 @@ def process_raw_query(raw_query: str) -> str:
         return route_res["early_response"]
 
     intent = route_res.get("intent")
-    collection = route_res.get("collection")
-    metadata = route_res.get("metadata", {})
     hybrid_engine, reranker, generator = _get_components()
 
     rewritten_query = rewrite(raw_query, intent)
-
-    if collection == "products":
-        docs = hybrid_engine.search_products(
-            rewritten_query,
-            top_k=5,
-            category=metadata.get("category"),
-            in_stock_only=metadata.get("in_stock_only", False),
-            min_price=metadata.get("min_price"),
-            max_price=metadata.get("max_price"),
-        )
-    elif collection == "policies":
-        docs = hybrid_engine.search_policies(rewritten_query, top_k=5)
-    else:
-        docs = []
+    docs = _retrieve_documents(hybrid_engine, rewritten_query, route_res)
 
     reranked_docs = reranker.rerank(rewritten_query, docs, top_n=5)
     return generator.generate(rewritten_query, reranked_docs)
@@ -134,24 +179,9 @@ def process_raw_query_stream(raw_query: str) -> Iterator[str]:
         return
 
     intent = route_res.get("intent")
-    collection = route_res.get("collection")
-    metadata = route_res.get("metadata", {})
     hybrid_engine, reranker, generator = _get_components()
     rewritten_query = rewrite(raw_query, intent)
-
-    if collection == "products":
-        docs = hybrid_engine.search_products(
-            rewritten_query,
-            top_k=5,
-            category=metadata.get("category"),
-            in_stock_only=metadata.get("in_stock_only", False),
-            min_price=metadata.get("min_price"),
-            max_price=metadata.get("max_price"),
-        )
-    elif collection == "policies":
-        docs = hybrid_engine.search_policies(rewritten_query, top_k=5)
-    else:
-        docs = []
+    docs = _retrieve_documents(hybrid_engine, rewritten_query, route_res)
 
     reranked_docs = reranker.rerank(rewritten_query, docs, top_n=5)
     generate_stream = getattr(generator, "generate_stream", None)

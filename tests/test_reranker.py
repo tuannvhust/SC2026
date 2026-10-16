@@ -21,7 +21,7 @@ def test_reranker_uses_local_cross_encoder_scores():
     cross_encoder.assert_called_once_with(
         "BAAI/bge-reranker-base",
         device="cpu",
-        automodel_args={"local_files_only": True},
+        model_kwargs={"local_files_only": True},
     )
     model.predict.assert_called_once_with(
         [
@@ -54,7 +54,7 @@ def test_reranker_reuses_loaded_model():
     cross_encoder.assert_called_once_with(
         "BAAI/bge-reranker-base",
         device="cpu",
-        automodel_args={"local_files_only": True},
+        model_kwargs={"local_files_only": True},
     )
 
 
@@ -72,6 +72,6 @@ def test_reranker_warmup_loads_model_and_runs_prediction():
     cross_encoder.assert_called_once_with(
         "BAAI/bge-reranker-base",
         device="cpu",
-        automodel_args={"local_files_only": True},
+        model_kwargs={"local_files_only": True},
     )
     model.predict.assert_called_once_with([["warmup", "warmup"]])
