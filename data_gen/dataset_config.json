@@ -1,7 +1,7 @@
 {
-	"version": 1,
+	"version": 2,
 	"description": "Target and generation order for the M1/M2 transcript dataset.",
-	"source_of_truth": "data_gen/briefs/*.json",
+	"source_of_truth": ["data_gen/briefs/*.json (generation plan)", "data_gen/transcripts/*.json + review status (accepted transcript deliverables)"],
 	"ordering": {
 		"levels": ["M1", "M2"],
 		"case_id_format": "SC-{case_number:03d}",
@@ -11,13 +11,18 @@
 	"milestones": {
 		"M1": {
 			"transcripts_min": 120,
+			"transcripts_target": 140,
 			"audio": {
 				"transcripts_min": 40,
 				"hours_min": 1.0,
-				"accepted_sources": ["recorded", "tts"]
+				"accepted_sources": ["recorded", "tts"],
+				"group_generated_asr_evaluation_files_min": 20
 			},
 			"multi_session_customers_min": 30,
+			"multi_session_customers_count_distinct_session_ids": true,
 			"multichannel_customers_min": 10,
+			"personas_min": 3,
+			"required_personas": ["khach_do_du_hoi_nguoi_nha", "khach_so_gia", "khach_da_mua_doi_size"],
 			"industry_count": 1,
 			"region_count": 2,
 			"industries": ["thoi-trang"],
@@ -28,12 +33,14 @@
 		},
 		"M2": {
 			"transcripts_min": 250,
+			"transcripts_target": 250,
 			"audio": {
 				"transcripts_min": 100,
 				"hours_min": 3.0,
 				"accepted_sources": ["recorded", "tts"]
 			},
 			"multi_session_customers_min": 60,
+			"multi_session_customers_count_distinct_session_ids": true,
 			"multichannel_customers_min": 30,
 			"industry_count": 3,
 			"region_count": 3,
@@ -52,6 +59,7 @@
 		"numbering_note": "M2 case numbers continue after the last M1 case."
 	},
 	"coverage_matrix": {
+		"planned_calls_target": 160,
       "base_slots": { "M1": 42, "M2": 84 },
 		"repeat_hard_case_traps_per_level": true
 	}

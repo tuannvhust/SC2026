@@ -17,7 +17,10 @@ from typing import Any
 
 from .assemble_scenario import derive_ground_truth, derive_success_if
 from .config import BRIEFS_DIR, BTC_DIR, FACT_PACKS_DIR, RAW_DIR, REPORTS_DIR
-from .scenario_metadata import hard_case_label, scenario_summary_path
+from .facts import extract_policy_chunks, pricing_address_for_call, promotion_evidence
+from .scenario_metadata import (
+    customer_goal_for_call, hard_case_label, scenario_notes, scenario_summary_path,
+)
 
 
 MONEY_SUFFIX = r"(?:₫|đồng|đ|vnd|triệu|tr(?:iệu)?|nghìn|ngàn|k)"
@@ -73,6 +76,16 @@ REPORT_DESCRIPTIONS = {
     "E3_UNGROUNDED_MONEY": "Lời khách có số tiền không được hỗ trợ bởi brief/fact pack.",
     "W9_MANUAL_REVIEW": "Cần review thủ công giọng persona, mạch story_hints, tính hợp lý và việc hard case có thực sự xuất hiện.",
 }
+REPORT_DESCRIPTIONS.update({
+    "E2_POLICY_EVIDENCE_MISMATCH": "Policy evidence differs from the requested BTC source chunks.",
+    "E2_PROMOTION_REQUEST_MISMATCH": "Promotion codes differ between brief and fact pack.",
+    "E2_PROMOTION_EVIDENCE_MISMATCH": "Promotion evidence differs from product, date, CRM region, or mock conditions.",
+    "E5_MATRIX_CUSTOMER_MISMATCH": "Primary customer differs between matrix and brief.",
+    "E5_MATRIX_REGION_MISMATCH": "Matrix region differs from the primary customer's CRM region.",
+    "E5_MATRIX_PROMOTION_MISMATCH": "Brief uses a promotion absent from the matrix row.",
+    "E5_MATRIX_POLICY_MISMATCH": "Policy chunk IDs differ between matrix and brief.",
+    "E5_CALL_CUSTOMER_REGION_MISMATCH": "Call customer identity/region in fact pack differs from the caller assigned in CRM.",
+})
 
 
 def words(text: str) -> list[str]:
@@ -135,18 +148,16 @@ def _customer_text(call: dict) -> str:
 
 
 def _ground_truth_matches(call: dict, fact_pack: dict) -> bool:
-    """Validate only explicitly supplied ground-truth assertions.
-
-    The field is optional in the scenario contract, and when present it may
-    intentionally contain a subset of the facts derivable from the fact pack.
-    """
-    if "ground_truth_facts" not in call:
-        return True
+    """Ground truth must be the complete deterministic projection of its pack."""
     supplied = call.get("ground_truth_facts")
-    if not isinstance(supplied, dict):
-        return False
-    derived = derive_ground_truth(fact_pack)
-    return all(key in derived and derived[key] == value for key, value in supplied.items())
+    return isinstance(supplied, dict) and supplied == derive_ground_truth(fact_pack)
+
+
+def _read_matrix(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8-sig", newline="") as stream:
+        return {row.get("slot_id", ""): row for row in csv.DictReader(stream) if row.get("slot_id")}
 
 
 def _error(rows: list[dict], sid: str, call_index: str, code: str, message: str,
@@ -177,7 +188,7 @@ def _expected_channel_identity(customer: dict | None, channel: str) -> Any:
 
 
 def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_PACKS_DIR,
-              raw_dir: Path = RAW_DIR) -> list[dict]:
+              raw_dir: Path = RAW_DIR, matrix_rows: dict[str, dict[str, str]] | None = None) -> list[dict]:
     rows: list[dict] = []
     try:
         scenario = _read(path)
@@ -225,12 +236,15 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
             _error(rows, sid, "*", "E1_HARD_CASE_MISMATCH", "hard_case differs from brief")
         if not isinstance(summary, dict) or summary.get("scenario_id") != sid:
             _error(rows, sid, "*", "E1_SCENARIO_SUMMARY_MISSING", "scenario metadata summary does not match brief")
-        else:
-            if scenario.get("notes") != summary.get("notes"):
-                _error(rows, sid, "*", "E1_NOTES_MISMATCH", "notes differ from saved scenario metadata summary")
-            expected_goal = summary.get("customer_goal")
-            if calls.get("call_1", {}).get("customer_goal") != expected_goal:
-                _error(rows, sid, "*", "E1_CUSTOMER_GOAL_MISMATCH", "call_1 customer_goal differs from saved scenario metadata summary")
+        expected_goal = customer_goal_for_call(
+            brief,
+            next((item for item in brief.get("calls", []) if item.get("call_index") == 1), {}),
+        )
+        if calls.get("call_1", {}).get("customer_goal") != expected_goal:
+            _error(rows, sid, "*", "E1_CUSTOMER_GOAL_MISMATCH", "call_1 customer_goal differs from its brief call story")
+        expected_notes = scenario_notes(brief)
+        if scenario.get("notes") != expected_notes:
+            _error(rows, sid, "*", "E1_SCENARIO_NOTES_MISMATCH", "scenario notes differ from deterministic brief-derived notes")
         expected_story_hints = {
             f"call_{call.get('call_index')}": call.get("story_hint", "")
             for call in brief.get("calls", [])
@@ -239,6 +253,56 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
             _error(rows, sid, "*", "E1_STORY_HINTS_MISMATCH", "scenario metadata story_hints differ from brief")
         if len(calls) != len(brief.get("calls", [])):
             _error(rows, sid, "*", "E1_CALL_COUNT_MISMATCH", "scenario call count differs from brief")
+        matrix_row = (matrix_rows or {}).get(sid)
+        if matrix_row:
+            matrix_customer = matrix_row.get("customer_id")
+            if matrix_customer and matrix_customer != brief.get("customer_id"):
+                _error(rows, sid, "*", "E5_MATRIX_CUSTOMER_MISMATCH", "matrix primary customer_id differs from brief customer_id")
+            if customer and matrix_row.get("mien") and customer.get("region") != matrix_row.get("mien"):
+                _error(rows, sid, "*", "E5_MATRIX_REGION_MISMATCH", "matrix mien differs from primary customer's CRM region")
+            matrix_promos = {x for x in matrix_row.get("promo_codes_in_play", "").split("|") if x}
+            brief_promos = {x for c in brief.get("calls", []) for x in c.get("promo_codes_in_play", [])}
+            if matrix_promos != brief_promos:
+                _error(rows, sid, "*", "E5_MATRIX_PROMOTION_MISMATCH", "brief and matrix promotion code sets differ", repr({"matrix_only": sorted(matrix_promos - brief_promos), "brief_only": sorted(brief_promos - matrix_promos)}))
+            matrix_policy = {x for x in matrix_row.get("policy_chunk_ids", "").split("|") if x}
+            brief_policy = {x for c in brief.get("calls", []) for x in c.get("policy_chunk_ids", [])}
+            if matrix_policy != brief_policy:
+                _error(rows, sid, "*", "E5_MATRIX_POLICY_MISMATCH", "brief policy chunk IDs differ from its matrix row", repr({"matrix": sorted(matrix_policy), "brief": sorted(brief_policy)}))
+            promo_catalog = _read(BTC_DIR / "catalog" / "promotions.json").get("promotions", [])
+            promo_by_code = {item.get("promo_code"): item for item in promo_catalog}
+            product_catalog = _catalog_facts()
+            for call_spec in brief.get("calls", []):
+                call_id = str(call_spec.get("call_index"))
+                caller_id = call_spec.get("customer_id", brief.get("customer_id"))
+                caller = next((item for item in _read(BTC_DIR / "catalog" / "crm_seed.json")["customers"] if item.get("customer_id") == caller_id), None)
+                region = (caller or {}).get("region")
+                sku_set = {p.get("variant_id") or p.get("sku") for p in call_spec.get("products", [])}
+                for code in call_spec.get("promo_codes_in_play", []):
+                    promo = promo_by_code.get(code)
+                    if not promo:
+                        _error(rows, sid, call_id, "E5_UNKNOWN_PROMOTION", f"unknown promotion code: {code}")
+                        continue
+                    targets = promo.get("applies_to", [])
+                    applicable = any(
+                        "*" in targets
+                        or sku in targets
+                        or product_catalog.get(sku, {}).get("sku") in targets
+                        or any(t.startswith("category:") and product_catalog.get(sku, {}).get("category", "").startswith(t.split(":", 1)[1]) for t in targets)
+                        for sku in sku_set
+                    )
+                    # A future offer is a timing trap; its category condition
+                    # is still checked as a separate policy fact, not treated
+                    # as an applied quote for an unrelated product.
+                    if not applicable and code != "11-11" and matrix_row.get("hard_case_tag") not in {"promo_expired", "promo_condition_fail"}:
+                        _error(rows, sid, call_id, "E5_PROMOTION_PRODUCT_MISMATCH", f"{code} does not apply to products {sorted(sku_set)}")
+                    allowed_regions = promo.get("conditions", {}).get("region")
+                    if allowed_regions and region not in allowed_regions and matrix_row.get("hard_case_tag") != "promo_condition_fail":
+                        _error(rows, sid, call_id, "E5_PROMOTION_REGION_MISMATCH", f"{code} region condition {allowed_regions} does not match caller region {region}")
+                if matrix_row.get("hard_case_tag") in {"promo_expired", "promo_not_started", "promo_condition_fail", "size_excluded_promotion"} and not call_spec.get("promo_codes_in_play"):
+                    _error(rows, sid, call_id, "E5_HARD_CASE_PROMOTION_MISSING", "promotion hard case has no promotion code assigned")
+            for code in matrix_policy:
+                if code.startswith("CL-"):
+                    _error(rows, sid, "*", "E5_CHANGELOG_AS_POLICY", f"{code} is a changelog ID, not an operational policy chunk")
 
     try:
         catalog = _catalog_facts()
@@ -264,7 +328,11 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
         elif any(ROLE_LEAK_RE.search(t) for t in turns):
             _error(rows, sid, idx, "E1_AGENT_TEXT_IN_CUSTOMER_TURNS", "customer_turns contains an agent/assistant line", _customer_text(call))
         asr_turns = call.get("customer_turns_asr")
-        if not isinstance(asr_turns, list) or len(asr_turns) != (len(turns) if isinstance(turns, list) else -1) or any(not isinstance(t, str) or not t.strip() for t in asr_turns):
+        if call.get("input_mode", "clean") != "clean" and (
+            not isinstance(asr_turns, list)
+            or len(asr_turns) != (len(turns) if isinstance(turns, list) else -1)
+            or any(not isinstance(t, str) or not t.strip() for t in asr_turns)
+        ):
             _error(rows, sid, idx, "E1_ASR_TURN_CONTRACT", "customer_turns_asr must match clean turn count and contain non-empty strings")
 
         raw_path = raw_dir / f"{sid}_c{idx}.json"
@@ -279,7 +347,7 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
                 if raw_turns != turns:
                     _error(rows, sid, idx, "E1_RAW_SCENARIO_TURNS_MISMATCH", "scenario turns differ from raw generated turns")
                 raw_asr_turns = raw.get("customer_turns_asr")
-                if raw_asr_turns is not None and raw_asr_turns != asr_turns:
+                if asr_turns is not None and raw_asr_turns is not None and raw_asr_turns != asr_turns:
                     _error(rows, sid, idx, "E1_RAW_SCENARIO_ASR_MISMATCH", "scenario ASR turns differ from raw generated turns")
                 meta = raw.get("generation_meta", {})
                 if meta.get("scenario_id") and meta["scenario_id"] != sid:
@@ -324,6 +392,24 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
             if pack:
                 if pack.get("brief_id") != sid or str(pack.get("call_index")) != idx:
                     _error(rows, sid, idx, "E2_FACT_PACK_ID_MISMATCH", "fact pack brief/call ID mismatch")
+                packed_customer = pack.get("customer", {})
+                packed_crm = packed_customer.get("crm", {}) if isinstance(packed_customer, dict) else {}
+                if not isinstance(packed_customer, dict) or packed_customer.get("customer_id") != call_customer_id or packed_crm.get("region") != (call_customer or {}).get("region"):
+                    _error(rows, sid, idx, "E5_CALL_CUSTOMER_REGION_MISMATCH", "fact pack caller ID/region differs from the call's CRM customer")
+                requested_policy = list(spec.get("policy_chunk_ids", []))
+                packed_policy = list(pack.get("requested_policy_chunk_ids", []))
+                actual_policy = {p.get("chunk_id") for p in pack.get("policy", [])} | set(pack.get("internal_policy_ids", []))
+                if requested_policy != packed_policy or set(requested_policy) != actual_policy:
+                    _error(rows, sid, idx, "E2_POLICY_EVIDENCE_MISMATCH", "policy IDs in brief, fact pack request, and extracted policy evidence differ",
+                           repr({"brief": requested_policy, "pack_requested": packed_policy, "extracted": sorted(actual_policy)}))
+                source_policy = extract_policy_chunks(requested_policy)
+                source_public = [p for p in source_policy if p["type"] != "internal"]
+                source_internal_ids = [p["chunk_id"] for p in source_policy if p["type"] == "internal"]
+                if pack.get("policy") != source_public or set(pack.get("internal_policy_ids", [])) != set(source_internal_ids):
+                    _error(rows, sid, idx, "E2_POLICY_EVIDENCE_MISMATCH", "fact pack policy content/type does not match selected BTC source chunks")
+                requested_promos = list(spec.get("promo_codes_in_play", []))
+                if requested_promos != list(pack.get("promo_codes_in_play", [])):
+                    _error(rows, sid, idx, "E2_PROMOTION_REQUEST_MISMATCH", "promotion codes in fact pack differ from brief")
                 try:
                     if not _ground_truth_matches(call, pack):
                         _error(rows, sid, idx, "E2_GROUND_TRUTH_MISMATCH", "a supplied ground_truth_facts assertion differs from the deterministic fact pack")
@@ -337,7 +423,10 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
                 if len(expected_products) != len(packed_products):
                     _error(rows, sid, idx, "E2_PRODUCT_COUNT_MISMATCH", "fact pack product count differs from brief")
                 tool = mock_tools()
-                for pos, (bp, pp) in enumerate(zip(expected_products, packed_products), 1):
+                basket_skus = [p.get("variant_id") or p.get("sku") for p in expected_products]
+                pricing_address = pricing_address_for_call(spec, customer)
+                for product_index, (bp, pp) in enumerate(zip(expected_products, packed_products)):
+                    pos = product_index + 1
                     sku = bp.get("variant_id") or bp.get("sku")
                     if pp.get("sku") != sku or pp.get("qty", 1) != bp.get("qty", 1):
                         _error(rows, sid, idx, "E2_PRODUCT_FACT_MISMATCH", f"product {pos} SKU/qty differs from brief")
@@ -345,10 +434,21 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
                         _error(rows, sid, idx, "E2_UNKNOWN_SKU", f"brief product SKU not found in catalog: {sku}")
                         continue
                     quote = tool.pricing_get_quote(sku=sku, on=pack.get("call_date"), qty=bp.get("qty", 1),
-                                                   customer_phone=(customer or {}).get("phone"), address=spec.get("address"))
+                                                   customer_phone=(customer or {}).get("phone"), address=pricing_address,
+                                                   basket_skus=[item for i, item in enumerate(basket_skus) if i != product_index])
                     inventory = tool.inventory_check(sku=sku, on=pack.get("call_date"))
                     if pp.get("quote") != quote:
                         _error(rows, sid, idx, "E2_QUOTE_NOT_FROM_MOCK", f"product {pos} quote differs from reference mock")
+                    evidence_codes = list(dict.fromkeys([
+                        *requested_promos,
+                        *(p["promo_code"] for p in quote.get("applied_promos", [])),
+                        *quote.get("expired_promos", []),
+                        *(p["promo_code"] for p in quote.get("ineligible_promos", [])),
+                        *quote.get("not_applied_exclusive", []),
+                    ]))
+                    expected_promotion_evidence = promotion_evidence(evidence_codes, sku, quote, pack.get("call_date"))
+                    if pp.get("promotion_evidence") != expected_promotion_evidence:
+                        _error(rows, sid, idx, "E2_PROMOTION_EVIDENCE_MISMATCH", f"product {pos} promotion evidence differs from mock quote/catalog conditions")
                     if pp.get("inventory") != inventory:
                         _error(rows, sid, idx, "E2_INVENTORY_NOT_FROM_MOCK", f"product {pos} inventory differs from reference mock")
                     allowed_numbers.update(v for v in (quote.get("list_price_vnd"), quote.get("final_price_vnd")) if isinstance(v, int))
@@ -389,8 +489,11 @@ def main() -> None:
     parser.add_argument("--briefs", type=Path, default=BRIEFS_DIR)
     parser.add_argument("--fact-packs", type=Path, default=FACT_PACKS_DIR)
     parser.add_argument("--raw", type=Path, default=RAW_DIR)
+    parser.add_argument("--matrix", type=Path, default=REPORTS_DIR / "coverage_matrix.csv")
+    parser.add_argument("--report", type=Path, default=REPORTS_DIR / "auto_check_report.csv")
     args = parser.parse_args()
     rows: list[dict] = []
+    matrix_rows = _read_matrix(args.matrix)
     scenario_paths = sorted(args.scenarios.glob("*.json"))
     checked_paths = []
     orphan_count = 0
@@ -402,7 +505,7 @@ def main() -> None:
                          "excerpt": path.name, "hard": "false"})
             continue
         checked_paths.append(path)
-        rows.extend(check_one(path, args.briefs, args.fact_packs, args.raw))
+        rows.extend(check_one(path, args.briefs, args.fact_packs, args.raw, matrix_rows))
     try:
         validator = BTC_DIR / "eval" / "validate_scenarios.py"
         if not validator.exists():
@@ -412,7 +515,8 @@ def main() -> None:
     except Exception:
         pass
     REPORTS_DIR.mkdir(exist_ok=True)
-    report = REPORTS_DIR / "auto_check_report.csv"
+    report = args.report
+    report.parent.mkdir(parents=True, exist_ok=True)
     fields = ["scenario_id", "call_index", "error_code", "description", "excerpt", "hard"]
     with report.open("w", newline="", encoding="utf-8-sig") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)

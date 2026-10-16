@@ -1,21 +1,39 @@
 {
   "scenario_count": 49,
-  "transcript_count": 81,
-  "clean_transcript_count": 81,
-  "asr_transcript_count": 81,
-  "paired_clean_asr_transcripts": 81,
-  "multi_session_customers": 17,
-  "multichannel_customers": 9,
+  "evaluation_scenario_count": 49,
+  "evaluation_scenario_call_count": 81,
+  "customer_input_call_count": 81,
+  "transcript_count": 0,
+  "clean_transcript_count": 0,
+  "asr_transcript_count": 41,
+  "paired_clean_asr_transcripts": 41,
+  "multi_session_customers": 0,
+  "multichannel_customers": 0,
   "industries": [
     "thoi-trang"
   ],
   "regions": [
     "bac",
-    "nam"
+    "nam",
+    "trung"
   ],
   "catalog_sku_count": 136,
   "audio_transcripts": 0,
   "audio_hours": 0.0,
+  "scenario_multisession_customers": 17,
+  "scenario_multichannel_customers": 9,
+  "scenario_industries": [
+    "thoi-trang"
+  ],
+  "scenario_regions": [
+    "bac",
+    "nam",
+    "trung"
+  ],
+  "pending_review_transcripts": 0,
+  "rejected_transcripts": 0,
+  "validated_transcripts": 0,
+  "btc_validator_compatibility": "unverified_missing_validator",
   "text_targets_met": false,
   "m1_complete": false
 }

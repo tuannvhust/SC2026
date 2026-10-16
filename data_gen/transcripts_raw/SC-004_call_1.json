@@ -1,0 +1,66 @@
+{
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "Chào shop, đợt trước mình có lấy cái Áo khoác gió Windbreak bên mình khoảng tám tháng rồi."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ chào anh/chị, em chào anh/chị ạ. Dạ bên em rất vui được hỗ trợ mình."
+    },
+    {
+      "speaker": "customer",
+      "text": "Dạo này nhu cầu thay đổi nên chiếc áo cũ hình như không còn phù hợp lắm, mình muốn ghé xem lại các lựa chọn khác."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ vâng ạ, bên em hiện tại vẫn có mẫu Áo khoác gió Windbreak (SKU-JK-WND) với giá là 690.000đ và đang có sẵn hàng, ngoài ra bên em còn nhiều mẫu khác nữa ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Shop check giúp mình xem thông tin với mấy mẫu cũ bên mình hiện tại còn dùng hay áp dụng được gì không nhé, tầm ngân sách của mình quanh năm củ thôi."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ với mức ngân sách khoảng 5 triệu của mình thì rất thoải mái luôn ạ, còn mẫu Áo khoác gió Windbreak trước đây của mình có giá niêm yết là 690.000đ và hiện vẫn đang còn hàng ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Bên mình có thể xác nhận lại giúp mình địa chỉ giao hàng cũ không, sợ đổi chỗ ở rồi."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ anh/chị thông cảm giúp em, hệ thống bên em hiện tại không lưu lại thông tin địa chỉ cũ của mình ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Bên em không lưu à?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ do chính sách bảo mật thông tin nên hệ thống bên em không lưu lại địa chỉ giao hàng cũ của khách hàng, mong anh/chị thông cảm giúp em ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Thôi để mình cân nhắc thêm rồi nhắn lại shop sau nhé."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ vâng ạ, anh/chị cứ cân nhắc thêm nhé, khi nào cần hỗ trợ gì thêm thì anh/chị cứ nhắn lại cho shop ạ. Em chào anh/chị."
+    }
+  ],
+  "provenance": {
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "generated_at": "2026-10-16T21:50:03.818433+00:00",
+    "scenario_sha256": "3d4d37ee3fa8ee021d7f17bc4185f30c5a26236234f825a06c62bb0f801d9feb",
+    "brief_sha256": "a85d8c8cc931bbe83cd3624361538521346b9c3cb7dfb9b5afc87ccb1d3d7c63",
+    "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
+    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
+    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "prompt_version": "paired_transcript_v1",
+    "artifact_status": "raw",
+    "prompt_digest": "60977558b5c71aac3f5b7e63484b00c3d3dff42fef56cf1b2b2d3441da2086ca"
+  }
+}

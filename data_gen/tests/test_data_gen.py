@@ -1,26 +1,104 @@
 from __future__ import annotations
 
 import json
+import csv
 import tempfile
 from pathlib import Path
 import pytest
 
 from data_gen import auto_check
 from data_gen.auto_check import check_one
-from data_gen.assemble_scenario import assemble_scenario
+from data_gen.assemble_scenario import assemble_scenario, derive_ground_truth
 import data_gen.assemble_scenario as assemble_module
 import data_gen.gen_dialogue as dialogue_module
-from data_gen.facts import build_fact_pack
+from data_gen.facts import build_fact_pack, pricing_address_for_call
 from data_gen.lint_briefs import btc_data, lint_one
 from data_gen.run_batch import raw_requires_regeneration
 from data_gen.gen_dialogue import generate_turn_array, generation_payload, generation_prompt, parse_customer_turns
 from data_gen.gen_dialogue import make_asr_turns
-from data_gen.coverage_matrix.make_coverage_matrix import _brief_for_row, _products_for_industry
+from data_gen.coverage_matrix.make_coverage_matrix import (
+    _brief_for_row, _policy_chunks_for, _products_for_industry, _promo_codes_for, discovered_data,
+)
+from data_gen.coverage_matrix.make_coverage_matrix import sync_regions
 from data_gen.pipeline import validate_btc_contracts, validate_scenario_contract
+from data_gen.scenario_metadata import customer_goal_for_call
+from data_gen.transcripts import validate_transcript, validate_corpus, coverage, review, _asr_reference_dialogue
+import data_gen.transcripts as transcript_module
+from data_gen.asr_eval import normalize_for_entities, wer as asr_wer, cer as asr_cer, entity_scores, extract_entities
 from langgraph_agent.run_eval import customer_turns_for_call
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_paired_transcript_requires_alternating_turns_and_pending_review():
+    from data_gen.transcripts import make_transcript
+    scenario = {"scenario_id": "SC-TEST-01", "persona": "khach_so_gia"}
+    turns = [
+        {"speaker": "customer", "text": "Mình cần hỏi giá sản phẩm."},
+        {"speaker": "agent", "text": "Dạ em kiểm tra thông tin giúp mình."},
+        {"speaker": "customer", "text": "Cảm ơn bạn."},
+        {"speaker": "agent", "text": "Dạ vâng ạ."},
+    ]
+    call = {"channel": "hotline", "call_date": "2026-10-15", "facts_established": {"budget_vnd": 500000}}
+    transcript = make_transcript(scenario, "call_1", call, "C001", turns, {"model": "test"})
+    assert transcript["review_status"] == "pending_review"
+    assert not validate_transcript(transcript)
+    transcript["turns"][1]["speaker"] = "customer"
+    assert "turn_order:1" in validate_transcript(transcript)
+
+
+def test_transcript_counts_do_not_promote_scenarios_to_accepted_transcripts():
+    report = coverage()
+    assert report["accepted_transcripts"] == 0
+    from data_gen.pipeline import artifact_coverage
+    scenarios = artifact_coverage(ROOT / "data_gen/briefs", ROOT / "data_gen/scenarios")
+    assert scenarios["evaluation_scenario_call_count"] == 81
+    assert scenarios["transcript_count"] == 0
+
+
+def test_transcript_acceptance_is_explicit_and_persistent(monkeypatch):
+    with tempfile.TemporaryDirectory(dir=ROOT / "data_gen" / "tests") as temp:
+        temp = Path(temp)
+        monkeypatch.setattr(transcript_module, "TRANSCRIPTS", temp / "transcripts")
+        monkeypatch.setattr(transcript_module, "REVIEWS", temp / "reviews")
+        t = {
+            "transcript_id": "T-1", "review_status": "pending_review", "validation": {"status": "passed"},
+            "turns": [{"speaker": "customer", "text": "xin chào"}, {"speaker": "agent", "text": "chào bạn"}],
+        }
+        path = transcript_module.TRANSCRIPTS / "T-1.json"
+        path.parent.mkdir(); path.write_text(json.dumps(t), encoding="utf-8")
+        review("T-1", "accepted", "human-reviewer", "checked")
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        assert saved["review_status"] == "accepted"
+        assert saved["review"]["reviewer"] == "human-reviewer"
+        with pytest.raises(ValueError, match="only pending"):
+            review("T-1", "rejected", "human-reviewer")
+
+
+def test_team_asr_reference_uses_btc_dialogue_turn_shape_and_transcript_text():
+    transcript = {
+        "transcript_id": "T-2", "source_scenario_id": "SC-1", "region_accent": "bac",
+        "ground_truth_facts": {"price_vnd": 4890000}, "audio_noisy": False,
+        "turns": [{"speaker": "customer", "text": "Giá 4.890.000đ ạ."}, {"speaker": "agent", "text": "Dạ vâng."}],
+    }
+    dialogue = _asr_reference_dialogue(transcript, Path("T-2.wav"))
+    btc = json.loads((ROOT / "data/asr/ground_truth.json").read_text(encoding="utf-8"))
+    assert set(dialogue) == set(btc["dialogues"][0])
+    assert dialogue["turns"][0]["speaker"] == "C"
+    assert dialogue["turns"][0]["entities"]["price_vnd"] == 4890000
+    assert dialogue["full_text"] == "Giá 4.890.000đ ạ. Dạ vâng."
+
+
+def test_asr_normalization_matches_spoken_and_numeric_price_forms():
+    expected = {"price_vnd": 4890000}
+    spoken = "bốn triệu tám trăm chín mươi"
+    numeric = "4.890.000đ"
+    assert normalize_for_entities(spoken, expected) == normalize_for_entities(numeric, expected)
+    assert asr_wer(spoken, numeric, expected) == 0
+    assert asr_cer(spoken, numeric, expected) == 0
+    assert entity_scores(expected, spoken)["price_vnd"] is True
+    assert extract_entities(spoken) == {}  # predictions are not copied from the reference
 
 
 def brief(name="SC-DEMO-01"):
@@ -39,6 +117,70 @@ def test_facts_match_mock_for_conditional_promo():
 def test_facts_match_mock_for_expired_promo():
     pack = build_fact_pack(brief("SC-DEMO-02"), 2); quote = pack["products"][0]["quote"]
     assert "AP-SEP" in quote["expired_promos"]
+
+
+def test_ground_truth_projects_each_product_promo_and_policy_without_overwrite():
+    pack = {
+        "promo_codes_in_play": ["AIR-OCT", "11-11"],
+        "requested_policy_chunk_ids": ["KM-01"],
+        "policy": [{"chunk_id": "KM-01", "type": "current", "text": "source text"}],
+        "products": [
+            {"sku": "SKU-A", "qty": 1, "quote": {"list_price_vnd": 100, "final_price_vnd": 90, "applied_promos": [], "expired_promos": [], "freeship": False}, "inventory": {"in_stock": True},
+             "promotion_evidence": [{"promo_code": "AIR-OCT", "active": True, "eligible": False, "status": "ineligible", "reason": "region"}, {"promo_code": "11-11", "active": False, "eligible": False, "status": "not_started", "reason": "not_started"}]},
+            {"sku": "SKU-B", "qty": 2, "quote": {"list_price_vnd": 200, "final_price_vnd": 180, "applied_promos": [], "expired_promos": [], "freeship": True}, "inventory": {"in_stock": False},
+             "promotion_evidence": [{"promo_code": "AIR-OCT", "active": True, "eligible": True, "status": "applied"}]},
+        ],
+    }
+    facts = derive_ground_truth(pack)
+    assert facts["promo_codes_in_play"] == ["AIR-OCT", "11-11"]
+    assert facts["policy_chunk_ids"] == ["KM-01"]
+    assert facts["policy_evidence"] == pack["policy"]
+    assert facts["promo_AIR-OCT_product_1_eligible"] is False
+    assert facts["promo_AIR-OCT_product_2_eligible"] is True
+    assert facts["promo_11-11_status"] == "not_started"
+    assert facts["product_1_price_vnd"] == 90 and facts["product_2_price_vnd"] == 180
+    assert facts["product_2_freeship"] is True
+
+
+def test_pricing_address_uses_customer_region_only_when_call_has_no_address():
+    assert pricing_address_for_call({}, {"region": "nam"}) == "Hồ Chí Minh"
+    assert pricing_address_for_call({"address": "Đà Nẵng"}, {"region": "nam"}) == "Đà Nẵng"
+    assert pricing_address_for_call({}, {"region": "unknown"}) is None
+
+
+def test_region_conditioned_promotion_uses_crm_region_for_each_pack():
+    def make(customer_id):
+        return {
+            "brief_id": "SC-REGION", "persona_id": "khach_so_gia", "channel": "hotline",
+            "customer_id": customer_id, "customer_name": "Customer", "honorific": "anh",
+            "calls": [{"call_index": 1, "call_date": "2026-10-15", "customer_id": customer_id,
+                       "products": [{"sku": "SKU-AP-X", "qty": 1}],
+                       "promo_codes_in_play": ["NAM-SHIP0"], "policy_chunk_ids": [], "facts_to_establish": {}}],
+        }
+    north = build_fact_pack(make("C001"), 1)
+    south = build_fact_pack(make("C002"), 1)
+    assert north["customer"]["crm"]["region"] == "bac"
+    assert south["customer"]["crm"]["region"] == "nam"
+    north_ineligible = {p["promo_code"]: p["reason"] for p in north["products"][0]["quote"]["ineligible_promos"]}
+    assert north_ineligible["NAM-SHIP0"] == "region"
+    assert any(p["promo_code"] == "NAM-SHIP0" for p in south["products"][0]["quote"]["applied_promos"])
+    assert north["products"][0]["promotion_evidence"][0]["eligible"] is False
+    assert south["products"][0]["promotion_evidence"][0]["eligible"] is True
+
+
+def test_matrix_sync_sets_region_from_primary_crm_customer():
+    with tempfile.TemporaryDirectory(dir=ROOT / "data_gen" / "tests") as temp:
+        matrix = Path(temp) / "matrix.csv"
+        matrix.write_text(
+            "level,case_number,slot_id,layer,owner,persona_id,nganh,mien,num_calls,channel_pattern,hard_case_tag,special_customer,promo_codes_in_play,promo_situation,policy_chunk_ids,policy_situation,customer_id,audio_source,audio_hours,audio_noisy,status,story_hints\n"
+            "M1,1,SC-001,A,SV1,p,thoi-trang,bac,2,hotline-hotline,,,,,,,C032,,0,no,todo,story\n",
+            encoding="utf-8-sig",
+        )
+        assert sync_regions(matrix) == 1
+        assert sync_regions(matrix) == 0
+        with matrix.open(encoding="utf-8-sig", newline="") as stream:
+            row = next(csv.DictReader(stream))
+        assert row["mien"] == "trung"
 
 
 def test_facts_match_inventory_change_by_date():
@@ -134,13 +276,13 @@ def test_customer_turn_output_contract():
 def test_persona_system_prompt_is_used_and_fingerprinted():
     call = {"call_index": 2, "customer_goal": "goal sentinel", "facts_to_establish": {"budget_vnd": 8_000_000}, "story_hint": "outline sentinel"}
     system, digest = generation_prompt("khach_so_gia", call, scenario_num_calls=3)
-    assert "goal sentinel" in system and "outline sentinel" in system
+    assert "outline sentinel" in system
     assert "4–8" in system
     assert "Style: thực dụng, nhắc giá đối thủ, đòi giảm" in system
     assert "Vị trí cuộc gọi: 2/3" in system
     assert "Patience ban đầu của cuộc gọi: 3" in system
     assert "thực dụng" in system or "thá»±c dá»¥ng" in system
-    changed_system, changed_digest = generation_prompt("khach_so_gia", {**call, "customer_goal": "different goal"}, scenario_num_calls=3)
+    changed_system, changed_digest = generation_prompt("khach_so_gia", {**call, "story_hint": "different outline"}, scenario_num_calls=3)
     assert changed_system != system and changed_digest != digest
     _, count_changed_digest = generation_prompt("khach_so_gia", call, scenario_num_calls=2)
     assert count_changed_digest != digest
@@ -189,6 +331,8 @@ def test_hard_case_brief_builder_encodes_callback_channels_basket_and_stock():
             "policy_chunk_ids": "DT-01", "policy_situation": "current", "customer_id": customer["customer_id"],
             "story_hints": "Call 1: Nêu nhu cầu ban đầu. || Call 2: Hỏi tiếp kết quả đã trao đổi.",
         }
+        if calls >= 3:
+            row["story_hints"] += " || Call 3: Continue discussing available choices before deciding."
         return _brief_for_row(row, customer, _products_for_industry(industry))
 
     callback = make("callback_holiday")
@@ -229,12 +373,38 @@ def test_assembled_scenario_keeps_internal_customer_id_out_of_public_payload():
     assert set(scenario) == {"scenario_id", "level", "persona", "hard_case", "customer_phone", "customer_name", "honorific", "notes", "calls"}
 
 
+def test_assembly_uses_call_story_instead_of_scenario_summary_for_shared_phone():
+    b = brief("SC-002")
+    packs = {call["call_index"]: build_fact_pack(b, call["call_index"]) for call in b["calls"]}
+    raw = {call["call_index"]: {"customer_turns": ["a", "b", "c", "d"]} for call in b["calls"]}
+    scenario = assemble_scenario(
+        b, raw, packs,
+        summary={"customer_goal": "Wrong goal from primary customer", "notes": "summary must not override brief"},
+    )
+    expected = customer_goal_for_call(b, b["calls"][0])
+    assert scenario["calls"]["call_1"]["customer_goal"] == expected
+    assert scenario["calls"]["call_1"]["customer_goal"] != "Wrong goal from primary customer"
+
+
+def test_matrix_policy_and_promotion_selection_are_relevant_to_source_context():
+    data = discovered_data()
+    assert not any(chunk.startswith("CL-") for chunk in data["policy_chunks"])
+    policy = _policy_chunks_for("current", data, tag="numeric_precision", industry="thoi-trang", sku="SKU-SN-RUN1")
+    assert policy.split("|") == ["VC-01", "KM-01"]
+    running_shoe = next(p for p in _products_for_industry("thoi-trang") if p["sku"] == "SKU-SN-RUN1")
+    promos = _promo_codes_for(
+        "active", {"promos": {"active": ["AIR-2ND-50", "RUN-10", "COD-0"]}},
+        industry="thoi-trang", region="bac", products=[running_shoe],
+    )
+    assert promos.split("|") == ["RUN-10", "COD-0"]
+
+
 def test_batch_does_not_reuse_dry_run_raw_for_production():
     raw = ROOT / "data_gen" / "tests" / "_raw_mode_compat.json"
     raw.write_text(json.dumps({
         "customer_turns": ["a", "b", "c", "d"],
         "customer_turns_asr": ["a", "b", "c", "d"],
-        "generation_meta": {"provider": "dry-run", "model": "dry-run", "prompt_version": "customer_turns_v4", "payload_digest": "digest", "seed": 7, "dry_run": True},
+        "generation_meta": {"provider": "dry-run", "model": "dry-run", "prompt_version": "customer_turns_v5", "payload_digest": "digest", "seed": 7, "dry_run": True},
     }), encoding="utf-8")
     try:
         assert raw_requires_regeneration(raw, dry_run=False, seed=7)
@@ -311,13 +481,19 @@ def test_assembly_writes_public_shape_and_per_call_identity_sidecar(monkeypatch)
                 "customer_turns_asr": make_asr_turns(turns, seed=7, dry_run=True),
             }
             (raw_dir / f'{b["brief_id"]}_c{index}.json').write_text(json.dumps(raw_data), encoding="utf-8")
+        (raw_dir / f'{b["brief_id"]}_metadata.json').write_text(json.dumps({
+            "scenario_id": b["brief_id"], "notes": "reviewed summary", "customer_goal": "customer goal",
+        }), encoding="utf-8")
         monkeypatch.setattr(assemble_module, "FACT_PACKS_DIR", pack_dir)
         monkeypatch.setattr(assemble_module, "RAW_DIR", raw_dir)
         output = assemble_module.run(brief_path, False, scenario_dir)
         scenario = json.loads(output.read_text(encoding="utf-8"))
         sidecar = json.loads((tmp_path / "scenarios_metadata" / output.name).read_text(encoding="utf-8"))
         assert set(scenario) == {"scenario_id", "level", "persona", "hard_case", "customer_phone", "customer_name", "honorific", "notes", "calls"}
-        assert all("customer_turns_asr" in call for call in scenario["calls"].values())
+        assert all(
+            ("customer_turns_asr" in call) == (call.get("input_mode", "clean") != "clean")
+            for call in scenario["calls"].values()
+        )
         assert "customer_id" not in scenario and all("customer_id" not in call for call in scenario["calls"].values())
         assert sidecar["customer_id"] == b["customer_id"]
         findings = check_one(output, brief_dir, pack_dir, raw_dir)
@@ -328,7 +504,7 @@ def test_raw_requires_regeneration_when_asr_variant_is_missing():
     raw = ROOT / "data_gen" / "tests" / "_raw_without_asr.json"
     raw.write_text(json.dumps({
         "customer_turns": ["a", "b", "c", "d"],
-        "generation_meta": {"provider": "dry-run", "model": "dry-run", "prompt_version": "customer_turns_v4", "seed": 7, "dry_run": True},
+        "generation_meta": {"provider": "dry-run", "model": "dry-run", "prompt_version": "customer_turns_v5", "payload_digest": "digest", "seed": 7, "dry_run": True},
     }), encoding="utf-8")
     try:
         assert raw_requires_regeneration(raw, dry_run=True, seed=7)

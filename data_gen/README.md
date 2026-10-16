@@ -2,11 +2,13 @@
 
 > Hướng dẫn này dành cho thành viên thiết kế, sinh và review dataset trong `data_gen/`. Làm theo thứ tự từng bước; không chạy batch Gemini trên brief chưa review.
 
+Paired transcript corpus lifecycle and audio/ASR instructions: [TRANSCRIPT_PIPELINE.md](TRANSCRIPT_PIPELINE.md).
+
 ## 1. Phạm vi hiện tại
 
-- Đợt hiện tại tập trung vào **M1, hội thoại text**. Mục tiêu M1 trong `dataset_config.json`: tối thiểu 120 transcript, 30 khách đa phiên, 10 khách đa kênh, một ngành hàng (`thoi-trang`) và hai miền (`bac`, `nam`). Audio is not generated in this phase; clean `customer_turns` and text `customer_turns_asr` are still generated, so M1 remains incomplete. M2 chưa được bật.
-- Coverage matrix hiện là kế hoạch, không phải dataset đã sinh hay đã được duyệt. Mỗi dòng là một scenario; `num_calls` là số transcript/cuộc trong scenario.
-- Lượt khách được sinh bằng LLM hoặc dry-run. Agent không được sinh trong dataset: scenario chỉ chứa `customer_turns` cùng facts và điều kiện chấm do pipeline tạo từ brief/mock tools.
+- Pipeline hỗ trợ hai sản phẩm riêng: BTC evaluation scenarios (customer-only input) và paired-turn transcripts (customer + agent; xem `TRANSCRIPT_PIPELINE.md`). `num_calls` trong coverage matrix là số cuộc gọi được lập kế hoạch, không phải số transcript được chấp nhận.
+- Coverage matrix hiện là kế hoạch. Mỗi dòng là một scenario; briefs/scenarios phải được sinh, validate, review, rồi acceptance mới được tính vào corpus.
+- Evaluation scenarios chỉ chứa `customer_turns` cùng facts và điều kiện chấm do pipeline tạo từ brief/mock tools. Paired transcript generation là một bước riêng; prewritten replies không chứng minh runtime agent behavior.
 - Giá, khuyến mãi, tồn kho, chính sách, ngày và dữ kiện CRM phải khớp dữ liệu BTC. Thư mục `data/` chỉ đọc; không sửa hoặc đưa PII thật vào brief, prompt, log hay báo cáo.
 
 ## 2. Luồng công việc
@@ -211,15 +213,18 @@ python -m data_gen.explore_data
 # 2. Kiểm tra coverage (không tính audio đợt này)
 python -m data_gen.coverage_matrix.make_coverage_matrix report --matrix data_gen/reports/coverage_matrix.csv --defer-audio
 
-# 3. Tạo stub còn thiếu; không ghi đè brief đã có
+# 3. Đồng bộ miền matrix với region CRM của khách chính
+python -m data_gen.coverage_matrix.make_coverage_matrix sync-regions --matrix data_gen/reports/coverage_matrix.csv
+
+# 4. Tạo stub còn thiếu; không ghi đè brief đã có
 python -m data_gen.coverage_matrix.make_coverage_matrix stubs --matrix data_gen/reports/coverage_matrix.csv --out data_gen/briefs/
 
-# 4. Lint brief
+# 5. Lint brief
 python -m data_gen.lint_briefs data_gen/briefs/
 
-# 5. Dry-run một vài case rồi auto-check
+# 6. Dry-run một vài case rồi auto-check
 python -m data_gen.run_batch --briefs data_gen/briefs/ --out data_gen/scenarios_dryrun/ --dry-run --level M1 --limit 3 --seed 7
-python -m data_gen.auto_check --scenarios data_gen/scenarios_dryrun/ --briefs data_gen/briefs/ --fact-packs data_gen/fact_packs/
+python -m data_gen.auto_check --scenarios data_gen/scenarios_dryrun/ --briefs data_gen/briefs/ --fact-packs data_gen/fact_packs/ --matrix data_gen/reports/coverage_matrix.csv
 
 # 6. Sinh thử bằng Gemini sau khi review
 python -m data_gen.run_batch --briefs data_gen/briefs/ --out data_gen/scenarios/ --level M1 --limit 3 --seed 7
@@ -229,7 +234,9 @@ python -m data_gen.gen_dialogue --brief data_gen/briefs/SC-001.json --call 1
 python -m data_gen.gen_dialogue --brief data_gen/briefs/SC-001.json --call 2
 
 # 8. Tong hop nhieu call thanh 1 scenario
-python -m  data_gen.assemble_scenario --brief data_gen/briefs/SC-0o1.json --out data_gen/scenarios
+python -m  data_gen.assemble_scenario --brief data_gen/briefs/SC-001.json --out data_gen/scenarios
 ```
+
+`assemble_scenario` rebuilds fact packs from the brief and BTC mock tools on every run. It derives `ground_truth_facts`, including per-product promotion states and the selected policy evidence, deterministically. `auto_check` verifies those facts against the same source artifacts and checks the matrix region against the primary CRM customer; pass `--matrix` when checking a non-default matrix.
 
 Xem chi tiết về cách lập và đọc matrix tại [`coverage_matrix/README.md`](coverage_matrix/README.md). Mục tiêu M1/M2 và thứ tự level nằm trong [`dataset_config.json`](dataset_config.json); cấu hình hiện chỉ bật M1 trong batch mặc định.

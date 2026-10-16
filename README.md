@@ -65,3 +65,7 @@ pytest langgraph_agent/tests
 ## Sinh dataset hội thoại M1 text
 
 Pipeline coverage matrix → brief → customer turns → scenario nằm trong [`data_gen/README.md`](data_gen/README.md). Coverage report chỉ xác nhận số lượng slot kế hoạch; dùng lint, auto-check và review để xác nhận nội dung. Dry-run không phải dữ liệu sinh bằng LLM. ASR/audio và M2 chưa thuộc workflow text hiện tại.
+
+## Paired transcript dataset
+
+Evaluation scenarios are customer-only test inputs; they are not accepted transcript records. The separate paired-turn transcript corpus, review lifecycle, opt-in audio/ASR path, current quotas, and resume commands are documented in [data_gen/TRANSCRIPT_PIPELINE.md](data_gen/TRANSCRIPT_PIPELINE.md).

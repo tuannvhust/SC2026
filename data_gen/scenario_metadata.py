@@ -357,19 +357,19 @@ def normalize_brief_customer_goals(brief: dict[str, Any]) -> bool:
 def scenario_notes(brief: dict[str, Any]) -> str:
     tags = brief.get("hard_case_tags", [])
     calls = brief.get("calls", [])
-    contexts = list(dict.fromkeys(
-        str(call.get("story_hint", "")).strip()
-        for call in calls
-        if call.get("story_hint")
-    ))
+    # The public samples use a short scenario-level note. A concatenation of
+    # every call hint repeats the same context and makes the generated record
+    # look like a planning prompt. Keep only the first reviewed context here;
+    # later-call context is already represented in each call's customer turns.
+    context = next((str(call.get("story_hint", "")).strip() for call in calls if call.get("story_hint")), "")
     if tags:
         unknown = sorted(set(tags) - HARD_CASE_PRESENTATION.keys())
         if unknown:
             raise ValueError(f"Missing Vietnamese hard_case notes: {', '.join(unknown)}")
-        notes = ["Bối cảnh: " + " ".join(contexts)] if contexts else []
+        notes = [context] if context else []
         notes.extend(HARD_CASE_PRESENTATION[tag][1] for tag in tags)
     else:
-        notes = ["Bối cảnh: " + " ".join(contexts)] if contexts else ["Kịch bản tư vấn nhu cầu mua sắm thông thường."]
+        notes = [context] if context else ["Khách tìm hiểu sản phẩm theo nhu cầu của mình."]
 
     reminders: list[str] = []
     calls = brief.get("calls", [])

@@ -15,11 +15,13 @@ from .facts import build_fact_pack
 from .lint_briefs import btc_data, lint_one
 from .provenance import brief_digest
 from .scenario_metadata import (
+    customer_goal_for_call,
     hard_case_label,
     generate_scenario_summary,
     scenario_summary_is_reusable,
     scenario_summary_path,
     scenario_summary_payload,
+    scenario_notes,
 )
 
 
@@ -107,17 +109,23 @@ def scenario_needs_assembly(path: Path, brief: dict | None = None, summary: dict
             f"call_{call['call_index']}": call.get("story_hint", "")
             for call in brief.get("calls", [])
         }
+        first_call = next((call for call in brief.get("calls", []) if call.get("call_index") == 1), {})
         if (
             scenario.get("hard_case") != hard_case_label(brief.get("hard_case_tags", []))
-            or scenario.get("notes") != summary.get("notes")
-            or scenario.get("calls", {}).get("call_1", {}).get("customer_goal") != summary.get("customer_goal")
+            or scenario.get("notes") != scenario_notes(brief)
+            or scenario.get("calls", {}).get("call_1", {}).get("customer_goal") != customer_goal_for_call(brief, first_call)
             or sidecar.get("story_hints") != story_hints
             or any("customer_goal" in call for name, call in scenario.get("calls", {}).items() if name != "call_1")
         ):
             return True
     return any(
-        not isinstance(call.get("customer_turns_asr"), list)
-        or len(call["customer_turns_asr"]) != len(call.get("customer_turns", []))
+        (
+            call.get("input_mode", "clean") != "clean"
+            and (
+                not isinstance(call.get("customer_turns_asr"), list)
+                or len(call["customer_turns_asr"]) != len(call.get("customer_turns", []))
+            )
+        )
         or "customer_id" in call
         or "customer_name" in call
         or "teencode_level" in call
@@ -252,9 +260,9 @@ def main() -> None:
                     )
                     if not artifact.exists()
                 ]
-                if missing or not raw_current or not summary_current:
+                if missing or not raw_current:
                     raise FileNotFoundError(
-                        "assemble-only needs prompt-compatible customer turns, fact packs, and scenario metadata; "
+                        "assemble-only needs prompt-compatible customer turns and fact packs; "
                         + (", ".join(missing) if missing else "regenerate this scenario with a normal batch first")
                     )
                 assembled=assemble(path,args.dry_run,out_dir=out_dir)

@@ -146,7 +146,9 @@ def discover_policy_chunks() -> dict[str, list[str]]:
         if "NOI-BO" in fname.upper() or "noi-quy" in fname.lower():
             blocked_sources.append(fname)
             continue
-        if "HET-HIEU-LUC" in fname.upper():
+        # A changelog records document revisions; its IDs are not policy
+        # chunks that an agent can cite as operational guidance.
+        if "HET-HIEU-LUC" in fname.upper() or fname.lower() == "changelog.md":
             continue
         content = path.read_text(encoding="utf-8")
         for m in re.finditer(r"##\s+\[([A-Za-z0-9_-]+)\]", content):
@@ -191,20 +193,237 @@ def discovered_data() -> dict[str, Any]:
     }
 
 
-def _promo_codes_for(situation: str, data: dict[str, Any]) -> str:
-    """Trả về chuỗi promo_code thực tế cho một situation, để ghi vào CSV."""
-    codes = data["promos"].get(situation, [])
-    return "|".join(codes[:3]) if codes else ""   # tối đa 3 code để CSV không quá dài
+def _promo_codes_for(
+    situation: str,
+    data: dict[str, Any],
+    *,
+    industry: str,
+    region: str,
+    products: list[dict[str, Any]],
+    tag: str = "",
+) -> str:
+    """Select source-backed promotions compatible with the row's products.
+
+    Explicit hard cases can intentionally select an expired/not-started or
+    condition-failing offer. Ordinary active/conditional rows only receive
+    codes whose applies_to metadata matches at least one selected SKU.
+    """
+    source_promos = load_json("catalog/promotions.json").get("promotions", [])
+    by_code = {promo["promo_code"]: promo for promo in source_promos}
+    candidates = list(data["promos"].get(situation, []))
+    skus = {p.get("sku") for p in products}
+
+    if tag == "promo_not_started":
+        candidates = [code for code in candidates if code == "11-11"]
+    elif tag == "promo_expired":
+        candidates = [code for code in candidates if any(
+            code in by_code and (
+                by_code[code].get("applies_to", ["*"]) == ["*"]
+                or sku in by_code[code].get("applies_to", [])
+                or any(t.startswith("category:") and p.get("category", "").startswith(t.split(":", 1)[1])
+                       for p in products for t in by_code[code].get("applies_to", []))
+            ) for sku in skus
+        )]
+    else:
+        def applies(promo: dict[str, Any]) -> bool:
+            targets = promo.get("applies_to", [])
+            target_match = any(
+                "*" in targets or p.get("sku") in targets
+                or any(t.startswith("category:") and p.get("category", "").startswith(t.split(":", 1)[1]) for t in targets)
+                for p in products
+            )
+            conditions = promo.get("conditions", {})
+            if "region" in conditions and region not in conditions["region"]:
+                # Keep this only for the deliberate region-eligibility trap.
+                return tag == "promo_condition_fail" and target_match
+            # SKU suffixes such as -OLD identify a catalog generation in the
+            # same product family. Keep the named offer for the explicit
+            # promo_condition_fail trap so the mock evidence can say it does
+            # not apply to this SKU.
+            sibling_target = any(
+                p.get("sku", "").endswith("-OLD")
+                and p.get("sku", "")[:-4] in targets
+                for p in products
+            )
+            return target_match or (tag == "promo_condition_fail" and sibling_target)
+        candidates = [code for code in candidates if code in by_code and applies(by_code[code])]
+
+    if tag == "promo_expired" and not candidates:
+        # Expiration traps can ask about an older named offer even when the
+        # current item is outside its SKU scope. Keep one dated offer so the
+        # temporal policy question remains reproducible.
+        candidates = list(data["promos"].get("expired", []))[:1]
+    elif tag == "promo_expired":
+        candidates = candidates[:1]
+
+    # The size-exclusion case is specifically tied to RUN-10 and size 43.
+    if tag == "size_excluded_promotion":
+        candidates = [code for code in candidates if code == "RUN-10"]
+    return "|".join(dict.fromkeys(candidates[:3]))
 
 
-def _policy_chunks_for(situation: str, data: dict[str, Any]) -> str:
-    """Trả về chuỗi chunk_id thực tế cho một situation."""
+def _policy_chunks_for(
+    situation: str, data: dict[str, Any], *, tag: str = "", industry: str = "", sku: str = "",
+) -> str:
+    """Return source-backed policy chunks relevant to the hard case/product."""
     if situation == "current":
-        return "|".join(data["policy_chunks"][:5])   # 5 chunk đại diện
+        by_tag = {
+            "order_in_transit": ["VC-06"],
+            "three_call_order_status": ["VC-06"],
+            "version_conflict": ["DT-01", "DT-02", "DT-03", "DT-04", "DT-05", "DT-06", "DT-07"],
+            "numeric_precision": ["VC-01", "KM-01"],
+            "multi_hop": ["FAQ-17", "VC-01"],
+            "size_excluded_promotion": ["KM-01", "KM-05"],
+            "pii_cccd_bank_account": ["PB-08"],
+            "price_pressure_internal_floor": ["KM-06", "PB-02", "PB-04"],
+            "ai_identity_data_deletion": ["PB-07", "QT-06"],
+            "multi_product_cod_budget": ["VC-03", "KM-04", "KM-06"],
+            "product_exchange_refund_difference": ["DT-03", "DT-04", "QT-03"],
+            "callback_holiday": ["LN-01", "LN-02"],
+            "competitor_price_request": ["PB-02", "PB-04"],
+            "inventory_runs_out_at_close": ["FAQ-17", "VC-06"],
+        }
+        selected = by_tag.get(tag)
+        if not selected:
+            if sku.startswith("SKU-SN-"):
+                selected = ["SP-SN-02"]
+            elif sku.startswith("SKU-JK-"):
+                selected = ["SP-JK-01"]
+            elif sku.startswith("SKU-MB-"):
+                selected = ["SP-MB-01"]
+            elif sku.startswith("SKU-AP-"):
+                selected = ["SP-AIR-01"]
+            elif sku.startswith("SKU-WF-"):
+                selected = ["SP-WF-01"]
+            elif sku.startswith("SKU-FAN-"):
+                selected = ["SP-FAN-01"]
+            elif sku.startswith("SKU-AF-"):
+                selected = ["SP-AF-01"]
+            else:
+                selected = {"gia-dung": ["VC-01"], "me-be": ["SP-MB-01"], "thoi-trang": ["SP-SN-02"]}.get(industry, [])
+        available = set(data["policy_chunks"])
+        return "|".join(code for code in selected if code in available)
     if situation == "old":
         old_chunks = data.get("old_policy_chunks", [])
         return "|".join(old_chunks[:5])
     return ""
+
+
+def synchronize_context_assignments(matrix_path: Path, briefs_dir: Path) -> int:
+    """Reconcile saved matrix/brief assignments from their deterministic sources.
+
+    This updates only promotion and policy IDs. Customer-turn text is not
+    rewritten because those IDs are evaluator context, not customer dialogue.
+    """
+    rows = read_rows(matrix_path)
+    data = discovered_data()
+    customers = {c["customer_id"]: c for c in load_json("catalog/crm_seed.json")["customers"]}
+    products = {}
+    for product in load_json("catalog/products.json")["products"]:
+        products[product["sku"]] = product
+        products.update({variant["variant_sku"]: product for variant in product.get("variants", [])})
+    promotions = {p["promo_code"]: p for p in load_json("catalog/promotions.json")["promotions"]}
+    changed = 0
+    for row in rows:
+        brief_path = briefs_dir / f"{row['slot_id']}.json"
+        if not brief_path.exists():
+            # Planning rows without briefs still need sane category-level
+            # defaults; when a brief is later created this pass narrows them
+            # to its exact products and caller CRM region.
+            industry = row.get("nganh", "")
+            pool = _products_for_industry(industry)
+            if row.get("hard_case_tag") == "multi_product_cod_budget":
+                promo_products = sorted(pool, key=lambda p: p.get("list_price_vnd", 0), reverse=True)[:4]
+            elif row.get("hard_case_tag") == "size_excluded_promotion":
+                promo_products = [next((p for p in pool if any(v.get("size") == 43 for v in p.get("variants", []))), pool[0])]
+            else:
+                promo_products = [pool[int(row.get("case_number", "1")) % len(pool)]] if pool else []
+            row["promo_codes_in_play"] = _promo_codes_for(
+                row.get("promo_situation", "none"), data,
+                industry=industry, region=row.get("mien", ""), products=promo_products,
+                tag=row.get("hard_case_tag", ""),
+            )
+            row["policy_chunk_ids"] = _policy_chunks_for(
+                row.get("policy_situation", "none"), data,
+                tag=row.get("hard_case_tag", ""), industry=industry,
+            )
+            changed += 1
+            continue
+        brief = json.loads(brief_path.read_text(encoding="utf-8"))
+        tag = row.get("hard_case_tag", "")
+        situation = row.get("promo_situation", "none")
+        policy_situation = row.get("policy_situation", "none")
+        policy_union: list[str] = []
+        promo_union: list[str] = []
+        for call in brief.get("calls", []):
+            caller = customers.get(call.get("customer_id", brief.get("customer_id")), {})
+            call_products = [products.get(p.get("variant_id") or p.get("sku"), {}) for p in call.get("products", [])]
+            call_products = [p for p in call_products if p]
+            sku = call_products[0].get("sku", "") if call_products else ""
+            desired_policy = _policy_chunks_for(
+                policy_situation, data, tag=tag,
+                industry=row.get("nganh", ""), sku=sku,
+            ).split("|")
+            call["policy_chunk_ids"] = [x for x in desired_policy if x]
+            for code in call["policy_chunk_ids"]:
+                if code not in policy_union:
+                    policy_union.append(code)
+
+            if situation in {"expired", "not_started"}:
+                # These traps ask about a named offer's effective dates; that
+                # question is intentionally independent of the active product.
+                choices = data["promos"].get(situation, [])
+                selected = [x for x in call.get("promo_codes_in_play", []) if x in choices]
+                if situation == "expired" and choices:
+                    selected = [selected[0] if selected else choices[(int(row.get("case_number", "1")) - 1) % len(choices)]]
+                elif not selected and choices:
+                    selected = [choices[(int(row.get("case_number", "1")) - 1) % len(choices)]]
+            elif situation in {"active", "conditional"} and call_products:
+                current_candidates = data["promos"].get(situation, [])
+                selected = []
+                for code in current_candidates:
+                    promo = promotions.get(code, {})
+                    targets = promo.get("applies_to", [])
+                    matches_product = any(
+                        "*" in targets or product.get("sku") in targets
+                        or any(t.startswith("category:") and product.get("category", "").startswith(t.split(":", 1)[1]) for t in targets)
+                        or (tag == "promo_condition_fail" and product.get("sku", "").endswith("-OLD") and product.get("sku", "")[:-4] in targets)
+                        for product in call_products
+                    )
+                    conditions = promo.get("conditions", {})
+                    region_ok = not conditions.get("region") or caller.get("region") in conditions["region"]
+                    if matches_product and (region_ok or tag == "promo_condition_fail"):
+                        selected.append(code)
+                if tag == "size_excluded_promotion" and "RUN-10" in current_candidates:
+                    selected = ["RUN-10"]
+                selected = selected[:3]
+            else:
+                selected = []
+            call["promo_codes_in_play"] = selected
+            for code in selected:
+                if code not in promo_union:
+                    promo_union.append(code)
+        row["policy_chunk_ids"] = "|".join(policy_union)
+        row["promo_codes_in_play"] = "|".join(promo_union)
+        brief_path.write_text(json.dumps(brief, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        # Promotion/policy assignments do not change customer-generation
+        # prompts. Refresh the source digest while preserving raw turns.
+        from data_gen.provenance import brief_digest
+        raw_dir = DATA_GEN_DIR / "raw"
+        for call in brief.get("calls", []):
+            raw_path = raw_dir / f"{row['slot_id']}_c{call['call_index']}.json"
+            if not raw_path.exists():
+                continue
+            raw = json.loads(raw_path.read_text(encoding="utf-8"))
+            meta = raw.setdefault("generation_meta", {})
+            meta["brief_digest"] = brief_digest(brief)
+            raw_path.write_text(json.dumps(raw, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        changed += 1
+    with matrix_path.open("w", newline="", encoding="utf-8-sig") as stream:
+        writer = csv.DictWriter(stream, fieldnames=COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+    return changed
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -285,7 +504,28 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
         persona_id = PERSONA_BY_TAG.get(tag, personas[i % len(personas)])
         region = allowed_mien[i % len(allowed_mien)]
         selected_customer = choose_customer(level, i, special, pattern, region)
+        # The row describes its assigned primary CRM customer. Special CRM
+        # records can live outside the ordinary M1 region rotation.
+        region = selected_customer.get("region", region)
         assigned_customer_ids.add(selected_customer["customer_id"])
+
+        row_products = _products_for_industry(cur_nganh)
+        selected_product = row_products[int(global_case_number) % len(row_products)]
+        if tag == "size_excluded_promotion":
+            selected_product = next(
+                (p for p in row_products if any(v.get("size") == 43 for v in p.get("variants", []))),
+                selected_product,
+            )
+        if tag == "multi_product_cod_budget":
+            selected_products = sorted(row_products, key=lambda p: p.get("list_price_vnd", 0), reverse=True)[:4]
+            if len(selected_products) == 4:
+                row_products = selected_products
+                selected_product = selected_products[0]
+        selected_sku = selected_product.get("sku", "")
+        row_promos = _promo_codes_for(
+            promo_sit, data, industry=cur_nganh, region=region,
+            products=row_products if tag == "multi_product_cod_budget" else [selected_product], tag=tag,
+        )
 
         rows.append({
             "level":             level,
@@ -295,14 +535,14 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
             "owner":              owners[i % len(owners)],
             "persona_id":         persona_id,
             "nganh":              cur_nganh,
-            "mien":               allowed_mien[i % len(allowed_mien)],
+            "mien":               region,
             "num_calls":          str(calls),
             "channel_pattern":    f"{pattern[0]}-{pattern[1]}",
             "hard_case_tag":      tag,
             "special_customer":   special,
-            "promo_codes_in_play": _promo_codes_for(promo_sit, data),
+            "promo_codes_in_play": row_promos,
             "promo_situation":    promo_sit,
-            "policy_chunk_ids":   _policy_chunks_for(policy_sit, data),
+            "policy_chunk_ids":   _policy_chunks_for(policy_sit, data, tag=tag, industry=cur_nganh, sku=selected_sku),
             "policy_situation":   policy_sit,
             "customer_id":        selected_customer["customer_id"] if selected_customer else "",
             "audio_source":      "",
@@ -346,6 +586,25 @@ def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] |
 def read_rows(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
+
+
+def sync_regions(path: Path) -> int:
+    """Set each matrix row's region from its assigned primary CRM customer."""
+    customers = {c["customer_id"]: c for c in load_json("catalog/crm_seed.json")["customers"]}
+    rows = read_rows(path)
+    changed = 0
+    for row in rows:
+        customer = customers.get(row.get("customer_id", ""))
+        if customer and customer.get("region") and row.get("mien") != customer["region"]:
+            row["mien"] = customer["region"]
+            changed += 1
+    if changed:
+        with path.open("w", newline="", encoding="utf-8-sig") as stream:
+            writer = csv.DictWriter(stream, fieldnames=COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+    print(f"Synchronized {changed} matrix region(s) from CRM -> {path}")
+    return changed
 
 
 def _report_level(rows: list[dict[str, str]], level: str, target: dict[str, Any], *, defer_audio: bool = False) -> bool:
@@ -766,7 +1025,7 @@ def stubs(matrix: Path, out_dir: Path, *, overwrite: bool = False) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["generate", "report", "stubs", "track"])
+    parser.add_argument("command", choices=["generate", "report", "stubs", "track", "sync-regions", "sync-context"])
     parser.add_argument("--config", type=Path, default=Path(__file__).with_name("matrix_config.json"))
     parser.add_argument("--matrix", type=Path, default=REPORTS_DIR / "coverage_matrix.csv")
     parser.add_argument("--out", type=Path)
@@ -785,8 +1044,13 @@ def main() -> None:
         report(config, args.matrix, defer_audio=args.defer_audio)
     elif args.command == "stubs":
         stubs(args.matrix, args.out or BRIEFS_DIR, overwrite=args.force)
-    else:
+    elif args.command == "track":
         track(args.matrix, args.briefs, args.scenarios, args.raw, args.audio, args.out or REPORTS_DIR / "coverage_tracking.csv")
+    elif args.command == "sync-regions":
+        sync_regions(args.matrix)
+    else:
+        count = synchronize_context_assignments(args.matrix, args.briefs)
+        print(f"Synchronized promotion/policy assignments for {count} matrix row(s)")
 
 
 if __name__ == "__main__":

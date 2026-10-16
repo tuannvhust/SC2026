@@ -1,0 +1,107 @@
+{
+  "transcript_id": "SC-002_call_1",
+  "customer_id": "C034",
+  "session_id": "SC-002_call_1",
+  "call_id": "SC-002_call_1",
+  "channel": "hotline",
+  "call_date": "2026-10-15",
+  "persona": "hai_nguoi_chung_sdt",
+  "industry": "thoi-trang",
+  "region_accent": "trung",
+  "persistent_customer_facts": {
+    "budget_vnd": 7000000
+  },
+  "time_sensitive_facts": {
+    "product_advised": "SKU-JK-DWN",
+    "caller_identity": "Loan",
+    "blocker": "can hoi con gai",
+    "price_quoted_vnd": 1490000
+  },
+  "ground_truth_facts": {
+    "price_vnd": 1490000,
+    "list_price_vnd": 1490000,
+    "in_stock": true,
+    "freeship": false,
+    "promo_codes_in_play": [],
+    "policy_chunk_ids": [],
+    "policy_evidence": [],
+    "product_1_sku": "SKU-JK-DWN",
+    "product_1_qty": 1,
+    "product_1_price_vnd": 1490000,
+    "product_1_list_price_vnd": 1490000,
+    "product_1_in_stock": true,
+    "product_1_freeship": false,
+    "promo_COD-0_product_1_active": true,
+    "promo_COD-0_product_1_eligible": true,
+    "promo_COD-0_product_1_status": "applied",
+    "promo_COD-0_active": true,
+    "promo_COD-0_eligible": true,
+    "promo_COD-0_status": "applied"
+  },
+  "prior_history_context": [],
+  "coverage": {
+    "persona": "hai_nguoi_chung_sdt",
+    "industry": "thoi-trang",
+    "region": "trung",
+    "skus": [
+      "SKU-JK-DWN"
+    ]
+  },
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "Alo, chào shop nhé, mình là Loan gọi hộ đứa con gái."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ, em chào chị Loan ạ! Chị cần em hỗ trợ thông tin gì về sản phẩm ạ?"
+    },
+    {
+      "speaker": "customer",
+      "text": "Nó đang tia cái Áo phao lông vũ Warmly mà không biết mặc có hợp không."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ, Áo phao lông vũ Warmly hiện bên em có giá là 1.490.000đ và hàng vẫn đang sẵn kho ạ. Mẫu này mặc rất ấm và dễ phối đồ, chị yên tâm nhé."
+    },
+    {
+      "speaker": "customer",
+      "text": "Tầm giá quanh bảy triệu thì mẫu này có nhiều màu để chọn không bạn?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ, mẫu này bên em có nhiều màu sắc để lựa chọn lắm chị ạ. Với tầm ngân sách của mình thì hoàn toàn thoải mái luôn ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Thôi để mình gọi nó ra xem chung rồi có gì liên hệ lại sau nhé."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ vâng, em chào chị Loan nhé. Chị cứ trao đổi với con gái rồi có gì cần hỗ trợ cứ liên hệ lại với tụi em ạ!"
+    }
+  ],
+  "source_scenario_id": "SC-002",
+  "review_status": "rejected",
+  "provenance": {
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "generated_at": "2026-10-16T21:49:51.618879+00:00",
+    "scenario_sha256": "1fe73aa9319b73c404bc46211b053e560e4f558b6fdbb854a3cbc4947c1f2ccb",
+    "brief_sha256": "1ceffa9a806b9a278aa6bde83adfbd1d70f2e9267184b210269c1636a85ec74a",
+    "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
+    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
+    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "prompt_version": "paired_transcript_v1",
+    "artifact_status": "pending_review",
+    "prompt_digest": "c7b74953cd0b1564fdc957ebf93ca9b524bee9bec7e6ab4f1c1622e3f7ae64ec"
+  },
+  "validation": {
+    "status": "failed",
+    "errors": [
+      "ungrounded_number:1.490."
+    ],
+    "btc_validator": "unavailable_unverified"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "transcript_id": "SC-002_call_2",
+  "customer_id": "C035",
+  "session_id": "SC-002_call_2",
+  "call_id": "SC-002_call_2",
+  "channel": "hotline",
+  "call_date": "2026-10-17",
+  "persona": "hai_nguoi_chung_sdt",
+  "industry": "thoi-trang",
+  "region_accent": "nam",
+  "persistent_customer_facts": {
+    "budget_vnd": 1500000,
+    "address_confirmed": true
+  },
+  "time_sensitive_facts": {
+    "product_advised": "SKU-SN-CAS",
+    "caller_identity": "Dung",
+    "price_quoted_vnd": 890000
+  },
+  "ground_truth_facts": {
+    "price_vnd": 890000,
+    "list_price_vnd": 890000,
+    "in_stock": true,
+    "freeship": false,
+    "promo_codes_in_play": [],
+    "policy_chunk_ids": [],
+    "policy_evidence": [],
+    "product_1_sku": "SKU-SN-CAS",
+    "product_1_qty": 1,
+    "product_1_price_vnd": 890000,
+    "product_1_list_price_vnd": 890000,
+    "product_1_in_stock": true,
+    "product_1_freeship": false,
+    "promo_COD-0_product_1_active": true,
+    "promo_COD-0_product_1_eligible": true,
+    "promo_COD-0_product_1_status": "applied",
+    "promo_COD-0_active": true,
+    "promo_COD-0_eligible": true,
+    "promo_COD-0_status": "applied"
+  },
+  "prior_history_context": [],
+  "coverage": {
+    "persona": "hai_nguoi_chung_sdt",
+    "industry": "thoi-trang",
+    "region": "nam",
+    "skus": [
+      "SKU-SN-CAS"
+    ]
+  },
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "Alo shop ơi, số này hôm trước mẹ mình có gọi rồi nhưng hôm nay mình là Dung, con gái mẹ dùng chung số gọi ạ."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ chào chị Dung ạ, em ghi nhận thông tin rồi ạ. Shop có thể hỗ trợ gì cho chị hôm nay ạ?"
+    },
+    {
+      "speaker": "customer",
+      "text": "Chả là mình đang tìm một đôi giày sneaker để đi lại hằng ngày đi học đi làm cho tiện."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ vâng, giày sneaker để đi học đi làm hằng ngày thì shop có rất nhiều mẫu phù hợp và thoải mái ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Hôm trước thấy shop có tư vấn mẫu Giày sneaker Urban Classic đúng không nhỉ?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ đúng rồi chị, mẫu Giày sneaker Urban Classic bên em hôm trước vừa tư vấn ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Cho mình hỏi mẫu này chất liệu vải lưới với đế EVA đúng không shop, đi bộ nhiều có êm chân không?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ chính xác chị nhé, mẫu này làm từ chất liệu vải lưới thông thoáng kết hợp đế EVA êm ái, giúp chị đi bộ nhiều hay di chuyển cả ngày vẫn rất thoải mái ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Ngân sách của mình khoảng một triệu rưỡi thì vừa vặn mua mẫu này chứ?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ mẫu Giày sneaker Urban Classic này có giá niêm yết là 890.000 đồng, hoàn toàn nằm trong ngân sách một triệu rưỡi của mình nên chị yên tâm nhé."
+    },
+    {
+      "speaker": "customer",
+      "text": "Dạ được rồi, nếu vậy để mình suy nghĩ thêm rồi có gì alo lại shop sau nhé."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ vanh, em hiểu rồi ạ. Khi nào cần thêm thông tin chị cứ liên hệ lại shop nhé, chúc chị một ngày tốt lành ạ!"
+    }
+  ],
+  "source_scenario_id": "SC-002",
+  "review_status": "pending_review",
+  "provenance": {
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "generated_at": "2026-10-16T21:49:57.138375+00:00",
+    "scenario_sha256": "1fe73aa9319b73c404bc46211b053e560e4f558b6fdbb854a3cbc4947c1f2ccb",
+    "brief_sha256": "1ceffa9a806b9a278aa6bde83adfbd1d70f2e9267184b210269c1636a85ec74a",
+    "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
+    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
+    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "prompt_version": "paired_transcript_v1",
+    "artifact_status": "pending_review",
+    "prompt_digest": "e29c5ae76383d7e2c3b86c693e2dcc5a9ec9853212e974b76ddb547ee13a443e"
+  },
+  "validation": {
+    "status": "passed",
+    "errors": [],
+    "btc_validator": "unavailable_unverified"
+  }
+}

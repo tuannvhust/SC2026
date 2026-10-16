@@ -1,0 +1,50 @@
+{
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "Chào shop, đợt trước mình có mua Áo khoác gió Windbreak bên mình dùng khá thích."
+    },
+    {
+      "speaker": "agent",
+      "text": "Chào bạn, cảm ơn bạn đã tin tưởng và ủng hộ sản phẩm Áo khoác gió Windbreak bên shop nhé!"
+    },
+    {
+      "speaker": "customer",
+      "text": "Hình như mẫu đó giờ không thấy bán nữa phải không shop, hay có dòng nào thay thế tương tự không?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ mẫu Áo khoác gió Windbreak hiện tại bên shop vẫn còn hàng với mã SKU-JK-WND và có giá là 690.000đ ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Tầm giá quanh năm triệu đổ lại thôi, với lại shop check giúp mình thông tin mấy mẫu mới bây giờ nhé."
+    },
+    {
+      "speaker": "agent",
+      "text": "Mẫu này có giá 690.000đ, hoàn toàn nằm trong ngân sách của bạn và hiện đang có sẵn hàng tại shop ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Đia chỉ cũ của mình bên shop vẫn giữ chứ, hay cần mình đọc lại để gửi hàng cho chuẩn?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ shop vẫn lưu địa chỉ cũ của bạn trên hệ thống rồi ạ, shop sẽ gửi hàng theo đúng địa chỉ đó cho bạn nhé!"
+    }
+  ],
+  "provenance": {
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "generated_at": "2026-10-16T21:50:06.367027+00:00",
+    "scenario_sha256": "3d4d37ee3fa8ee021d7f17bc4185f30c5a26236234f825a06c62bb0f801d9feb",
+    "brief_sha256": "a85d8c8cc931bbe83cd3624361538521346b9c3cb7dfb9b5afc87ccb1d3d7c63",
+    "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
+    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
+    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "prompt_version": "paired_transcript_v1",
+    "artifact_status": "raw",
+    "prompt_digest": "ce406dd80446a54cba4af6fc68afac28b6a50d0c0d6006cfc7a70e0852ab5d07"
+  }
+}

@@ -67,15 +67,31 @@ def derive_ground_truth(pack: dict) -> dict:
         result["restock_date"] = inventory["restock_expected"]
     if "freeship" in quote:
         result["freeship"] = quote["freeship"]
-    for promo in quote.get("applied_promos", []):
-        result[f"promo_{promo['promo_code']}_active"] = True
-    for promo in quote.get("expired_promos", []):
-        result[f"promo_{promo}_active"] = False
+    result["promo_codes_in_play"] = list(pack.get("promo_codes_in_play", []))
+    result["policy_chunk_ids"] = [item.get("chunk_id") for item in pack.get("policy", [])]
+    result["policy_evidence"] = list(pack.get("policy", []))
     for index, item in enumerate(products, start=1):
+        item_quote = item.get("quote", {})
         result[f"product_{index}_sku"] = item.get("sku")
         result[f"product_{index}_qty"] = item.get("qty", 1)
-        result[f"product_{index}_price_vnd"] = item.get("quote", {}).get("final_price_vnd")
+        result[f"product_{index}_price_vnd"] = item_quote.get("final_price_vnd")
+        result[f"product_{index}_list_price_vnd"] = item_quote.get("list_price_vnd")
         result[f"product_{index}_in_stock"] = item.get("inventory", {}).get("in_stock")
+        if "freeship" in item_quote:
+            result[f"product_{index}_freeship"] = item_quote["freeship"]
+        for evidence in item.get("promotion_evidence", []):
+            code = evidence["promo_code"]
+            result[f"promo_{code}_product_{index}_active"] = evidence.get("active")
+            result[f"promo_{code}_product_{index}_eligible"] = evidence.get("eligible")
+            result[f"promo_{code}_product_{index}_status"] = evidence.get("status")
+            if evidence.get("reason") is not None:
+                result[f"promo_{code}_product_{index}_reason"] = evidence["reason"]
+            if index == 1:
+                result[f"promo_{code}_active"] = evidence.get("active")
+                result[f"promo_{code}_eligible"] = evidence.get("eligible")
+                result[f"promo_{code}_status"] = evidence.get("status")
+                if evidence.get("reason") is not None:
+                    result[f"promo_{code}_reason"] = evidence["reason"]
     return result
 
 
@@ -118,15 +134,22 @@ def assemble_scenario(
         identity_field = {"zalo_oa": "zalo_id", "chat_fanpage": "fb_id"}.get(channel)
         identity = spec.get("channel_identity") or (caller.get(identity_field) if identity_field else caller.get("phone"))
         call_out = {}
-        call_out["call_date"] = pack["call_date"]
+        if spec.get("call_date"):
+            call_out["call_date"] = pack["call_date"]
+        elif spec.get("days_later"):
+            call_out["days_later"] = spec["days_later"]
         call_out["channel"] = channel
         call_out["channel_identity"] = identity
         if call_index == 1:
-            call_out["customer_goal"] = (
-                summary["customer_goal"] if summary else customer_goal_for_call(brief, spec)
-            )
-        call_out["input_mode"] = spec.get("input_mode", brief.get("input_mode", "clean"))
-        if asr_turns is not None:
+            # A scenario-level LLM summary may describe the primary customer
+            # while call_1 belongs to another CRM member (for example shared
+            # phone). The public field describes this call, so derive it from
+            # this call's reviewed story hint every time.
+            call_out["customer_goal"] = customer_goal_for_call(brief, spec)
+        input_mode = spec.get("input_mode", brief.get("input_mode", "clean"))
+        if input_mode != "clean":
+            call_out["input_mode"] = input_mode
+        if asr_turns is not None and input_mode != "clean":
             call_out["customer_turns_asr"] = asr_turns
         call_out["customer_turns"] = turns
         previous_facts.update(spec.get("facts_to_establish", {}))
@@ -135,10 +158,13 @@ def assemble_scenario(
             previous_facts["price_quoted_vnd"] = item.get("quote", {}).get("final_price_vnd")
         call_out["facts_established"] = previous_facts.copy()
         for field in (
-            "expected_outcome", "must_carry_over", "must_not_ask", "success_if", "ground_truth_facts", "seed_history", "memory_expectation",
+            "expected_outcome", "must_carry_over", "must_not_ask", "success_if", "seed_history", "memory_expectation",
         ):
             if field in spec:
                 call_out[field] = spec[field]
+        # Always rebuild evaluator facts from deterministic tool/policy outputs;
+        # never trust hand-authored or generated assertions in the brief.
+        call_out["ground_truth_facts"] = derive_ground_truth(pack)
         calls[f"call_{call_index}"] = call_out
         
 
@@ -148,7 +174,9 @@ def assemble_scenario(
         "hard_case": hard_case_label(brief.get("hard_case_tags", [])),
         "customer_phone": customer.get("phone"), "customer_name": customer.get("name"),
         "honorific": customer.get("honorific"),
-        "notes": summary["notes"] if summary else scenario_notes(brief),
+        # Keep notes deterministic and grounded in the reviewed brief. Saved
+        # summaries are useful for review, but must not override source facts.
+        "notes": scenario_notes(brief),
         "calls": calls,
     }
     return scenario
@@ -185,6 +213,8 @@ def validate_scenario(scenario: dict) -> None:
             raise ValueError(f"{name}: invalid outcome")
         if not isinstance(call.get("success_if"), dict):
             raise ValueError(f"{name}: success_if is required")
+        if not isinstance(call.get("ground_truth_facts"), dict):
+            raise ValueError(f"{name}: ground_truth_facts is required")
 
 
 def run(brief_path: Path, dry_run: bool, out_dir: Path | None = None) -> Path:
@@ -194,8 +224,9 @@ def run(brief_path: Path, dry_run: bool, out_dir: Path | None = None) -> Path:
         index = call["call_index"]
         pack_path = FACT_PACKS_DIR / f"{brief['brief_id']}_c{index}.json"
         raw_path = RAW_DIR / f"{brief['brief_id']}_c{index}.json"
-        if not pack_path.exists():
-            pack_path.write_text(json.dumps(build_fact_pack(brief, index), ensure_ascii=False, indent=2), encoding="utf-8")
+        # Fact packs are deterministic projections of the current brief and BTC
+        # reference data. Rebuild them so stale generated packs cannot survive.
+        pack_path.write_text(json.dumps(build_fact_pack(brief, index), ensure_ascii=False, indent=2), encoding="utf-8")
         if not raw_path.exists():
             raise FileNotFoundError(f"Missing raw customer turns {raw_path}; run gen_dialogue first")
         packs[index] = json.loads(pack_path.read_text(encoding="utf-8"))

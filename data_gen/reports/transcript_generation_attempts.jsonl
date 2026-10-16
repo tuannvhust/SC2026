@@ -1,0 +1,4 @@
+{"transcript_id": "SC-002_call_1", "attempted_at": "2026-10-16T21:49:51.618879+00:00", "status": "rejected", "reason": ["ungrounded_number:1.490."], "seed": 7, "model": "gemini-3.5-flash-lite"}
+{"transcript_id": "SC-002_call_2", "attempted_at": "2026-10-16T21:49:57.138375+00:00", "status": "pending_review", "reason": [], "seed": 7, "model": "gemini-3.5-flash-lite"}
+{"transcript_id": "SC-004_call_1", "attempted_at": "2026-10-16T21:50:03.818433+00:00", "status": "rejected", "reason": ["ungrounded_number:690.", "ungrounded_number:690."], "seed": 7, "model": "gemini-3.5-flash-lite"}
+{"transcript_id": "SC-004_call_2", "attempted_at": "2026-10-16T21:50:06.367027+00:00", "status": "rejected", "reason": ["ungrounded_number:690.", "ungrounded_number:690."], "seed": 7, "model": "gemini-3.5-flash-lite"}

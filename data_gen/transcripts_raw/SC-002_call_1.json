@@ -1,0 +1,50 @@
+{
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "Alo, chào shop nhé, mình là Loan gọi hộ đứa con gái."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ, em chào chị Loan ạ! Chị cần em hỗ trợ thông tin gì về sản phẩm ạ?"
+    },
+    {
+      "speaker": "customer",
+      "text": "Nó đang tia cái Áo phao lông vũ Warmly mà không biết mặc có hợp không."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ, Áo phao lông vũ Warmly hiện bên em có giá là 1.490.000đ và hàng vẫn đang sẵn kho ạ. Mẫu này mặc rất ấm và dễ phối đồ, chị yên tâm nhé."
+    },
+    {
+      "speaker": "customer",
+      "text": "Tầm giá quanh bảy triệu thì mẫu này có nhiều màu để chọn không bạn?"
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ, mẫu này bên em có nhiều màu sắc để lựa chọn lắm chị ạ. Với tầm ngân sách của mình thì hoàn toàn thoải mái luôn ạ."
+    },
+    {
+      "speaker": "customer",
+      "text": "Thôi để mình gọi nó ra xem chung rồi có gì liên hệ lại sau nhé."
+    },
+    {
+      "speaker": "agent",
+      "text": "Dạ vâng, em chào chị Loan nhé. Chị cứ trao đổi với con gái rồi có gì cần hỗ trợ cứ liên hệ lại với tụi em ạ!"
+    }
+  ],
+  "provenance": {
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "seed": 7,
+    "generated_at": "2026-10-16T21:49:51.618879+00:00",
+    "scenario_sha256": "1fe73aa9319b73c404bc46211b053e560e4f558b6fdbb854a3cbc4947c1f2ccb",
+    "brief_sha256": "1ceffa9a806b9a278aa6bde83adfbd1d70f2e9267184b210269c1636a85ec74a",
+    "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
+    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
+    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "prompt_version": "paired_transcript_v1",
+    "artifact_status": "raw",
+    "prompt_digest": "c7b74953cd0b1564fdc957ebf93ca9b524bee9bec7e6ab4f1c1622e3f7ae64ec"
+  }
+}

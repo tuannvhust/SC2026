@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .config import BRIEFS_DIR, BTC_DIR, DATA_GEN_DIR, RAW_DIR, REPORTS_DIR, SCENARIOS_DIR
 from .lint_briefs import btc_data, lint_one
+from .scenario_metadata import hard_case_label
 
 
 def validate_scenario_contract(directory: Path, briefs_dir: Path) -> None:
@@ -19,7 +20,7 @@ def validate_scenario_contract(directory: Path, briefs_dir: Path) -> None:
         "customer_turns_asr", "input_mode", "seed_history", "facts_established", "must_carry_over",
         "must_not_ask", "success_if", "ground_truth_facts", "memory_expectation", "expected_outcome",
     }
-    required_call_fields = {"call_date", "channel", "channel_identity", "customer_goal", "customer_turns", "success_if"}
+    required_call_fields = {"channel", "channel_identity", "customer_turns", "success_if", "ground_truth_facts"}
     crm_customers = json.loads((BTC_DIR / "catalog/crm_seed.json").read_text(encoding="utf-8"))["customers"]
     for path in sorted(directory.glob("*.json")):
         if not (briefs_dir / path.name).exists():
@@ -44,16 +45,20 @@ def validate_scenario_contract(directory: Path, briefs_dir: Path) -> None:
             if not isinstance(call["customer_turns"], list) or not call["customer_turns"]:
                 raise ValueError(f"{path.name}:{name}: customer_turns must be non-empty")
             asr_turns = call.get("customer_turns_asr")
-            if not isinstance(asr_turns, list) or len(asr_turns) != len(call["customer_turns"]):
+            if call.get("input_mode", "clean") != "clean" and (not isinstance(asr_turns, list) or len(asr_turns) != len(call["customer_turns"])):
                 raise ValueError(f"{path.name}:{name}: customer_turns_asr must be present and match clean turn count")
-            if any(not isinstance(turn, str) or not turn.strip() for turn in asr_turns):
+            if isinstance(asr_turns, list) and any(not isinstance(turn, str) or not turn.strip() for turn in asr_turns):
                 raise ValueError(f"{path.name}:{name}: customer_turns_asr contains an empty/non-string turn")
             if not call["channel_identity"]:
                 raise ValueError(f"{path.name}:{name}: channel_identity is empty")
+            if not isinstance(call.get("ground_truth_facts"), dict):
+                raise ValueError(f"{path.name}:{name}: ground_truth_facts must be a deterministic object")
+            if name == "call_1" and (not isinstance(call.get("customer_goal"), str) or not call["customer_goal"].strip()):
+                raise ValueError(f"{path.name}:call_1: customer_goal is required")
         brief = json.loads((briefs_dir / path.name).read_text(encoding="utf-8"))
         if scenario.get("scenario_id") != brief.get("brief_id"):
             raise ValueError(f"{path.name}: scenario_id does not match brief_id")
-        expected_hard_case = "_".join(brief.get("hard_case_tags", [])) or None
+        expected_hard_case = hard_case_label(brief.get("hard_case_tags", []))
         if scenario.get("hard_case") != expected_hard_case or len(scenario["calls"]) != len(brief.get("calls", [])):
             raise ValueError(f"{path.name}: scenario hard-case/call count differs from its brief")
         for index, spec in enumerate(brief["calls"], start=1):
@@ -111,7 +116,8 @@ def preflight(briefs_dir: Path) -> None:
 
 
 def artifact_coverage(briefs_dir: Path, scenarios_dir: Path) -> dict:
-    """Summarize only generated scenario artifacts; planning slots are not counted."""
+    """Keep evaluator inputs distinct from accepted, paired transcript artifacts."""
+    from .transcripts import coverage as transcript_coverage
     dataset = json.loads((DATA_GEN_DIR / "dataset_config.json").read_text(encoding="utf-8"))
     targets = dataset["milestones"]["M1"]
     briefs = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in briefs_dir.glob("SC-*.json")}
@@ -120,7 +126,7 @@ def artifact_coverage(briefs_dir: Path, scenarios_dir: Path) -> dict:
         if p.stem in briefs and re.fullmatch(r"SC-\d{3}", p.stem)
         for value in [json.loads(p.read_text(encoding="utf-8"))]
     ]
-    transcript_count = sum(len(s.get("calls", {})) for s in scenarios)
+    scenario_call_count = sum(len(s.get("calls", {})) for s in scenarios)
     calls = [call for scenario in scenarios for call in scenario.get("calls", {}).values()]
     asr_count = sum(isinstance(call.get("customer_turns_asr"), list) for call in calls)
     paired_count = sum(
@@ -169,8 +175,11 @@ def artifact_coverage(briefs_dir: Path, scenarios_dir: Path) -> dict:
     catalog_skus.update(v.get("variant_sku") for p in catalog for v in p.get("variants", []) if v.get("variant_sku"))
     metrics = {
         "scenario_count": len(scenarios),
-        "transcript_count": transcript_count,
-        "clean_transcript_count": transcript_count,
+        "evaluation_scenario_count": len(scenarios),
+        "evaluation_scenario_call_count": scenario_call_count,
+        "customer_input_call_count": scenario_call_count,
+        "transcript_count": 0,
+        "clean_transcript_count": 0,
         "asr_transcript_count": asr_count,
         "paired_clean_asr_transcripts": paired_count,
         "multi_session_customers": sum(count >= 2 for count in calls_by_customer.values()),
@@ -181,15 +190,25 @@ def artifact_coverage(briefs_dir: Path, scenarios_dir: Path) -> dict:
         "audio_transcripts": 0,
         "audio_hours": 0.0,
     }
-    metrics["text_targets_met"] = (
-        metrics["transcript_count"] >= targets["transcripts_min"]
-        and metrics["multi_session_customers"] >= targets["multi_session_customers_min"]
-        and metrics["multichannel_customers"] >= targets["multichannel_customers_min"]
-        and set(metrics["industries"]) == set(targets["industries"])
-        and set(targets["regions"]).issubset(metrics["regions"])
-        and metrics["catalog_sku_count"] >= targets["catalog_sku_min"]
-    )
-    metrics["m1_complete"] = False  # Audio is explicitly deferred in this generation phase.
+    metrics["scenario_multisession_customers"] = sum(count >= 2 for count in calls_by_customer.values())
+    metrics["scenario_multichannel_customers"] = sum(len(channels) > 1 for channels in channels_by_customer.values())
+    metrics["scenario_industries"] = sorted({industry for industry, _ in industry_region})
+    metrics["scenario_regions"] = sorted({region for _, region in industry_region})
+    transcript_counts = transcript_coverage()
+    metrics.update({
+        "transcript_count": transcript_counts["accepted_transcripts"],
+        "clean_transcript_count": transcript_counts["accepted_transcripts"],
+        "pending_review_transcripts": transcript_counts["pending_review"],
+        "rejected_transcripts": transcript_counts["rejected"],
+        "validated_transcripts": transcript_counts["validated"],
+        "audio_transcripts": transcript_counts["audio_conversations"],
+        "audio_hours": transcript_counts["verified_audio_seconds"] / 3600,
+        "multi_session_customers": transcript_counts["multi_session_customers"],
+        "multichannel_customers": transcript_counts["cross_channel_customers"],
+        "btc_validator_compatibility": transcript_counts["btc_validator_compatibility"],
+    })
+    metrics["text_targets_met"] = transcript_counts["transcript_min_met"] and transcript_counts["multi_session_min_met"] and transcript_counts["cross_channel_min_met"]
+    metrics["m1_complete"] = False  # Acceptance, complete audio/ASR, tests, and manual review are separate gates.
     return metrics
 
 
@@ -208,6 +227,11 @@ def main() -> None:
     validate_btc_contracts()
     if args.regenerate_matrix or not args.matrix.exists():
         run_command(["-m", "data_gen.coverage_matrix.make_coverage_matrix", "generate", "--force", "--out", str(args.matrix)])
+    run_command(["-m", "data_gen.coverage_matrix.make_coverage_matrix", "sync-regions", "--matrix", str(args.matrix)])
+    run_command([
+        "-m", "data_gen.coverage_matrix.make_coverage_matrix", "sync-context",
+        "--matrix", str(args.matrix), "--briefs", str(args.briefs),
+    ])
     run_command([
         "-m", "data_gen.coverage_matrix.make_coverage_matrix", "stubs",
         "--matrix", str(args.matrix), "--out", str(args.briefs),
@@ -226,6 +250,7 @@ def main() -> None:
     run_command([
         "-m", "data_gen.auto_check", "--scenarios", str(args.scenarios),
         "--briefs", str(args.briefs), "--fact-packs", str(DATA_GEN_DIR / "fact_packs"),
+        "--matrix", str(args.matrix),
     ])
     validate_scenario_contract(args.scenarios, args.briefs)
     coverage = artifact_coverage(args.briefs, args.scenarios)
