@@ -1,66 +1,73 @@
 {
   "turns": [
     {
+      "idx": 1,
       "speaker": "customer",
-      "text": "Chào shop, đợt trước mình có lấy cái Áo khoác gió Windbreak bên mình khoảng tám tháng rồi."
+      "text": "Chào em, chị Oanh đây, khách mua hàng từ khoảng tám tháng trước nè.",
+      "text_asr": "Chào em, chị Oanh đây, khách mua hàng từ khoảng 8 tháng trước nè."
     },
     {
+      "idx": 2,
       "speaker": "agent",
-      "text": "Dạ chào anh/chị, em chào anh/chị ạ. Dạ bên em rất vui được hỗ trợ mình."
+      "text": "Dạ em chào chị Oanh ạ. Em rất vui được hỗ trợ chị ngày hôm nay."
     },
     {
+      "idx": 3,
       "speaker": "customer",
-      "text": "Dạo này nhu cầu thay đổi nên chiếc áo cũ hình như không còn phù hợp lắm, mình muốn ghé xem lại các lựa chọn khác."
+      "text": "Dạo này nhu cầu của chị thay đổi nên cái Áo khoác gió Windbreak hồi trước mua không còn hợp nữa rồi em ơi.",
+      "text_asr": "Dạo này nhu cầu của chị thay đổi nên cái Áo khoác gió Windbreak hồi trước mua ko còn hợp nữa rồi em ơi."
     },
     {
+      "idx": 4,
       "speaker": "agent",
-      "text": "Dạ vâng ạ, bên em hiện tại vẫn có mẫu Áo khoác gió Windbreak (SKU-JK-WND) với giá là 690.000đ và đang có sẵn hàng, ngoài ra bên em còn nhiều mẫu khác nữa ạ."
+      "text": "Dạ, em hiểu ạ. Không biết chị đang quan tâm đến dòng sản phẩm nào tiếp theo để em tư vấn thêm cho mình ạ?"
     },
     {
+      "idx": 5,
       "speaker": "customer",
-      "text": "Shop check giúp mình xem thông tin với mấy mẫu cũ bên mình hiện tại còn dùng hay áp dụng được gì không nhé, tầm ngân sách của mình quanh năm củ thôi."
+      "text": "Chị muốn xem lại các lựa chọn khác bên mình xem sao.",
+      "text_asr": "Chị muốn xem lại các lựa chọn khác bên mình xem sao."
     },
     {
+      "idx": 6,
       "speaker": "agent",
-      "text": "Dạ với mức ngân sách khoảng 5 triệu của mình thì rất thoải mái luôn ạ, còn mẫu Áo khoác gió Windbreak trước đây của mình có giá niêm yết là 690.000đ và hiện vẫn đang còn hàng ạ."
+      "text": "Dạ vâng, bên em có rất nhiều mẫu mới phù hợp với nhu cầu hiện tại của chị ạ."
     },
     {
+      "idx": 7,
       "speaker": "customer",
-      "text": "Bên mình có thể xác nhận lại giúp mình địa chỉ giao hàng cũ không, sợ đổi chỗ ở rồi."
+      "text": "Đồng thời em kiểm tra giúp chị xem mấy thông tin cũ của chị như địa chỉ giao hàng các thứ bên em còn lưu không hay có cần cập nhật lại không nhé.",
+      "text_asr": "Đồng thời em kiểm tra giúp chị xem mấy thông tin cũ của chị như địa chỉ giao hàng các thứ bên mình còn lưu ko hay có cần cập nhật lại ko nhé."
     },
     {
+      "idx": 8,
       "speaker": "agent",
-      "text": "Dạ anh/chị thông cảm giúp em, hệ thống bên em hiện tại không lưu lại thông tin địa chỉ cũ của mình ạ."
+      "text": "Dạ, để em kiểm tra lại hệ thống xem thông tin giao hàng của mình đã được cập nhật chưa chị nhé."
     },
     {
+      "idx": 9,
       "speaker": "customer",
-      "text": "Bên em không lưu à?"
+      "text": "Để chị xem lại đã rồi có gì chị nhắn lại sau nha.",
+      "text_asr": "Để chị xem lại đã rồi có gì chị nhắn lại sau nha."
     },
     {
+      "idx": 10,
       "speaker": "agent",
-      "text": "Dạ do chính sách bảo mật thông tin nên hệ thống bên em không lưu lại địa chỉ giao hàng cũ của khách hàng, mong anh/chị thông cảm giúp em ạ."
-    },
-    {
-      "speaker": "customer",
-      "text": "Thôi để mình cân nhắc thêm rồi nhắn lại shop sau nhé."
-    },
-    {
-      "speaker": "agent",
-      "text": "Dạ vâng ạ, anh/chị cứ cân nhắc thêm nhé, khi nào cần hỗ trợ gì thêm thì anh/chị cứ nhắn lại cho shop ạ. Em chào anh/chị."
+      "text": "Dạ vâng, chị cứ xem thêm nha. Khi nào cần hỗ trợ, chị cứ nhắn lại để em giúp mình ạ."
     }
   ],
   "provenance": {
     "provider": "gemini",
     "model": "gemini-3.5-flash-lite",
     "seed": 7,
-    "generated_at": "2026-10-16T21:50:03.818433+00:00",
-    "scenario_sha256": "3d4d37ee3fa8ee021d7f17bc4185f30c5a26236234f825a06c62bb0f801d9feb",
-    "brief_sha256": "a85d8c8cc931bbe83cd3624361538521346b9c3cb7dfb9b5afc87ccb1d3d7c63",
+    "generated_at": "2026-10-17T20:06:29.111335+00:00",
+    "scenario_sha256": "34b58b6407227602e212414df4d3ca9c834ea26b0fb9c5b44c391244dec51a3b",
+    "brief_sha256": "59811dc9a6cce818278984ad220096ea13ab6f57a41d3d7bfc01a94538637d3c",
     "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
-    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
-    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "code_digest": "ac0e5b8dc0b1cc8989a044dde3e55b553969cc64ddee6412fa2da7e6cd88585c",
+    "code_revision": "a1b863eccc1612e963a960692419d71cd04e74c7",
     "prompt_version": "paired_transcript_v1",
     "artifact_status": "raw",
-    "prompt_digest": "60977558b5c71aac3f5b7e63484b00c3d3dff42fef56cf1b2b2d3441da2086ca"
+    "prompt_digest": "9f40094d0dc267f17964610ed2bd114abd9fac958bc8454a0212092006c5fa1d"
   }
 }

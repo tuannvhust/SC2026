@@ -87,8 +87,10 @@ def _schema_errors(t: dict) -> list[str]:
     if isinstance(t.get("coverage"), dict): errors.extend(f"schema_missing_coverage:{k}" for k in coverage_fields - set(t["coverage"]))
     provenance_fields = set(schema.get("properties", {}).get("provenance", {}).get("required", []))
     if isinstance(t.get("provenance"), dict): errors.extend(f"schema_missing_provenance:{k}" for k in provenance_fields - set(t["provenance"]))
+    turn_allowed = {"speaker", "text", "idx", "entities", "text_asr", "raw_text"}
     for i, turn in enumerate(t.get("turns", [])):
-        if not isinstance(turn, dict) or set(turn) != {"speaker", "text"}: errors.append(f"schema_turn:{i}")
+        if not isinstance(turn, dict) or not {"speaker", "text"}.issubset(turn) or not set(turn).issubset(turn_allowed):
+            errors.append(f"schema_turn:{i}")
     return errors
 
 
@@ -149,10 +151,29 @@ def validate_transcript(t: dict, allowed_facts: dict | None = None, *, known_cus
     if re.search(r"(?:\bNB-|\bNQ-|_internal_price_floor_vnd|gia nhap|gia san(?! pham)|nha cung cap)", folded, re.I): errors.append("internal_data_leak")
     # Deterministic facts are the only permitted sources for specific numeric business claims.
     if allowed_facts:
-        truth_numbers = {str(v) for k, v in allowed_facts.items() if any(s in k.lower() for s in ("price", "qty", "stock", "days", "months", "warranty")) and v is not None}
-        for m in re.findall(r"\b\d[\d.,]{3,}\b", " ".join(x["text"] for x in turns if isinstance(x, dict) and x.get("speaker") == "agent")):
-            digits = re.sub(r"\D", "", m)
-            if digits and not any(re.sub(r"\D", "", v) == digits for v in truth_numbers): errors.append(f"ungrounded_number:{m}")
+        from .auto_check import money_values
+        truth_numbers = {
+            re.sub(r"\D", "", str(v))
+            for k, v in allowed_facts.items()
+            if any(s in k.lower() for s in ("price", "qty", "stock", "days", "months", "warranty")) and v is not None
+        }
+        known_facts = (t.get("persistent_customer_facts") or {}) | (t.get("time_sensitive_facts") or {})
+        for k, v in known_facts.items():
+            if any(s in k.lower() for s in ("price", "budget", "vnd")) and v is not None:
+                truth_numbers.add(re.sub(r"\D", "", str(v)))
+
+        agent_text = " ".join(x["text"] for x in turns if isinstance(x, dict) and x.get("speaker") == "agent")
+        found_amounts = money_values(agent_text)
+        known_amounts = {int(n) for n in truth_numbers if n.isdigit() and int(n) >= 1000}
+        for amt in found_amounts:
+            if amt not in known_amounts:
+                errors.append(f"ungrounded_money:{amt}")
+
+        for m in re.finditer(r"(?<!\d)(\d{1,3}(?:[.,]\d{3})+|\d{4,})(?!\d)", agent_text):
+            tok = m.group(1)
+            digits = re.sub(r"\D", "", tok)
+            if digits and digits not in truth_numbers:
+                errors.append(f"ungrounded_number:{tok}")
     return errors
 
 
@@ -163,10 +184,13 @@ def _asr_reference_dialogue(t: dict, wav_path: Path) -> dict:
     known_prices = {v for k, v in truth.items() if "price_vnd" in k and isinstance(v, int)}
     turns, entities = [], {}
     for index, turn in enumerate(t["turns"], start=1):
-        found = money_values(turn["text"]) & known_prices
-        turn_entities = {"price_vnd": next(iter(found))} if len(found) == 1 else {}
+        turn_entities = dict(turn.get("entities") or {})
+        if not turn_entities:
+            found = money_values(turn["text"]) & known_prices
+            if len(found) == 1:
+                turn_entities = {"price_vnd": next(iter(found))}
         entities.update(turn_entities)
-        turns.append({"idx": index, "speaker": "C" if turn["speaker"] == "customer" else "A", "text": turn["text"], "entities": turn_entities})
+        turns.append({"idx": turn.get("idx", index), "speaker": "C" if turn["speaker"] == "customer" else "A", "text": turn["text"], "entities": turn_entities})
     return {
         "id": t["transcript_id"], "customer_region": t.get("region_accent"), "customer_gender": None,
         "agent_gender": None, "agent_region": t.get("region_accent"), "scenario_ref": t.get("source_scenario_id"),
@@ -280,7 +304,16 @@ def generate_from_scenarios(scenario_dir: Path, brief_dir: Path, *, dry_run=Fals
                 "policy_evidence": allowed.get("policy_evidence", []),
                 "prior_customer_history": call.get("seed_history", []),
                 "known_customer_facts": call.get("facts_established", {}),
-                "instruction": "Create one concise Vietnamese agent reply after each customer turn. Return JSON array of strings only. Never invent product, price, promotion, inventory, shipping date, policy, or history facts; if no deterministic evidence supports a claim, acknowledge and offer to check. Keep replies conversational and the customer turns verbatim.",
+                "instruction": (
+                    "Create one concise Vietnamese agent reply after each customer turn. Return JSON array of strings only. "
+                    "Strict Source-of-Truth rules: "
+                    "1. Never invent product, price, discount, promotion, inventory, shipping date, or policy facts. "
+                    "2. When quoting prices, use standard format with dots and đ (e.g. 1.490.000đ, 5.200.000đ) strictly matching final_price_vnd or list_price_vnd from ground_truth_facts. Do not invent discounts or abbreviate with 'k'/'triệu'. "
+                    "3. Use polite Vietnamese customer service language (dạ, vâng, ạ, anh/chị/cô/em). "
+                    "4. If asked whether you are AI or human, truthfully identify as an AI assistant (PB-07). "
+                    "5. Never reveal wholesale price, price floor, internal code (NB-*, NQ-*), or supplier. "
+                    "6. If no deterministic evidence supports a claim, acknowledge politely and offer to check."
+                ),
             }
             try:
                 if dry_run:
@@ -291,9 +324,25 @@ def generate_from_scenarios(scenario_dir: Path, brief_dir: Path, *, dry_run=Fals
                     replies = json.loads(response)
                     model = MODEL
                 if not isinstance(replies, list) or len(replies) != len(customers) or any(not isinstance(x, str) or not x.strip() for x in replies): raise ValueError("agent reply array must match customer turn count")
+                from .auto_check import money_values
+                known_prices = {v for k, v in allowed.items() if "price_vnd" in k and isinstance(v, int)}
+                asr_turns = call.get("customer_turns_asr")
+                has_asr = isinstance(asr_turns, list) and len(asr_turns) == len(customers)
                 turns = []
-                for customer_text, agent_text in zip(customers, replies):
-                    turns.extend([{"speaker": "customer", "text": customer_text}, {"speaker": "agent", "text": agent_text}])
+                for turn_idx, (customer_text, agent_text) in enumerate(zip(customers, replies), start=1):
+                    c_turn = {"idx": 2 * turn_idx - 1, "speaker": "customer", "text": customer_text}
+                    if has_asr:
+                        c_turn["text_asr"] = asr_turns[turn_idx - 1]
+                    c_found = money_values(customer_text) & known_prices
+                    if len(c_found) == 1:
+                        c_turn["entities"] = {"price_vnd": next(iter(c_found))}
+
+                    a_turn = {"idx": 2 * turn_idx, "speaker": "agent", "text": agent_text}
+                    a_found = money_values(agent_text) & known_prices
+                    if len(a_found) == 1:
+                        a_turn["entities"] = {"price_vnd": next(iter(a_found))}
+
+                    turns.extend([c_turn, a_turn])
                 meta = {"provider": "dry-run" if dry_run else PROVIDER, "model": model, "seed": seed, "generated_at": datetime.now(timezone.utc).isoformat(), "scenario_sha256": _hash(path), "brief_sha256": _hash(brief_dir / path.name) if (brief_dir / path.name).exists() else None, "source_digest": source_digest, "code_digest": code_digest, "code_revision": revision, "prompt_version": "paired_transcript_v1", "artifact_status": "raw"}
                 meta["prompt_digest"] = hashlib.sha256(json.dumps(prompt, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
                 _write(raw_path, {"turns": turns, "provenance": meta})

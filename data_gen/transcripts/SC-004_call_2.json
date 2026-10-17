@@ -9,101 +9,111 @@
   "industry": "thoi-trang",
   "region_accent": "bac",
   "persistent_customer_facts": {
-    "budget_vnd": 5000000,
     "address_confirmed": true
   },
   "time_sensitive_facts": {
     "product_advised": "SKU-JK-WND",
     "customer_history_months": 8,
     "blocker": "dang can nhac",
-    "price_quoted_vnd": 690000
+    "price_quoted_vnd": 690000,
+    "promo_code": "COD-0",
+    "customer_address_to_confirm": "12 ngõ 38 Hoàng Cầu, Đống Đa, Hà Nội"
   },
   "ground_truth_facts": {
     "price_vnd": 690000,
     "list_price_vnd": 690000,
     "in_stock": true,
+    "promo_active": true,
     "freeship": false,
-    "promo_codes_in_play": [],
     "policy_chunk_ids": [],
-    "policy_evidence": [],
-    "product_1_sku": "SKU-JK-WND",
-    "product_1_qty": 1,
-    "product_1_price_vnd": 690000,
-    "product_1_list_price_vnd": 690000,
-    "product_1_in_stock": true,
-    "product_1_freeship": false,
-    "promo_COD-0_product_1_active": true,
-    "promo_COD-0_product_1_eligible": true,
-    "promo_COD-0_product_1_status": "applied",
-    "promo_COD-0_active": true,
-    "promo_COD-0_eligible": true,
-    "promo_COD-0_status": "applied"
+    "policy_evidence": []
   },
   "prior_history_context": [],
   "coverage": {
     "persona": "khach_quay_lai_sau_8_thang",
     "industry": "thoi-trang",
     "region": "bac",
-    "skus": [
-      "SKU-JK-WND"
-    ]
+    "skus": []
   },
   "turns": [
     {
+      "idx": 1,
       "speaker": "customer",
-      "text": "Chào shop, đợt trước mình có mua Áo khoác gió Windbreak bên mình dùng khá thích."
+      "text": "Chào em, chị là Oanh đây, đợt trước chị mua hàng bên mình khoảng 8 tháng trước rồi đấy.",
+      "text_asr": "Chào em, c là Oanh đây, đợt trước c mua hàng bên mình khoảng 8 tháng trước rồi đấy."
     },
     {
+      "idx": 2,
       "speaker": "agent",
-      "text": "Chào bạn, cảm ơn bạn đã tin tưởng và ủng hộ sản phẩm Áo khoác gió Windbreak bên shop nhé!"
+      "text": "Dạ em chào chị Oanh ạ, em rất vui vì chị đã quay lại ủng hộ shop sau 8 tháng ạ."
     },
     {
+      "idx": 3,
       "speaker": "customer",
-      "text": "Hình như mẫu đó giờ không thấy bán nữa phải không shop, hay có dòng nào thay thế tương tự không?"
+      "text": "Hôm nay chị quay lại tìm mua lại Áo khoác gió Windbreak, không biết mẫu này bên mình còn bán hay đã ngừng rồi em nhỉ?",
+      "text_asr": "Hôm nay c quay lại tìm mua lại Áo khoác gió Windbreak, ko biết mẫu này bên mình còn bán hay đã ngừng rùi em nhỉ?"
     },
     {
+      "idx": 4,
       "speaker": "agent",
-      "text": "Dạ mẫu Áo khoác gió Windbreak hiện tại bên shop vẫn còn hàng với mã SKU-JK-WND và có giá là 690.000đ ạ."
+      "text": "Dạ mẫu Áo khoác gió Windbreak hiện tại bên em vẫn đang còn hàng và bán rất chạy ạ."
     },
     {
+      "idx": 5,
       "speaker": "customer",
-      "text": "Tầm giá quanh năm triệu đổ lại thôi, với lại shop check giúp mình thông tin mấy mẫu mới bây giờ nhé."
+      "text": "Nếu mẫu đó hết thì bên em có những lựa chọn thay thế nào tương tự không tư vấn giúp chị với nhé.",
+      "text_asr": "Nếu mẫu đó hết thì bên em có những lựa chọn thay thế nào tương tự ko tư vấn giúp chị với nhé."
     },
     {
+      "idx": 6,
       "speaker": "agent",
-      "text": "Mẫu này có giá 690.000đ, hoàn toàn nằm trong ngân sách của bạn và hiện đang có sẵn hàng tại shop ạ."
+      "text": "Dạ mẫu này hiện có giá là 690.000đ và đang có sẵn hàng chị nhé.",
+      "entities": {
+        "price_vnd": 690000
+      }
     },
     {
+      "idx": 7,
       "speaker": "customer",
-      "text": "Đia chỉ cũ của mình bên shop vẫn giữ chứ, hay cần mình đọc lại để gửi hàng cho chuẩn?"
+      "text": "Mà nhà mình có lưu địa chỉ cũ của chị là 12 ngõ 38 Hoàng Cầu, Đống Đa, Hà Nội không em?",
+      "text_asr": "Mà nhà mình có lưu địa chỉ cũ của c là 12 ngõ 38 Hoàng Cầu, Đống Đa, Hà Nội ko em?"
     },
     {
+      "idx": 8,
       "speaker": "agent",
-      "text": "Dạ shop vẫn lưu địa chỉ cũ của bạn trên hệ thống rồi ạ, shop sẽ gửi hàng theo đúng địa chỉ đó cho bạn nhé!"
+      "text": "Dạ đúng rồi ạ, hệ thống bên em vẫn đang lưu địa chỉ cũ của chị là 12 ngõ 38 Hoàng Cầu, Đống Đa, Hà Nội ạ."
+    },
+    {
+      "idx": 9,
+      "speaker": "customer",
+      "text": "Chị chốt lấy mẫu thay thế mới nhất nhé, em lên đơn rồi gửi hàng về địa chỉ đó giúp chị nha.",
+      "text_asr": "Chị chốt lấy mẫu thay thế mới nhất nhé, em lên đơn rồi gửi hàng về địa chỉ đó giúp c nha."
+    },
+    {
+      "idx": 10,
+      "speaker": "agent",
+      "text": "Dạ vâng, em đã ghi nhận thông tin và lên đơn gửi hàng về địa chỉ 12 ngõ 38 Hoàng Cầu cho chị rồi ạ. Em cảm ơn chị Oanh nhiều ạ!"
     }
   ],
   "source_scenario_id": "SC-004",
-  "review_status": "rejected",
+  "review_status": "pending_review",
   "provenance": {
     "provider": "gemini",
     "model": "gemini-3.5-flash-lite",
     "seed": 7,
-    "generated_at": "2026-10-16T21:50:06.367027+00:00",
-    "scenario_sha256": "3d4d37ee3fa8ee021d7f17bc4185f30c5a26236234f825a06c62bb0f801d9feb",
-    "brief_sha256": "a85d8c8cc931bbe83cd3624361538521346b9c3cb7dfb9b5afc87ccb1d3d7c63",
+    "generated_at": "2026-10-17T20:06:34.107251+00:00",
+    "scenario_sha256": "34b58b6407227602e212414df4d3ca9c834ea26b0fb9c5b44c391244dec51a3b",
+    "brief_sha256": "59811dc9a6cce818278984ad220096ea13ab6f57a41d3d7bfc01a94538637d3c",
     "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
-    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
-    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "code_digest": "ac0e5b8dc0b1cc8989a044dde3e55b553969cc64ddee6412fa2da7e6cd88585c",
+    "code_revision": "a1b863eccc1612e963a960692419d71cd04e74c7",
     "prompt_version": "paired_transcript_v1",
     "artifact_status": "pending_review",
-    "prompt_digest": "ce406dd80446a54cba4af6fc68afac28b6a50d0c0d6006cfc7a70e0852ab5d07"
+    "prompt_digest": "b6d284cb102feb5a1399a628c25cd90310a96901a45954e6093aa04744793800"
   },
   "validation": {
-    "status": "failed",
-    "errors": [
-      "ungrounded_number:690.",
-      "ungrounded_number:690."
-    ],
+    "status": "passed",
+    "errors": [],
     "btc_validator": "unavailable_unverified"
   }
 }

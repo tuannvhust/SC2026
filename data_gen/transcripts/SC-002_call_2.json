@@ -9,92 +9,93 @@
   "industry": "thoi-trang",
   "region_accent": "nam",
   "persistent_customer_facts": {
-    "budget_vnd": 1500000,
-    "address_confirmed": true
+    "budget_vnd": 1500000
   },
   "time_sensitive_facts": {
     "product_advised": "SKU-SN-CAS",
     "caller_identity": "Dung",
-    "price_quoted_vnd": 890000
+    "price_quoted_vnd": 890000,
+    "promo_code": "COD-0"
   },
   "ground_truth_facts": {
     "price_vnd": 890000,
     "list_price_vnd": 890000,
     "in_stock": true,
+    "promo_active": true,
     "freeship": false,
-    "promo_codes_in_play": [],
     "policy_chunk_ids": [],
-    "policy_evidence": [],
-    "product_1_sku": "SKU-SN-CAS",
-    "product_1_qty": 1,
-    "product_1_price_vnd": 890000,
-    "product_1_list_price_vnd": 890000,
-    "product_1_in_stock": true,
-    "product_1_freeship": false,
-    "promo_COD-0_product_1_active": true,
-    "promo_COD-0_product_1_eligible": true,
-    "promo_COD-0_product_1_status": "applied",
-    "promo_COD-0_active": true,
-    "promo_COD-0_eligible": true,
-    "promo_COD-0_status": "applied"
+    "policy_evidence": []
   },
   "prior_history_context": [],
   "coverage": {
     "persona": "hai_nguoi_chung_sdt",
     "industry": "thoi-trang",
     "region": "nam",
-    "skus": [
-      "SKU-SN-CAS"
-    ]
+    "skus": []
   },
   "turns": [
     {
+      "idx": 1,
       "speaker": "customer",
-      "text": "Alo shop ơi, số này hôm trước mẹ mình có gọi rồi nhưng hôm nay mình là Dung, con gái mẹ dùng chung số gọi ạ."
+      "text": "Alo em ơi, chị là Dung đây, không phải người hôm trước gọi đâu nhé."
     },
     {
+      "idx": 2,
       "speaker": "agent",
-      "text": "Dạ chào chị Dung ạ, em ghi nhận thông tin rồi ạ. Shop có thể hỗ trợ gì cho chị hôm nay ạ?"
+      "text": "Dạ em chào chị Dung ạ, em xin lỗi vì sự nhầm lẫn nhé ạ, em hỗ trợ gì được cho chị ạ?"
     },
     {
+      "idx": 3,
       "speaker": "customer",
-      "text": "Chả là mình đang tìm một đôi giày sneaker để đi lại hằng ngày đi học đi làm cho tiện."
+      "text": "Chị đang tìm một đôi giày sneaker để đi lại hằng ngày thôi."
     },
     {
+      "idx": 4,
       "speaker": "agent",
-      "text": "Dạ vâng, giày sneaker để đi học đi làm hằng ngày thì shop có rất nhiều mẫu phù hợp và thoải mái ạ."
+      "text": "Dạ vâng, giày sneaker để đi lại hằng ngày thì bên em có rất nhiều mẫu phù hợp và êm chân ạ."
     },
     {
+      "idx": 5,
       "speaker": "customer",
-      "text": "Hôm trước thấy shop có tư vấn mẫu Giày sneaker Urban Classic đúng không nhỉ?"
+      "text": "Hôm trước em có tư vấn mẫu Giày sneaker Urban Classic đúng không nhỉ?"
     },
     {
+      "idx": 6,
       "speaker": "agent",
-      "text": "Dạ đúng rồi chị, mẫu Giày sneaker Urban Classic bên em hôm trước vừa tư vấn ạ."
+      "text": "Dạ đúng rồi ạ, hôm trước em có tư vấn cho mình mẫu Giày sneaker Urban Classic ạ."
     },
     {
+      "idx": 7,
       "speaker": "customer",
-      "text": "Cho mình hỏi mẫu này chất liệu vải lưới với đế EVA đúng không shop, đi bộ nhiều có êm chân không?"
+      "text": "Chị thấy mẫu này làm bằng vải lưới với đế EVA đúng không em?"
     },
     {
+      "idx": 8,
       "speaker": "agent",
-      "text": "Dạ chính xác chị nhé, mẫu này làm từ chất liệu vải lưới thông thoáng kết hợp đế EVA êm ái, giúp chị đi bộ nhiều hay di chuyển cả ngày vẫn rất thoải mái ạ."
+      "text": "Dạ chính xác ạ, mẫu này được làm bằng vải lưới thông thoáng và đế EVA nhẹ nhàng, êm ái ạ."
     },
     {
+      "idx": 9,
       "speaker": "customer",
-      "text": "Ngân sách của mình khoảng một triệu rưỡi thì vừa vặn mua mẫu này chứ?"
+      "text": "Giá của đôi này là một triệu rưỡi đúng không em?"
     },
     {
+      "idx": 10,
       "speaker": "agent",
-      "text": "Dạ mẫu Giày sneaker Urban Classic này có giá niêm yết là 890.000 đồng, hoàn toàn nằm trong ngân sách một triệu rưỡi của mình nên chị yên tâm nhé."
+      "text": "Dạ không phải đâu chị ơi, giá của đôi này là 890.000đ ạ.",
+      "entities": {
+        "price_vnd": 890000
+      }
     },
     {
+      "idx": 11,
       "speaker": "customer",
-      "text": "Dạ được rồi, nếu vậy để mình suy nghĩ thêm rồi có gì alo lại shop sau nhé."
+      "text": "Chị chốt lấy một đôi Giày sneaker Urban Classic này nhé."
     },
     {
+      "idx": 12,
       "speaker": "agent",
-      "text": "Dạ vanh, em hiểu rồi ạ. Khi nào cần thêm thông tin chị cứ liên hệ lại shop nhé, chúc chị một ngày tốt lành ạ!"
+      "text": "Dạ em cảm ơn chị Dung đã chốt đơn mẫu Giày sneaker Urban Classic ạ, chị cho em xin địa chỉ và số điện thoại để em lên đơn giao hàng cho mình nhé ạ."
     }
   ],
   "source_scenario_id": "SC-002",
@@ -103,15 +104,15 @@
     "provider": "gemini",
     "model": "gemini-3.5-flash-lite",
     "seed": 7,
-    "generated_at": "2026-10-16T21:49:57.138375+00:00",
-    "scenario_sha256": "1fe73aa9319b73c404bc46211b053e560e4f558b6fdbb854a3cbc4947c1f2ccb",
-    "brief_sha256": "1ceffa9a806b9a278aa6bde83adfbd1d70f2e9267184b210269c1636a85ec74a",
+    "generated_at": "2026-10-17T20:06:23.921431+00:00",
+    "scenario_sha256": "c2e58922b52f5e56eaa1d547546eb910934d2d9f950832235290454bfefc9898",
+    "brief_sha256": "3dfe6ea0a8ead1bc430a5d0bda02d95db1e424bc2118479f27f22e76fbfaba69",
     "source_digest": "57ba9634b48473e4174ead9ac62d2f2b331625727e74fd9a59263fb7f392e746",
-    "code_digest": "ad7e76022b66b5f9de968695b5df18154036b13d1157d8000d22d29af69ce87b",
-    "code_revision": "6e43781abed580e18fd292a123fbdce0d95b6f2a",
+    "code_digest": "ac0e5b8dc0b1cc8989a044dde3e55b553969cc64ddee6412fa2da7e6cd88585c",
+    "code_revision": "a1b863eccc1612e963a960692419d71cd04e74c7",
     "prompt_version": "paired_transcript_v1",
     "artifact_status": "pending_review",
-    "prompt_digest": "e29c5ae76383d7e2c3b86c693e2dcc5a9ec9853212e974b76ddb547ee13a443e"
+    "prompt_digest": "2af751157d244f82c10f952d0d4e823fb398bca6db3abb0f0feaa0f7b3a35b84"
   },
   "validation": {
     "status": "passed",

@@ -1165,6 +1165,8 @@ def _teencode_level(case_number: int, *, hard_case: bool = False) -> str:
 def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list[dict[str, Any]]) -> dict[str, Any]:
     """Create a deterministic, reviewable brief from a coverage slot."""
     channels = row["channel_pattern"].split("-")
+    persona_id = row["persona_id"]
+    category = row["nganh"]
     tag = row.get("hard_case_tag", "")
     if tag == "three_channel_price_conflict":
         channels = ["hotline", "zalo_oa", "chat_fanpage"]
@@ -1253,7 +1255,10 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
         else:
             outcome = "chot_don"
 
-        facts = {"product_advised": call_sku, "budget_vnd": 5000000}
+        facts = {"product_advised": call_sku}
+        if persona_id in {"khach_ngan_sach_hep", "khach_do_du_hoi_nguoi_nha"} or category.startswith("gia-dung"):
+            product_price = next((p.get("list_price_vnd") for p in products if p.get("sku") == call_sku), 0)
+            facts["budget_vnd"] = int(round(product_price * 1.2134 / 100_000) * 100_000)
         if tag == "shared_phone":
             facts["caller_identity"] = call_customer.get("name", "")
             facts["budget_vnd"] = 7000000 if call_customer.get("customer_id") == shared_other.get("customer_id") else 1500000
@@ -1310,17 +1315,6 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
         call_story = story_hint_for_call(row.get("story_hints", ""), index)
         if not call_story:
             raise ValueError(f"{row['slot_id']} call_{index}: coverage matrix story_hints is required")
-        # if tag == "shared_phone" and int(row["num_calls"]) >= 2:
-        #     call_goal = (
-        #         "Chị Loan tiếp tục hỏi về máy lọc nước RO Karofi 9 lõi cho gia đình, dựa trên mối quan tâm từ lần tìm hiểu trước. Chị còn muốn trao đổi với con gái trước khi quyết định."
-        #         if index == 1 else
-        #         "Chị Dung gọi bằng số điện thoại gia đình dùng chung nhưng có nhu cầu riêng: tìm một đôi giày sneaker cho bản thân, không tiếp tục việc chọn máy lọc nước của mẹ."
-        #     )
-        #     call_story = (
-        #         "Cô Loan đang cân nhắc máy lọc nước cho gia đình và muốn hỏi thêm về mẫu RO Karofi 9 lõi đã tìm hiểu trước đây. Cô cần trao đổi với con gái rồi mới quyết định."
-        #         if index == 1 else
-        #         "Chị Dung là người khác với cô Loan đã gọi trước đó. Chị muốn tìm một đôi sneaker cho nhu cầu đi lại hằng ngày của mình và cân nhắc đặt mua nếu phù hợp."
-        #     )
         is_chat = channel in {"zalo_oa", "chat_fanpage"}
         level = _teencode_level(int(row["case_number"]), hard_case=tag == "teencode") if is_chat else "none"
         calls.append({

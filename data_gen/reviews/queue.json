@@ -1,7 +1,567 @@
 [
   {
+    "transcript_id": "SC-002_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-002_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
     "transcript_id": "SC-002_call_2",
     "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-002_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-004_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-004_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-004_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-004_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-006_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-006_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-008_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-008_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-010_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-010_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-010_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-010_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-012_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-012_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-012_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-012_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-016_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-016_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-016_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-016_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-018_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-018_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-022_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-022_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-022_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-022_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-024_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-024_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-024_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-024_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-026_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-026_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-028_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-028_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-028_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-028_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-030_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-030_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-030_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-030_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-032_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-032_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-032_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-032_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-032_call_3",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-032_call_3.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-034_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-034_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-034_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-034_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-036_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-036_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-036_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-036_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-038_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-038_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-040_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-040_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-040_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-040_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-040_call_3",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-040_call_3.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-042_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-042_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-042_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-042_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-044_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-044_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-046_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-046_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-046_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-046_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-050_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-050_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-050_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-050_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-054_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-054_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-054_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-054_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-056_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-056_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-058_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-058_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-060_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-060_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-062_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-062_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-064_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-064_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-066_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-066_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-066_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-066_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-068_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-068_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-070_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-070_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-072_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-072_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-074_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-074_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-076_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-076_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-078_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-078_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-078_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-078_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-080_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-080_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-082_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-082_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-084_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-084_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-086_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-086_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-088_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-088_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-090_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-090_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-090_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-090_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-092_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-092_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-094_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-094_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-096_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-096_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-096_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-096_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-098_call_1",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-098_call_1.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-098_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-098_call_2.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-098_call_3",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-098_call_3.json",
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  },
+  {
+    "transcript_id": "SC-100_call_2",
+    "path": "D:\\02-uni\\05-2627-thesis\\sudo-code\\SC2026\\data_gen\\transcripts\\SC-100_call_2.json",
     "status": "pending_review",
     "reviewer": null,
     "reviewed_at": null,

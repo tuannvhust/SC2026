@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+load_dotenv(override=True)  # Load .env from current working directory for pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 BTC_DIR = Path(os.getenv("BTC_DIR", str(ROOT / "data"))).resolve()
