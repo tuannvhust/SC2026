@@ -50,7 +50,7 @@ REPORT_DESCRIPTIONS = {
     "E1_CALL_COUNT_MISMATCH": "Số cuộc gọi trong scenario không khớp brief.",
     "E1_CALL_KEY_INVALID": "Tên cuộc gọi không đúng định dạng call_N.",
     "E1_CALL_INVALID": "Thông tin cuộc gọi phải là object.",
-    "E1_TURN_COUNT": "customer_turns phải có từ 4 đến 8 lượt khách không rỗng.",
+    "E1_TURN_COUNT": "customer_turns phải có từ 3 đến 8 lượt khách không rỗng.",
     "E1_AGENT_TEXT_IN_CUSTOMER_TURNS": "Lượt khách có chứa lời thoại hoặc nhãn vai của nhân viên/agent.",
     "W1_RAW_MISSING": "Không tìm thấy tệp lượt khách gốc.",
     "E1_RAW_SCENARIO_TURNS_MISMATCH": "Lượt khách trong scenario không khớp dữ liệu sinh gốc.",
@@ -378,8 +378,8 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
             if idx != "1" and "customer_goal" in call:
                 _error(rows, sid, idx, "E1_CUSTOMER_GOAL_MISMATCH", "customer_goal belongs on call_1 only")
         turns = call.get("customer_turns")
-        if not isinstance(turns, list) or not 4 <= len(turns) <= 8 or any(not isinstance(t, str) or not t.strip() for t in turns):
-            _error(rows, sid, idx, "E1_TURN_COUNT", "customer_turns must contain 4-8 non-empty customer turns", str(turns))
+        if not isinstance(turns, list) or not 3 <= len(turns) <= 8 or any(not isinstance(t, str) or not t.strip() for t in turns):
+            _error(rows, sid, idx, "E1_TURN_COUNT", "customer_turns must contain 3-8 non-empty customer turns", str(turns))
         elif any(ROLE_LEAK_RE.search(t) for t in turns):
             _error(rows, sid, idx, "E1_AGENT_TEXT_IN_CUSTOMER_TURNS", "customer_turns contains an agent/assistant line", _customer_text(call))
         facts_established = call.get("facts_established", {})

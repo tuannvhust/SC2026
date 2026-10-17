@@ -225,8 +225,8 @@ def dialogue_constraints(brief: dict, call_index: int, pack: dict) -> tuple[list
 def parse_customer_turns(text: str) -> list[str]:
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip()).strip()
     turns = json.loads(text)
-    if not isinstance(turns, list) or not 4 <= len(turns) <= 8:
-        raise ValueError("customer_turns must contain 4-8 customer turns")
+    if not isinstance(turns, list) or not 3 <= len(turns) <= 8:
+        raise ValueError("customer_turns must contain 3-8 customer turns")
     if any(not isinstance(turn, str) or not turn.strip() for turn in turns):
         raise ValueError("customer_turns must be a JSON array of non-empty strings")
     return [turn.strip() for turn in turns]
@@ -242,7 +242,7 @@ def generate_turn_array(system: str, payload: dict, *, seed: int, dry_run: bool,
         if attempt:
             request["format_correction"] = (
                 f"Lần trước không hợp lệ: {last_error}. Hãy tạo lại duy nhất một JSON array "
-                "đúng 4-8 chuỗi khách hàng, không thiếu hoặc thừa phần tử."
+                "đúng 3-8 chuỗi khách hàng, không thiếu hoặc thừa phần tử."
             )
             if required_address:
                 request["format_correction"] += f" Include this exact address in one customer turn: {required_address}."
@@ -250,7 +250,7 @@ def generate_turn_array(system: str, payload: dict, *, seed: int, dry_run: bool,
             system,
             json.dumps(request, ensure_ascii=False, sort_keys=True),
             seed=seed + attempt,
-            temperature=0,
+            temperature=0 if not attempt else 0.5,
             dry_run=dry_run,
         )
         try:

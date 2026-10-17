@@ -92,6 +92,10 @@ HARD_CASE_PRESENTATION = {
         "doi_san_pham_hoan_chenh_lech",
         "Khách muốn đổi sang sản phẩm khác và hỏi cách xử lý khoản chênh lệch. Agent cần tra đúng đơn và chính sách đổi hàng, không tự hứa hoàn tiền hoặc thu thêm.",
     ),
+    "source_gap_product_exchange": (
+        "doi_san_pham_hoan_chenh_lech",
+        "Khách muốn đổi sang sản phẩm khác và hỏi cách xử lý khoản chênh lệch. Agent cần tra đúng đơn và chính sách đổi hàng, không tự hứa hoàn tiền hoặc thu thêm.",
+    ),
     "callback_holiday": (
         "hen_goi_lai_ngay_nghi",
         "Khách yêu cầu gọi lại lúc 09:00 ngày 26/10/2026, là ngày nghỉ. Agent cần đặt lịch theo ngày làm việc được hệ thống điều chỉnh và thông báo đúng lịch mới.",

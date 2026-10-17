@@ -195,8 +195,8 @@ def validate_scenario(scenario: dict) -> None:
             raise ValueError(f"{name}: invalid channel")
         if not call.get("channel_identity"):
             raise ValueError(f"{name}: channel_identity is required")
-        if not isinstance(call.get("customer_turns"), list) or not 4 <= len(call["customer_turns"]) <= 8:
-            raise ValueError(f"{name}: expected 4-8 customer turns")
+        if not isinstance(call.get("customer_turns"), list) or not 3 <= len(call["customer_turns"]) <= 8:
+            raise ValueError(f"{name}: expected 3-8 customer turns")
         if any(not isinstance(turn, str) or not turn.strip() for turn in call["customer_turns"]):
             raise ValueError(f"{name}: customer turns must be non-empty strings")
         asr_turns = call.get("customer_turns_asr")
