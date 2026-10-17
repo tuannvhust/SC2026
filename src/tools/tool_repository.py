@@ -3,7 +3,7 @@
 import logging
 import os
 import time
-from datetime import date
+from datetime import date, datetime, timedelta
 from threading import Lock
 from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlsplit
@@ -27,6 +27,8 @@ _supabase_lock = Lock()
 SUPABASE_QUERY_RETRIES = 2
 SUPABASE_RETRY_DELAY_SECONDS = 0.25
 SUPABASE_POSTGREST_TIMEOUT_SECONDS = 10.0
+_PROMOTIONS_CACHE_TTL_SECONDS = 60.0
+_promotions_cache: Dict[str, Any] = {"rows": None, "expires_at": 0.0}
 
 
 def _create_supabase_client(url: str, key: str) -> Any:
@@ -43,22 +45,50 @@ def _create_supabase_client(url: str, key: str) -> Any:
 
 def _execute_supabase_query(query: Any) -> Any:
     """Retry transient transport failures for idempotent Supabase read queries."""
+    global supabase
     for attempt in range(SUPABASE_QUERY_RETRIES + 1):
         try:
             return query.execute()
-        except httpx.TransportError:
-            if attempt >= SUPABASE_QUERY_RETRIES:
-                raise
-            delay = SUPABASE_RETRY_DELAY_SECONDS * (2 ** attempt)
+        except httpx.TransportError as error:
+            kind = type(error).__name__
             logger.warning(
-                "Transient Supabase transport failure; retrying read query "
-                "(attempt %s/%s) after %.2fs.",
+                "Supabase transport failure kind=%s attempt=%s/%s; "
+                "backing off before retry.",
+                kind,
                 attempt + 1,
-                SUPABASE_QUERY_RETRIES,
-                delay,
+                SUPABASE_QUERY_RETRIES + 1,
                 exc_info=True,
             )
+            if attempt >= SUPABASE_QUERY_RETRIES:
+                reset_supabase_client(
+                    reason=f"transport failure after retries ({kind})"
+                )
+                raise
+            delay = SUPABASE_RETRY_DELAY_SECONDS * (2 ** attempt)
             time.sleep(delay)
+        except httpx.HTTPStatusError as error:
+            status = error.response.status_code if error.response is not None else "unknown"
+            logger.error(
+                "Supabase HTTP error status=%s url=%s",
+                status,
+                getattr(error.request, "url", "unknown") if error.request else "unknown",
+            )
+            raise
+
+
+def reset_supabase_client(reason: str = "") -> None:
+    """Drop the cached Supabase client so the next read builds a fresh pool."""
+    global supabase
+    with _supabase_lock:
+        old, supabase = supabase, None
+    if old is not None:
+        logger.warning("Supabase client reset (%s); next read reconnects.", reason or "stale pool")
+        close = getattr(old, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception:
+                logger.debug("Supabase client close failed.", exc_info=True)
 
 
 def _get_supabase() -> Any:
@@ -109,15 +139,19 @@ _catalog_lock = Lock()
 
 
 def _get_catalog_components():
+    """Catalog retrieval stack with one worker-wide shared reranker."""
     global _catalog_engine, _catalog_reranker
     if _catalog_engine is None or _catalog_reranker is None:
         with _catalog_lock:
             if _catalog_engine is None or _catalog_reranker is None:
                 from src.memory.semantic_rag.hybrid_search import HybridSearchEngine
-                from src.memory.semantic_rag.reranker import Reranker
+                from src.memory.semantic_rag.reranker_singleton import (
+                    get_shared_reranker,
+                )
 
-                _catalog_engine = HybridSearchEngine()
-                _catalog_reranker = Reranker()
+                if _catalog_engine is None:
+                    _catalog_engine = HybridSearchEngine()
+                _catalog_reranker = get_shared_reranker()
     return _catalog_engine, _catalog_reranker
 
 
@@ -126,6 +160,24 @@ def _rows(response: Any) -> List[Dict[str, Any]]:
     if not isinstance(data, list):
         raise RuntimeError("Supabase returned an invalid table response.")
     return [row for row in data if isinstance(row, dict)]
+
+
+def _get_all_promotions(client: Any) -> List[Dict[str, Any]]:
+    """Batch promotions once per TTL instead of one full scan per SKU quote."""
+    now = time.monotonic()
+    cached_rows = _promotions_cache.get("rows")
+    if cached_rows is not None and now < float(_promotions_cache.get("expires_at", 0.0)):
+        return [dict(row) for row in cached_rows]
+    query = client.table("promotions").select("*")
+    rows = _rows(_execute_supabase_query(query))
+    _promotions_cache["rows"] = [dict(row) for row in rows]
+    _promotions_cache["expires_at"] = now + _PROMOTIONS_CACHE_TTL_SECONDS
+    return rows
+
+
+def clear_promotions_cache() -> None:
+    _promotions_cache["rows"] = None
+    _promotions_cache["expires_at"] = 0.0
 
 
 def filter_catalog_candidates(
@@ -542,6 +594,14 @@ def catalog_search(
                 }
             )
         return {"items": format_catalog_results(hydrated)}
+    except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+        logger.warning("catalog.search Supabase connectivity failure: %s", exc)
+        return {
+            "items": [],
+            "status": "error",
+            "error_code": "supabase_unavailable",
+            "error": f"catalog search unavailable ({type(exc).__name__}); retry or fallback.",
+        }
     except Exception as exc:
         logger.exception("catalog.search failed")
         return {"items": [], "status": "error", "error": f"catalog search unavailable ({type(exc).__name__})."}
@@ -620,6 +680,14 @@ def inventory_check(
             "restock_expected": item.get("restock_expected"),
             "discontinued": bool(item.get("discontinued", False)),
             "successor_sku": item.get("successor_sku"),
+        }
+    except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+        logger.warning("inventory.check Supabase connectivity failure for %s: %s", sku, exc)
+        return {
+            "sku": sku,
+            "status": "error",
+            "error_code": "supabase_unavailable",
+            "error": f"inventory lookup unavailable ({type(exc).__name__}); retry or fallback.",
         }
     except Exception as exc:
         logger.exception("inventory.check failed for SKU %s", sku)
@@ -717,11 +785,7 @@ def pricing_get_quote(
         ]
         basket_qty = quantity + len(basket_skus or [])
 
-        promotion_rows = _rows(
-            _execute_supabase_query(
-                client.table("promotions").select("*")
-            )
-        )
+        promotion_rows = _get_all_promotions(client)
         quote_date = date.fromisoformat(on) if on else date.today()
         category = product.get("category")
         matching_promotions = _promotions_for_product(
@@ -831,6 +895,14 @@ def pricing_get_quote(
             "gifts": gifts,
             "freeship": any(promo.get("type") == "freeship" for promo in applied),
         }
+    except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+        logger.warning("pricing.get_quote Supabase connectivity failure for %s: %s", sku, exc)
+        return {
+            "sku": sku,
+            "status": "error",
+            "error_code": "supabase_unavailable",
+            "error": f"pricing lookup unavailable ({type(exc).__name__}); retry or fallback.",
+        }
     except Exception as exc:
         logger.exception("pricing.get_quote failed for SKU %s", sku)
         return {
@@ -843,6 +915,44 @@ def pricing_get_quote(
 # ---------------------------------------------------------------------------
 # Order creation
 # ---------------------------------------------------------------------------
+
+# Vietnamese public holidays (fixed-date; Tet varies by lunar calendar and is
+# intentionally not hard-coded here).
+_VN_FIXED_HOLIDAYS = {
+    (1, 1),    # Tết Dương lịch
+    (4, 30),   # Ngày Giải phóng miền Nam
+    (5, 1),    # Quốc tế Lao động
+    (9, 2),    # Quốc khánh
+}
+_DELIVERY_LEAD_DAYS = 1  # giao hàng từ ngày kế tiếp (trừ CN + ngày nghỉ)
+
+
+def _parse_iso_date(value: Optional[str]) -> Optional[date]:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value.strip(), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def compute_estimated_delivery(on: Optional[str]) -> str:
+    """Next working day after the order date; never Sunday/holiday, never past.
+
+    Uses ``on`` (YYYY-MM-DD) when provided, otherwise today — no fixed date.
+    """
+    order_date = _parse_iso_date(on) or date.today()
+    delivery = order_date + timedelta(days=_DELIVERY_LEAD_DAYS)
+    for _ in range(30):  # safety bound
+        if delivery.weekday() != 6 and (
+            delivery.month, delivery.day
+        ) not in _VN_FIXED_HOLIDAYS:
+            break
+        delivery += timedelta(days=1)
+    else:  # pragma: no cover - defensive
+        delivery = order_date + timedelta(days=_DELIVERY_LEAD_DAYS)
+    return delivery.isoformat()
+
 
 class OrderCreateInput(BaseModel):
     customer_phone: str = Field(
@@ -891,7 +1001,7 @@ def order_create(
         "order_id": "ORD-2026-999",
         "status": "created",
         "error": None,
-        "estimated_delivery": "2026-10-10",
+        "estimated_delivery": compute_estimated_delivery(on),
     }
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
@@ -14,6 +15,8 @@ from src.memory.working.postgres_store import (
     PostgresMemoryStore,
     get_postgres_memory_store,
 )
+
+logger = logging.getLogger(__name__)
 
 PROFILE_COLLECTION = "customer_profile_memories"
 _PROFILE_NAMESPACE = uuid.UUID("880650be-a6c8-4a85-a3a3-127d1c9132b1")
@@ -65,48 +68,62 @@ class ProfileStore:
         if not fact_list:
             return
 
-        connections = self._get_connections()
-        connections.vector_store.init_collection(
-            PROFILE_COLLECTION,
-            dense_dim=int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768")),
-        )
-
-        points = []
-        for fact in fact_list:
-            key = fact["key"]
-            value = fact["value"]
-            content = (
-                f"Customer profile fact. {key}: "
-                f"{json.dumps(value, ensure_ascii=False, sort_keys=True)}"
-            )
-            vector = connections.dense_embedder.embed_text(content)
-            point_id = str(
-                uuid.uuid5(_PROFILE_NAMESPACE, f"{customer_id}\0{key}")
-            )
-            points.append(
-                models.PointStruct(
-                    id=point_id,
-                    vector={"dense": vector},
-                    payload={
-                        "customer_id": customer_id,
-                        "profile_key": key,
-                        "profile_value": value,
-                        "provenance_session_id": session_id,
-                        "memory_type": "profile_fact",
-                    },
-                )
-            )
-
-        connections.vector_store.client.upsert(
-            collection_name=PROFILE_COLLECTION,
-            points=points,
-        )
+        # Postgres-first: authoritative facts must commit even if vector sync fails.
+        updated_at = datetime.now(timezone.utc).isoformat()
         self._get_postgres_store().save_profile_facts(
             customer_id=customer_id,
             facts=fact_list,
             session_id=session_id,
-            updated_at=datetime.now(timezone.utc).isoformat(),
+            updated_at=updated_at,
         )
+
+        try:
+            connections = self._get_connections()
+            connections.vector_store.init_collection(
+                PROFILE_COLLECTION,
+                dense_dim=int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768")),
+            )
+
+            points = []
+            for fact in fact_list:
+                key = fact["key"]
+                value = fact["value"]
+                content = (
+                    f"Customer profile fact. {key}: "
+                    f"{json.dumps(value, ensure_ascii=False, sort_keys=True)}"
+                )
+                vector = connections.dense_embedder.embed_text(content)
+                point_id = str(
+                    uuid.uuid5(_PROFILE_NAMESPACE, f"{customer_id}\0{key}")
+                )
+                points.append(
+                    models.PointStruct(
+                        id=point_id,
+                        vector={"dense": vector},
+                        payload={
+                            "customer_id": customer_id,
+                            "profile_key": key,
+                            "profile_value": value,
+                            "provenance_session_id": session_id,
+                            "memory_type": "profile_fact",
+                        },
+                    )
+                )
+
+            connections.vector_store.client.upsert(
+                collection_name=PROFILE_COLLECTION,
+                points=points,
+            )
+        except Exception as error:
+            # Best-effort vector sync: PostgreSQL already committed above.
+            # Keep the failure visible for retry/reconciliation.
+            logger.warning(
+                "Qdrant profile sync failed for customer %s session %s: %s",
+                customer_id,
+                session_id,
+                error,
+                exc_info=True,
+            )
 
 
 def get_profile_store() -> ProfileStore:

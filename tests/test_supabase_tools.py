@@ -117,21 +117,10 @@ def test_catalog_search_hydrates_semantic_candidates_and_hard_filters(monkeypatc
         {
             "sku": "SKU-1",
             "name": "Live product",
-            "category": "gia-dung/may-loc-khong-khi",
-            "brand": None,
-            "list_price_vnd": 1000,
-            "total_stock": 2,
+            "price": 1000,
             "in_stock": True,
-            "attributes": {"room_area_m2": 40},
-            "variants": [
-                {
-                    "variant_sku": "SKU-1-BLACK",
-                    "size": None,
-                    "color": "đen",
-                    "stock": 2,
-                    "price_delta_vnd": 100,
-                }
-            ],
+            "area_m2": 40,
+            "features": None,
         }
     ]
 
@@ -375,6 +364,62 @@ def test_supabase_query_does_not_retry_api_or_application_errors(monkeypatch):
     else:
         raise AssertionError("Expected Supabase API error.")
     assert query.attempts == 1
+
+
+def test_supabase_retry_exhaustion_resets_client_and_reports_clearly(monkeypatch):
+    class DeadQuery:
+        attempts = 0
+
+        def execute(self):
+            self.attempts += 1
+            raise httpx.RemoteProtocolError("Server disconnected")
+
+    resets = []
+    monkeypatch.setattr(
+        tool_repository, "reset_supabase_client", lambda reason="": resets.append(reason)
+    )
+    monkeypatch.setattr(tool_repository.time, "sleep", lambda _delay: None)
+    query = DeadQuery()
+
+    try:
+        tool_repository._execute_supabase_query(query)
+    except httpx.RemoteProtocolError:
+        pass
+    else:
+        raise AssertionError("Expected RemoteProtocolError after retries.")
+    assert query.attempts == 3
+    assert len(resets) == 1
+
+
+def test_promotions_batch_cache_avoids_rescan_per_sku(monkeypatch):
+    executions = []
+
+    class FakeQuery:
+        pass
+
+    class FakeTable:
+        def select(self, _fields):
+            return FakeQuery()
+
+    class FakeClient:
+        def table(self, name):
+            assert name == "promotions"
+            return FakeTable()
+
+    def _fake_execute(_query):
+        executions.append(1)
+        return SimpleNamespace(data=[{"promo_code": "P1"}])
+
+    monkeypatch.setattr(tool_repository, "_execute_supabase_query", _fake_execute)
+    tool_repository.clear_promotions_cache()
+    try:
+        first = tool_repository._get_all_promotions(FakeClient())
+        second = tool_repository._get_all_promotions(FakeClient())
+        assert first == [{"promo_code": "P1"}]
+        assert second == [{"promo_code": "P1"}]
+        assert executions == [1]
+    finally:
+        tool_repository.clear_promotions_cache()
 
 
 def test_handoff_confirmed_facts_requires_an_object():

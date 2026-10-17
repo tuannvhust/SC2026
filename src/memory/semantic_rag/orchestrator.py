@@ -55,10 +55,10 @@ def _get_components() -> Tuple[_SearchEngine, _Reranker, _Generator]:
             if _components is None:
                 from .generator import RAGGenerator
                 from .hybrid_search import HybridSearchEngine
-                from .reranker import Reranker
+                from .reranker_singleton import get_shared_reranker
 
                 if _reranker is None:
-                    _reranker = Reranker()
+                    _reranker = get_shared_reranker()
                 _components = (
                     HybridSearchEngine(),
                     _reranker,
@@ -70,12 +70,10 @@ def _get_components() -> Tuple[_SearchEngine, _Reranker, _Generator]:
 def warmup_reranker() -> None:
     """Load and warm the shared reranker before the API starts serving requests."""
     global _reranker
-    with _components_lock:
-        if _reranker is None:
-            from .reranker import Reranker
+    from .reranker_singleton import get_shared_reranker
 
-            _reranker = Reranker()
-        _reranker.warmup()
+    _reranker = get_shared_reranker()
+    _reranker.warmup()
 
 
 def clear_components() -> None:

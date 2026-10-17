@@ -1,12 +1,28 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+import json
+import logging
+from typing import Any, Dict, List, Optional
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 
 from src.config import groq_llm, llm, with_groq_fallback
 from src.graph.state import AgentState
 from src.tools.tool_repository import M1_TOOLS
+
+logger = logging.getLogger(__name__)
+
+# Rough LLM budget guard: keep the per-call prompt compact to avoid 413/ITPM.
+MAX_PLANNER_PROMPT_CHARS = 12000
+MAX_BRIEF_HISTORY_LINES = 4
+MAX_TOOL_TRACE_RAW_CHARS = 1200
+MAX_TOOL_MESSAGES_IN_TRACE = 6
 
 
 _primary_bound = llm.bind_tools(M1_TOOLS) if llm is not None else None
@@ -66,7 +82,7 @@ Do not read the CallBrief back to the customer.
    - Chỉ được nói có quà tặng kèm (ví dụ màng lọc, phụ kiện) KHI VÀ CHỈ KHI trong kết quả `pricing.get_quote` của SKU đó có trường `gifts` chứa thông tin quà tặng rõ ràng.
    - Tuyệt đối không hứa hẹn khuyến mãi nằm trong `ineligible_promos` hay `expired_promos`.
 
-5. Use catalog.search for product information. If catalog.search returns relevant products or SKUs that you intend to recommend or compare for the customer, you MUST call pricing.get_quote for ALL of those matching SKUs to verify their exact prices and active promotions before producing the final response. Do not answer with unverified prices or quote only a subset.
+5. Use catalog.search for product information. If catalog.search returns relevant products, call pricing.get_quote ONLY for the top 3 SKUs you actually intend to recommend (prefer in-stock, in-budget matches). Do not quote all matches and do not answer with unverified prices.
 
 6. Use inventory.check for current stock.
 
@@ -102,6 +118,16 @@ Do not read the CallBrief back to the customer.
 
 19. Output format: Provide only a clean, natural conversational response in plain text. Do NOT include markdown/code block signatures, raw JSON, encrypted metadata, or function execution artifacts.
 
+20. Identity reuse: when CallBrief shows a "Verified phone", pass it as
+    customer_phone to pricing.get_quote / crm.get_customer / order.create.
+    Do NOT ask the customer for their phone again for these calls — only ask
+    if a separate shipping/recipient phone is truly required by policy and
+    missing.
+
+21. When calling memory.write, always pass the current "Session id" from the
+    CallBrief as provenance_session_id so the fact can be traced to this
+    session when it is committed.
+
 ## Typical flows
 
 Product recommendation:
@@ -132,9 +158,25 @@ def _format_call_brief(call_brief: Dict[str, Any]) -> str:
     if not call_brief:
         return "No previous customer context is available."
 
+    history = call_brief.get("current_session_history") or []
+    history = history[-MAX_BRIEF_HISTORY_LINES:]
+
     return f"""
 Customer:
-{call_brief.get("customer_name") or "Unknown"}
+{call_brief.get("customer_name") or "Unknown"} ({call_brief.get("customer_id") or "no-id"})
+
+Verified phone (reuse this for tool calls like pricing.get_quote /
+order.create / crm.get_customer instead of asking the customer again):
+{call_brief.get("customer_phone") or "None"}
+
+Session id (pass as provenance_session_id when calling memory.write):
+{call_brief.get("session_id") or "None"}
+
+Current need:
+{call_brief.get("current_need") or "None"}
+
+Constraints:
+{call_brief.get("constraints") or {}}
 
 Returning customer:
 {call_brief.get("is_returning", False)}
@@ -145,8 +187,8 @@ Previous sessions:
 Last session:
 {call_brief.get("last_session") or "None"}
 
-Current session history:
-{call_brief.get("current_session_history") or []}
+Current session history (trimmed):
+{history}
 
 Profile facts:
 {call_brief.get("profile_facts") or {}}
@@ -163,6 +205,9 @@ Open blockers:
 Open questions:
 {call_brief.get("open_questions") or []}
 
+Recent tool summary (current turn only):
+{call_brief.get("tool_summary") or []}
+
 Must not ask:
 {call_brief.get("must_not_ask") or []}
 
@@ -174,10 +219,135 @@ Suggested next action:
 """.strip()
 
 
-def plan_step_node(state: AgentState) -> Dict[str, Any]:
-    """Decide the next response or tool call."""
+def _message_text_safe(message: BaseMessage) -> str:
+    content = getattr(message, "content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(
+            str(item.get("text", ""))
+            for item in content
+            if isinstance(item, dict) and "text" in item
+        )
+    return str(content)
+
+
+def _estimate_tokens(text: str) -> int:
+    # Cheap heuristic (~4 chars/token) for budget logging, not exact billing.
+    return max(1, len(text or "") // 4)
+
+
+def _summarize_tool_result(name: Optional[str], parsed: Any) -> str:
+    if name == "pricing.get_quote" and isinstance(parsed, dict):
+        gifts = parsed.get("gifts") or []
+        names = []
+        for gift in gifts[:3]:
+            if isinstance(gift, dict):
+                names.append(str(gift.get("name") or gift.get("sku") or "qua"))
+            else:
+                names.append(str(gift))
+        sku = parsed.get("sku")
+        price = parsed.get("final_price_vnd")
+        base = f"{sku or 'SKU'}: gia {price}d" if price else f"{sku or 'SKU'}"
+        return f"{base}, qua: {', '.join(names) if names else 'khong co'}"[:400]
+    if name == "inventory.check" and isinstance(parsed, dict):
+        return f"{parsed.get('sku') or 'SKU'} ton kho: {parsed.get('in_stock')}"[:200]
+    if name == "catalog.search" and isinstance(parsed, dict):
+        products = parsed.get("products") or parsed.get("items") or []
+        skus = []
+        for p in products[:5]:
+            if isinstance(p, dict):
+                skus.append(str(p.get("sku") or p.get("name") or "?"))
+            else:
+                skus.append(str(p))
+        return f"catalog {len(products)} SP: {', '.join(skus)}"[:400]
+    text = json.dumps(parsed, ensure_ascii=False, default=str)
+    if len(text) > MAX_TOOL_TRACE_RAW_CHARS:
+        text = text[:MAX_TOOL_TRACE_RAW_CHARS] + "...(rut gon)"
+    return text
+
+
+def _current_turn_tool_trace(messages: List[BaseMessage]) -> List[BaseMessage]:
+    """Keep only the current-turn tool chain, preserving call/result pairs.
+
+    Full ``state["messages"]`` history stays in LangGraph state/checkpoint for
+    logging and Session Continuity; only this trimmed trace is sent to the LLM.
+    """
+    latest_human = next(
+        (
+            index
+            for index in range(len(messages) - 1, -1, -1)
+            if isinstance(messages[index], HumanMessage)
+        ),
+        -1,
+    )
+    tail = messages[latest_human + 1 :] if latest_human >= 0 else list(messages)
+    # Drop stale turns before the last human message; keep valid pairs here.
+    valid_ids = {
+        call.get("id")
+        for message in tail
+        if isinstance(message, AIMessage)
+        for call in (message.tool_calls or [])
+        if isinstance(call, dict) and call.get("id")
+    }
+    trace: List[BaseMessage] = []
+    for message in tail:
+        if isinstance(message, AIMessage) and getattr(message, "tool_calls", None):
+            kept = [
+                call
+                for call in message.tool_calls
+                if isinstance(call, dict) and call.get("id") in valid_ids
+            ]
+            if kept:
+                trace.append(message)
+            continue
+        if isinstance(message, ToolMessage):
+            if message.tool_call_id in valid_ids:
+                trace.append(message)
+            continue
+    # Preserve ordering: AI tool-call first, then its ToolMessage results.
+    trace.sort(
+        key=lambda msg: (
+            messages.index(msg) if msg in messages else 0,
+            0 if isinstance(msg, AIMessage) else 1,
+        )
+    )
+    # Replace raw tool JSON with one-line summaries and cap count.
+    compact: List[BaseMessage] = []
+    for message in trace:
+        if isinstance(message, ToolMessage):
+            parsed = message.content
+            if isinstance(parsed, str):
+                try:
+                    parsed = json.loads(parsed)
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            summary = _summarize_tool_result(message.name, parsed)
+            compact.append(
+                ToolMessage(
+                    content=summary,
+                    name=message.name,
+                    tool_call_id=message.tool_call_id,
+                )
+            )
+        else:
+            compact.append(message)
+    if len(compact) > MAX_TOOL_MESSAGES_IN_TRACE:
+        compact = compact[-MAX_TOOL_MESSAGES_IN_TRACE :]
+    return compact
+
+
+def _current_customer_message(messages: List[BaseMessage]) -> Optional[HumanMessage]:
+    for message in reversed(messages or []):
+        if isinstance(message, HumanMessage) and _message_text_safe(message).strip():
+            return message
+    return None
+
+
+def build_planner_prompt(state: AgentState) -> List[BaseMessage]:
+    """Build a compact per-call LLM prompt (history stays in state)."""
     call_brief = state.get("call_brief") or {}
-    messages = state.get("messages", [])
+    messages = state.get("messages", []) or []
     guardrail_feedback = state.get("guardrail_feedback")
     feedback_context = (
         f"\n\nPrevious response feedback:\n{guardrail_feedback}\n"
@@ -192,15 +362,16 @@ def plan_step_node(state: AgentState) -> Dict[str, Any]:
             + feedback_context
         )
     )
-    prompt_messages = list(messages)
+    prompt: List[BaseMessage] = [
+        SystemMessage(content=PLANNER_SYSTEM_PROMPT),
+        context,
+    ]
+    current = _current_customer_message(messages)
+    if current is not None:
+        prompt.append(current)
+    prompt.extend(_current_turn_tool_trace(messages))
     if guardrail_feedback:
-        # Do not ask Gemini to continue from the rejected assistant response.
-        if prompt_messages and isinstance(prompt_messages[-1], AIMessage):
-            prompt_messages.pop()
-
-        # Gemini requires the request's final turn to be from the user or a
-        # function response. Keep feedback in a user turn for the retry.
-        prompt_messages.append(
+        prompt.append(
             HumanMessage(
                 content=(
                     "Phản hồi trước chưa đạt chuẩn. Hãy tạo lại câu trả lời "
@@ -209,10 +380,58 @@ def plan_step_node(state: AgentState) -> Dict[str, Any]:
                 )
             )
         )
+    return prompt
 
-    response: AIMessage = planner_llm.invoke(
-        [SystemMessage(content=PLANNER_SYSTEM_PROMPT), context, *prompt_messages]
+
+def _prompt_size_chars(prompt: List[BaseMessage]) -> int:
+    return sum(len(_message_text_safe(message)) for message in prompt)
+
+
+def _is_quota_error(error: Exception) -> bool:
+    text = f"{type(error).__name__}: {error}".lower()
+    return any(
+        marker in text
+        for marker in ("413", "too large", "rate_limit", "itpm", "tpm", "429", "quota")
     )
+
+
+def plan_step_node(state: AgentState) -> Dict[str, Any]:
+    """Decide the next response or tool call with a compact prompt."""
+    prompt_messages = build_planner_prompt(state)
+    prompt_chars = _prompt_size_chars(prompt_messages)
+    estimated_tokens = _estimate_tokens(
+        "".join(_message_text_safe(message) for message in prompt_messages)
+    )
+    logger.debug(
+        "planner prompt messages=%s chars=%s est_tokens=%s tools_in_trace=%s",
+        len(prompt_messages),
+        prompt_chars,
+        estimated_tokens,
+        sum(isinstance(message, ToolMessage) for message in prompt_messages),
+    )
+    if prompt_chars > MAX_PLANNER_PROMPT_CHARS:
+        logger.warning(
+            "planner prompt exceeds budget chars=%s budget=%s; history kept in state",
+            prompt_chars,
+            MAX_PLANNER_PROMPT_CHARS,
+        )
+
+    try:
+        response: AIMessage = planner_llm.invoke(prompt_messages)
+    except Exception as error:
+        logger.warning("planner LLM call failed: %s", error, exc_info=True)
+        if _is_quota_error(error):
+            fallback = AIMessage(
+                content=(
+                    "Dạ hiện hệ thống đang quá tải, em xin phép ghi nhận yêu cầu "
+                    "và nhờ tư vấn viên hỗ trợ tiếp ạ."
+                )
+            )
+            return {
+                "messages": [fallback],
+                "guardrail_feedback": f"Planner LLM quota/size error: {error}",
+            }
+        raise
 
     # Normalize response content: if Gemini returns a list of parts with 'extras' (thinking signature),
     # extract only the readable text and clean out internal signature artifacts.

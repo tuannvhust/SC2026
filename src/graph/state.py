@@ -11,6 +11,14 @@ class AgentState(TypedDict, total=False):
     # Customer identity and CRM context
     customer_id: Optional[str]
     customer_info: Optional[Dict[str, Any]]
+    # Ask-for-identity flow when CRM cannot resolve the caller.
+    # needs_identity=True means the turn must pause to collect name+phone.
+    needs_identity: bool
+    identity_attempts: int
+    # Which required identity slots are still missing (subset of phone/name).
+    missing_identity_fields: Optional[List[str]]
+    # Original Turn-1 request kept while asking for identity.
+    pending_need: Optional[str]
 
     # Session continuity
     call_brief: Optional[Dict[str, Any]]

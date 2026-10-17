@@ -50,15 +50,18 @@ Copy-Item .env.example .env
 | `GEMINI_API_KEY` | Gemini embedding và sinh câu trả lời |
 | `GEMINI_MODEL` | Model sinh câu trả lời chính |
 | `GROQ_API_KEY` | Provider fallback |
-| `GROQ_MODEL` | Model Groq |
-| `GENERATOR_MAX_TOKENS` | Giới hạn output của generator (mặc định `2048`) |
+| `GROQ_MODEL` | Model Groq (mặc định `qwen/qwen3.8-27b`) |
+| `USE_GROQ_PRIMARY` | `true` để dùng Groq làm primary |
+| `GENERATOR_MAX_TOKENS` | Giới hạn output của generator (optional, mặc định `2048`) |
 | `MONGODB_URI` | Kết nối MongoDB Atlas |
 | `MONGODB_DB_NAME` | Tên database MongoDB |
 | `QDRANT_URL` | URL Qdrant Cloud |
 | `QDRANT_API_KEY` | API key Qdrant Cloud |
 | `GEMINI_EMBEDDING_MODEL` | Model embedding Gemini |
 | `GEMINI_EMBEDDING_DIMENSION` | Kích thước vector, mặc định `768` |
+| `GEMINI_EMBEDDING_TIMEOUT` | Timeout embedding giây (optional, mặc định `120`) |
 | `SUPABASE_DATABASE_URL` | URL PostgreSQL của Supabase (bắt buộc cho working, episodic và profile facts) |
+| `SUPABASE_POOLER_URL` | Supavisor pooler `:6543` cho checkpointer runtime (optional, fallback về DATABASE_URL) |
 | `SUPABASE_URL` | Project URL của Supabase, dùng cho catalog, variants, promotions và inventory |
 | `SUPABASE_KEY` | Supabase API key có quyền đọc các bảng catalog cần thiết |
 | `HF_RERANKER_MODEL` | Model CrossEncoder chạy local/offline, mặc định `BAAI/bge-reranker-base`; model phải có sẵn trong cache Hugging Face |

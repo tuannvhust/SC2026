@@ -7,11 +7,13 @@ from src.graph.graph import (
     route_after_output_guardrail,
     route_after_plan,
 )
-from src.graph.builder import route_after_persist_turn
+from src.graph.builder import route_after_identity, route_after_persist_turn
 from src.graph.nodes.input_nodes import (
+    MAX_IDENTITY_ATTEMPTS,
     build_call_brief_node,
     input_guardrail_node,
     normalize_input_node,
+    request_identity_node,
     resolve_identity_node,
 )
 from src.graph.nodes import input_nodes, persistence_nodes
@@ -89,9 +91,11 @@ def test_planner_retry_omits_rejected_trailing_ai_message(monkeypatch):
     )
 
     prompt_messages = invoke.call_args.args[0]
-    assert prompt_messages[-1] is user_message
-    assert all(message is not rejected_answer for message in prompt_messages)
+    # Compact prompt: current user message + retry feedback (no stale AI text).
+    assert prompt_messages[2] is user_message
+    assert "The response price was not verified." in prompt_messages[-1].content
     assert "The response price was not verified." in prompt_messages[1].content
+    assert all(message is not rejected_answer for message in prompt_messages)
     assert result == {"messages": [response]}
 
 
@@ -103,6 +107,9 @@ def test_graph_sends_tool_results_back_to_planner():
 
     assert ("plan_step", "tools") in edges
     assert ("tools", "plan_step") in edges
+    assert ("resolve_identity", "request_identity") in edges
+    assert ("resolve_identity", "build_call_brief") in edges
+    assert ("request_identity", "persist_turn") in edges
     assert ("plan_step", "output_guardrail") in edges
     assert ("output_guardrail", "retry_node") in edges
     assert ("retry_node", "plan_step") in edges
@@ -152,6 +159,76 @@ def test_input_nodes_only_update_declared_agent_state_fields(monkeypatch):
 
     assert normalized["customer_info"]["_input_text"] == "sản phẩm 2.000.000"
     assert set(normalized) | set(identity) | set(brief) <= AgentState.__annotations__.keys()
+
+
+def test_unknown_identity_asks_for_name_and_phone_then_resolves_next_turn(monkeypatch):
+    from langchain_core.messages import AIMessage
+
+    class FakePostgresStore:
+        def update_session_customer_id(self, _session_id, _customer_id):
+            return None
+
+    monkeypatch.setattr(
+        input_nodes,
+        "get_postgres_memory_store",
+        FakePostgresStore,
+    )
+
+    state = {"messages": [HumanMessage(content="tư vấn giúp em")], "identity_attempts": 0}
+    state.update(normalize_input_node(state))
+    identity = resolve_identity_node(state)
+    assert identity["customer_id"] is None
+    assert identity["needs_identity"] is True
+    state.update(identity)
+    assert route_after_identity(state) == "request_identity"
+
+    asked = request_identity_node(state)
+    assert asked["identity_attempts"] == 1
+    assert isinstance(asked["messages"][0], AIMessage)
+    assert "số điện thoại" in asked["messages"][0].content
+    # Combined ask must mention both name and phone in one question.
+    assert "tên" in asked["messages"][0].content
+    assert asked["missing_identity_fields"] == ["phone", "name"]
+    assert asked["pending_need"]
+    state.update(asked)
+
+    # Customer replies with phone only: keep it, ask name without repeat.
+    state["messages"].append(HumanMessage(content="sđt 0901234567"))
+    state.update(normalize_input_node(state))
+    partial = resolve_identity_node(state)
+    assert partial["customer_info"]["phone"] == "0901234567"
+    assert partial["needs_identity"] is True
+    assert partial["missing_identity_fields"] == ["name"]
+    state.update(partial)
+    followup = request_identity_node(state)
+    assert "không cần gửi lại số" in followup["messages"][0].content
+    state.update(followup)
+
+    # Customer replies with name + phone in the next turn.
+    state["messages"].append(HumanMessage(content="mình tên Lan, sđt 0901234567"))
+    state.update(normalize_input_node(state))
+    resolved = resolve_identity_node(state)
+    assert resolved["customer_id"] == "CUST-1029"
+    assert resolved["customer_info"]["phone"] == "0901234567"
+    assert resolved["customer_info"]["name"] == "Lan"
+    assert resolved["needs_identity"] is False
+    assert resolved["missing_identity_fields"] == []
+    assert resolved["identity_attempts"] == 0
+    # Original Turn-1 need survives identity turns.
+    assert resolved["pending_need"]
+    state.update(resolved)
+    assert route_after_identity(state) == "build_call_brief"
+
+
+def test_identity_falls_back_to_guest_after_max_attempts():
+    assert route_after_identity({"needs_identity": True, "identity_attempts": 0}) == "request_identity"
+    assert (
+        route_after_identity(
+            {"needs_identity": True, "identity_attempts": MAX_IDENTITY_ATTEMPTS}
+        )
+        == "build_call_brief"
+    )
+    assert route_after_identity({"needs_identity": False, "identity_attempts": 0}) == "build_call_brief"
 
 
 def test_session_lifecycle_routes_ongoing_turn_to_end_and_ended_turn_to_commit():
@@ -340,6 +417,22 @@ def test_ongoing_turn_does_not_write_episode_or_profile(tmp_path, monkeypatch):
     assert store.get_episode("SESSION-ONGOING") is None
 
 
+def test_persist_call_skips_empty_session_and_is_idempotent(tmp_path, monkeypatch):
+    store = persistence_nodes.PostgresMemoryStore(
+        f"sqlite+pysqlite:///{tmp_path / 'p2.sqlite3'}"
+    )
+    monkeypatch.setattr(persistence_nodes, "_store", store)
+    state = {
+        "session_id": "SESSION-EMPTY",
+        "customer_id": "CUST-EMPTY",
+        "session_ended": True,
+    }
+    first = persistence_nodes.persist_call_node(state)
+    assert first["finalized"] is True
+    assert first["empty_session"] is True
+    assert store.get_episode("SESSION-EMPTY") is None
+
+
 def test_profile_fact_is_written_to_qdrant_and_postgres():
     from types import SimpleNamespace
 
@@ -380,6 +473,35 @@ def test_profile_fact_is_written_to_qdrant_and_postgres():
     assert postgres_store.saved["facts"] == [
         {"key": "preferred_category", "value": "air purifier"}
     ]
+
+
+def test_profile_commit_survives_qdrant_failure_and_versions_history(tmp_path):
+    from types import SimpleNamespace
+
+    from src.memory.profile.profile_store import ProfileStore
+
+    postgres = persistence_nodes.PostgresMemoryStore(
+        f"sqlite+pysqlite:///{tmp_path / 'profile.sqlite3'}"
+    )
+
+    class FailingVectorStore:
+        def init_collection(self, *args, **kwargs):
+            raise RuntimeError("qdrant down")
+
+    connections = SimpleNamespace(
+        vector_store=FailingVectorStore(),
+        dense_embedder=SimpleNamespace(embed_text=lambda _text: [0.1]),
+    )
+    ProfileStore(postgres, connections).add_profile_facts(
+        "CUST-P2", [{"key": "size", "value": "M"}], "SESSION-A"
+    )
+    ProfileStore(postgres, connections).add_profile_facts(
+        "CUST-P2", [{"key": "size", "value": "L"}], "SESSION-B"
+    )
+    assert postgres.get_profile_facts("CUST-P2") == {"size": "L"}
+    history = postgres.get_profile_fact_history("CUST-P2", "size")
+    assert [item["new_value"] for item in history] == ["M", "L"]
+    assert history[1]["old_value"] == "M"
 
 
 def test_memory_write_queues_profile_fact_until_session_commit():
@@ -510,6 +632,44 @@ def test_output_guardrail_rejects_hallucinated_gifts():
     assert result["output_valid"] is False
     assert "Dữ liệu quà tặng" in result["guardrail_feedback"]
     assert "SKU-AP-Y" in result["guardrail_feedback"]
+
+
+def test_output_guardrail_allows_explicit_gift_denial():
+    messages = [
+        HumanMessage(content="Mẫu AirPure Pro có quà gì không?"),
+        ToolMessage(
+            name="pricing.get_quote",
+            content='{"sku": "SKU-AP-PRO", "final_price_vnd": 7690000, "gifts": []}',
+            tool_call_id="quote-1",
+        ),
+        AIMessage(
+            content="Dạ AirPure Pro giá 7.690.000đ. Quà tặng kèm: Mẫu này hiện không có quà tặng kèm ạ."
+        ),
+    ]
+
+    result = output_guardrail_node({"messages": messages})
+    assert result["output_valid"] is True
+
+
+def test_output_guardrail_blocks_cross_sku_gift_borrowing():
+    messages = [
+        HumanMessage(content="Hai mẫu này quà thế nào?"),
+        ToolMessage(
+            name="pricing.get_quote",
+            content='{"sku": "SKU-A", "gifts": [{"promo_code": "G1", "sku": "GIFT-1"}]}',
+            tool_call_id="quote-a",
+        ),
+        ToolMessage(
+            name="pricing.get_quote",
+            content='{"sku": "SKU-B", "gifts": []}',
+            tool_call_id="quote-b",
+        ),
+        AIMessage(content="Dạ SKU-B được tặng kèm 1 bộ lọc ạ."),
+    ]
+
+    result = output_guardrail_node({"messages": messages})
+    assert result["output_valid"] is False
+    assert "SKU-B" in result["guardrail_feedback"]
 
 
 def test_output_guardrail_cleans_signature_artifacts():

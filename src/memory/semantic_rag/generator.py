@@ -34,7 +34,7 @@ class RAGGenerator:
             if api_key and genai is not None
             else None
         )
-        self.groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.groq_model = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
         self.max_tokens = int(os.getenv("GENERATOR_MAX_TOKENS", "2048"))
 
     def build_prompt(

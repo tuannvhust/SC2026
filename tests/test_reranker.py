@@ -75,3 +75,43 @@ def test_reranker_warmup_loads_model_and_runs_prediction():
         model_kwargs={"local_files_only": True},
     )
     model.predict.assert_called_once_with([["warmup", "warmup"]])
+
+
+def test_shared_reranker_reused_across_entries_and_threads():
+    import threading
+
+    from src.memory.semantic_rag.reranker_singleton import (
+        get_shared_reranker,
+        reset_shared_reranker,
+    )
+
+    reset_shared_reranker()
+    shared = Mock()
+    shared.model_name = "BAAI/bge-reranker-base"
+    calls = []
+
+    def _factory(*args, **kwargs):
+        calls.append(1)
+        return shared
+
+    with patch(
+        "src.memory.semantic_rag.reranker_singleton.Reranker",
+        side_effect=_factory,
+    ):
+        first = get_shared_reranker()
+        second = get_shared_reranker()
+        assert first is second
+
+        results = []
+
+        def _call():
+            results.append(get_shared_reranker())
+
+        threads = [threading.Thread(target=_call) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        assert all(item is first for item in results)
+    assert len(calls) == 1
+    reset_shared_reranker()

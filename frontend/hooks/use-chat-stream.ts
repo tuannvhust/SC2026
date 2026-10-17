@@ -1,21 +1,80 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatStreamPayload, Message, Product } from "@/types/product";
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+export type SessionStatus = "active" | "ending" | "ended" | "error";
+
+export interface EndSessionResult {
+  session_id: string;
+  finalized: boolean;
+  already_finalized: boolean;
+  empty_session: boolean;
+  status: string;
+  working_events: number;
+  episode_outcome?: string | null;
+  profile_facts_written: string[];
+  persistence_warning?: string | null;
+}
+
+function newSessionId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+const SESSION_STORAGE_KEY = "sc2026-session-id";
+
+function isValidSessionId(value: string | null): value is string {
+  if (!value) return false;
+  const trimmed = value.trim();
+  if (trimmed.length < 8 || trimmed.length > 128) return false;
+  return /^[A-Za-z0-9_-]+$/.test(trimmed);
+}
+
 export function useChatStream() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUserMessage, setLastUserMessage] = useState("");
+  // Null on first render so server and client produce identical HTML.
+  // The real ID is created/restored after mount (client-only).
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionReady = sessionId !== null;
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("active");
+  const [endResult, setEndResult] = useState<EndSessionResult | null>(null);
+  const [endError, setEndError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+
+  // Client-only: restore the current session across refresh, otherwise
+  // create exactly one ID. Never finalize or create extra sessions here.
+  useEffect(() => {
+    try {
+      const stored = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (isValidSessionId(stored)) {
+        setSessionId(stored);
+        return;
+      }
+    } catch {
+      // Storage unavailable: fall through to in-memory ID.
+    }
+    const nextId = newSessionId();
+    setSessionId(nextId);
+    try {
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, nextId);
+    } catch {
+      // Ignore storage errors; session still works in memory.
+    }
+  }, []);
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg = text.trim();
-    if (!userMsg) return;
+    if (!userMsg || !sessionId) return;
+    if (sessionStatus === "ending" || sessionStatus === "ended") return;
 
     setLastUserMessage(userMsg);
     const assistantId = uid();
@@ -37,6 +96,7 @@ export function useChatStream() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: "anonymous",
+          session_id: sessionId,
           message: userMsg,
           stream: true,
         }),
@@ -148,6 +208,58 @@ export function useChatStream() {
     } finally {
       setLoading(false);
     }
+  }, [sessionId, sessionStatus]);
+
+  const endSession = useCallback(async () => {
+    if (!sessionId || sessionStatus === "ending" || sessionStatus === "ended") return null;
+    setSessionStatus("ending");
+    setEndError("");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch("/api/chat/end-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, customer_id: "anonymous" }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const details = await res.text();
+        throw new Error(`End session HTTP ${res.status}: ${details || res.statusText}`);
+      }
+      const payload = (await res.json()) as EndSessionResult;
+      // Only report success after backend confirms persistence.
+      if (!payload.finalized) {
+        throw new Error("Backend chưa xác nhận lưu phiên.");
+      }
+      setEndResult(payload);
+      setSessionStatus("ended");
+      return payload;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Lỗi khi kết thúc phiên.";
+      setEndError(message);
+      setSessionStatus("error");
+      return null;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }, [sessionId, sessionStatus]);
+
+  const startNewSession = useCallback(() => {
+    abortRef.current?.abort();
+    setMessages([]);
+    setLastUserMessage("");
+    setEndResult(null);
+    setEndError("");
+    const nextId = newSessionId();
+    setSessionId(nextId);
+    try {
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, nextId);
+    } catch {
+      // Ignore storage errors; session still works in memory.
+    }
+    setSessionStatus("active");
+    setLoading(false);
   }, []);
 
   const clearChat = useCallback(() => {
@@ -165,7 +277,14 @@ export function useChatStream() {
     messages,
     loading,
     lastUserMessage,
+    sessionId,
+    sessionReady,
+    sessionStatus,
+    endResult,
+    endError,
     sendMessage,
+    endSession,
+    startNewSession,
     clearChat,
     retryLast,
   };

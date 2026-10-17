@@ -52,7 +52,7 @@ _gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
 llm = _build_chat_llm(_primary_model_name, _gemini_api_key)
 groq_llm = _build_groq_llm(
-    os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+    os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
     os.getenv("GROQ_API_KEY"),
 )
 

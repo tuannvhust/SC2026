@@ -94,6 +94,7 @@ def test_fixed_sampling_gemini_model_does_not_receive_temperature(monkeypatch):
     assert captured == {
         "model": "gemini-3.6-flash",
         "google_api_key": "test-key",
+        "max_retries": 1,
     }
 
 
@@ -126,6 +127,7 @@ def test_groq_model_uses_configured_model_and_key(monkeypatch):
         "model": "llama-test",
         "groq_api_key": "groq-test-key",
         "temperature": 0.3,
+        "max_retries": 2,
     }
 
 

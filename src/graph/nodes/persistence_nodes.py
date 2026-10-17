@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import json
+import logging
 import uuid
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -17,6 +18,8 @@ from src.memory.working.postgres_store import (
     close_postgres_memory_store,
     get_postgres_memory_store,
 )
+
+logger = logging.getLogger(__name__)
 
 _store: Optional[PostgresMemoryStore] = None
 
@@ -110,6 +113,16 @@ def _identity_snapshot(state: AgentState) -> Dict[str, Any]:
     identity = {key: customer_info[key] for key in fields if key in customer_info}
     if state.get("customer_id"):
         identity["customer_id"] = state["customer_id"]
+    attempts = int(state.get("identity_attempts") or 0)
+    if attempts:
+        if state.get("needs_identity") is not None:
+            identity["needs_identity"] = bool(state.get("needs_identity"))
+        identity["identity_attempts"] = attempts
+    missing = state.get("missing_identity_fields")
+    if missing:
+        identity["missing_identity_fields"] = list(missing)
+    if state.get("pending_need"):
+        identity["pending_need"] = state.get("pending_need")
     return _json_safe(identity)
 
 
@@ -159,6 +172,8 @@ def _successful_profile_updates(events: List[Dict[str, Any]]) -> List[Dict[str, 
     updates: Dict[str, Dict[str, Any]] = {}
     for event in events:
         payload = event["payload"]
+        event_session = event.get("session_id")
+        event_date = str(payload.get("created_at") or "")[:10]
         calls = {call.get("id"): call for call in payload.get("tool_calls", [])}
         for result in payload.get("tool_results", []):
             if result.get("name") != "memory.write":
@@ -171,8 +186,15 @@ def _successful_profile_updates(events: List[Dict[str, Any]]) -> List[Dict[str, 
                 continue
             args = call.get("args") or {}
             key = args.get("key")
-            if isinstance(key, str) and key.strip() and "value" in args:
-                updates[key] = {"key": key, "value": args["value"]}
+            if not (isinstance(key, str) and key.strip() and "value" in args):
+                continue
+            provenance = args.get("provenance_session_id")
+            if provenance and event_session and provenance != event_session:
+                continue
+            on_date = args.get("on")
+            if on_date and event_date and str(on_date) != event_date:
+                continue
+            updates[key] = {"key": key, "value": args["value"]}
     return list(updates.values())
 
 
@@ -275,9 +297,28 @@ def persist_call_node(state: AgentState) -> Dict[str, Any]:
     store = get_working_memory_store()
     events = store.get_session_events(session_id)
     if not events:
-        raise RuntimeError(f"No working-memory events found for session {session_id}.")
+        existing = store.get_episode(session_id)
+        if existing is not None:
+            logger.info("session %s already finalized; skip duplicate end.", session_id)
+            return {"finalized": True, "already_finalized": True}
+        # Empty session: safe skip instead of crashing the end-session flow.
+        logger.info("session %s has no working events; skip episode.", session_id)
+        return {"finalized": True, "already_finalized": False, "empty_session": True}
+
+    existing = store.get_episode(session_id)
+    current_event_ids = {event.get("event_id") for event in events}
+    if existing is not None:
+        previous_ids = set(
+            (existing.get("payload") or {}).get("event_ids")
+            or existing.get("event_ids")
+            or []
+        )
+        if previous_ids == current_event_ids:
+            logger.info("session %s already finalized; skip duplicate end.", session_id)
+            return {"finalized": True, "already_finalized": True}
 
     episode = _episode_from_events(events, state)
+    episode["event_ids"] = sorted(current_event_ids)
     episode["channel"] = (state.get("customer_info") or {}).get("channel")
     ended_at = datetime.now(timezone.utc).isoformat()
     store.save_episode(
@@ -288,11 +329,35 @@ def persist_call_node(state: AgentState) -> Dict[str, Any]:
     )
 
     profile_updates = _successful_profile_updates(events)
+    committed_keys: List[str] = []
+    qdrant_warning: Optional[str] = None
     if customer_id and profile_updates:
-        get_profile_store().add_profile_facts(
-            customer_id=customer_id,
-            facts=profile_updates,
-            session_id=session_id,
-        )
+        try:
+            get_profile_store().add_profile_facts(
+                customer_id=customer_id,
+                facts=profile_updates,
+                session_id=session_id,
+            )
+            committed_keys = [fact["key"] for fact in profile_updates]
+        except Exception as error:
+            # Postgres-first happens inside add_profile_facts; surface failure
+            # so API can report persistence status honestly.
+            qdrant_warning = f"{type(error).__name__}: {error}"
+            logger.warning(
+                "profile commit failed for session %s: %s",
+                session_id,
+                error,
+                exc_info=True,
+            )
 
-    return {}
+    result: Dict[str, Any] = {
+        "finalized": True,
+        "already_finalized": False,
+        "working_events": len(events),
+        "episode_session_id": session_id,
+        "episode_outcome": episode.get("outcome"),
+        "profile_facts_written": committed_keys,
+    }
+    if qdrant_warning:
+        result["persistence_warning"] = qdrant_warning
+    return result

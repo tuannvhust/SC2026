@@ -58,6 +58,68 @@ def _all_tool_results(
     return results
 
 
+_GIFT_KEYWORDS = (
+    "tặng kèm",
+    "quà tặng",
+    "quà",
+    "tặng thêm",
+    "được tặng",
+    "tặng 1 bộ lọc",
+    "tặng bộ lọc",
+    "tặng màng lọc",
+    "tặng voucher",
+    "tặng phụ kiện",
+)
+
+_GIFT_DENIAL_PATTERNS = (
+    re.compile(r"\bkhông\s+có\b.*\b(quà|tặng|gift)\b", re.IGNORECASE),
+    re.compile(r"\bchưa\s+có\b.*\b(quà|tặng|gift)\b", re.IGNORECASE),
+    re.compile(r"\bhiện\s+(tại\s+)?(chưa|không)\b.*\b(quà|tặng|gift)\b", re.IGNORECASE),
+    re.compile(r"\bkhông\s+(được\s+)?tặng\b", re.IGNORECASE),
+    re.compile(r"\bchưa\s+(được\s+)?tặng\b", re.IGNORECASE),
+    re.compile(r"\bkhông\s+kèm\b.*\b(quà|tặng)\b", re.IGNORECASE),
+    re.compile(r"\bkhông\s+bao\s+gồm\b.*\b(quà|tặng)\b", re.IGNORECASE),
+    re.compile(r"\bkhông\s+áp\s+dụng\b.*\b(quà|tặng)\b", re.IGNORECASE),
+    re.compile(r"\bkhông\s+đi\s+kèm\b", re.IGNORECASE),
+    re.compile(r"\bmẫu\s+này\b.*\bkhông\b.*\b(quà|tặng)\b", re.IGNORECASE),
+    re.compile(r"\bquà\s+tặng\s+kèm\s*:\s*(không|chưa|-|–|none|n/a)\b", re.IGNORECASE),
+    re.compile(r":\s*(hiện\s+)?không\s+có\b", re.IGNORECASE),
+    re.compile(r"\bkhông\s+quà\b", re.IGNORECASE),
+    re.compile(r"\bko\s+có\b.*\b(quà|tặng)\b", re.IGNORECASE),
+    re.compile(r"\bk\s+có\b.*\b(quà|tặng)\b", re.IGNORECASE),
+)
+
+_SKU_PATTERN = re.compile(r"\bSKU-[A-Z0-9][A-Z0-9\-]*\b", re.IGNORECASE)
+
+
+def _split_gift_clauses(text: str) -> List[str]:
+    parts = re.split(r"[\n\r]+|[.!?;]+", text or "")
+    return [part.strip() for part in parts if part and part.strip()]
+
+
+def _clause_denies_gift(clause: str) -> bool:
+    clause_norm = (clause or "").strip().lower()
+    if not clause_norm:
+        return False
+    return any(p.search(clause_norm) for p in _GIFT_DENIAL_PATTERNS)
+
+
+def _clause_mentions_gift(clause: str) -> bool:
+    clause_lower = (clause or "").lower()
+    return any(kw in clause_lower for kw in _GIFT_KEYWORDS)
+
+
+def _gift_promising_clauses(response: str) -> List[str]:
+    promising = []
+    for clause in _split_gift_clauses(response):
+        if not _clause_mentions_gift(clause):
+            continue
+        if _clause_denies_gift(clause):
+            continue
+        promising.append(clause)
+    return promising
+
+
 def _validate_gifts(
     response: str,
     tool_results: List[ToolMessage],
@@ -66,22 +128,84 @@ def _validate_gifts(
     if not quotes:
         return None
 
-    # Collect all valid gifts across returned quotes
-    valid_gifts = []
+    promising = _gift_promising_clauses(response or "")
+    if not promising:
+        return None
+
+    quote_by_sku: Dict[str, Dict[str, Any]] = {}
     for q in quotes:
-        valid_gifts.extend(q.get("gifts") or [])
+        sku = str(q.get("sku") or "").strip().upper()
+        if sku:
+            quote_by_sku[sku] = q
 
-    # Check if response promises gifts when no gift is provided
-    response_lower = response.lower()
-    gift_keywords = ("tặng kèm", "quà tặng", "tặng thêm", "được tặng", "tặng 1 bộ lọc", "tặng bộ lọc")
-    promises_gift = any(kw in response_lower for kw in gift_keywords)
+    if not quote_by_sku:
+        return (
+            "Cau tra loi de cap qua tang nhung pricing.get_quote khong co SKU "
+            "de doi chieu. Hay goi pricing.get_quote cho dung SKU truoc."
+        )
 
-    if not valid_gifts and promises_gift:
-        # Check if any specific SKU had empty gifts
-        empty_skus = [q.get("sku") for q in quotes if q.get("sku")]
-        sku_str = ", ".join(filter(None, empty_skus)) or "được báo giá"
-        return f"Dữ liệu quà tặng sản phẩm ({sku_str}) không khớp với tool output: pricing.get_quote trả về gifts: [] nhưng câu trả lời lại có quà tặng kèm."
+    resp_skus = [s.upper() for s in _SKU_PATTERN.findall(response or "")]
 
+    def _attr(clause: str) -> List[str]:
+        c_skus = [s.upper() for s in _SKU_PATTERN.findall(clause or "")]
+        if c_skus:
+            return c_skus
+        uniq = sorted(set(resp_skus))
+        if len(uniq) == 1:
+            return uniq
+        if len(quote_by_sku) == 1:
+            return list(quote_by_sku.keys())
+        return []
+
+    empty_fails: List[str] = []
+    unverified: List[str] = []
+    no_attr: List[str] = []
+    for clause in promising:
+        skus = _attr(clause)
+        if not skus:
+            no_attr.append(clause)
+            continue
+        for sku in skus:
+            q = quote_by_sku.get(sku)
+            if q is None:
+                if sku not in unverified:
+                    unverified.append(sku)
+                continue
+            gifts = q.get("gifts") or []
+            if not gifts and sku not in empty_fails:
+                empty_fails.append(sku)
+    if empty_fails:
+        s = ", ".join(empty_fails)
+        return (
+            f"Dữ liệu quà tặng sản phẩm ({s}) không khớp với tool output: "
+            f"pricing.get_quote trả về gifts: [] cho {s} nhưng câu trả lời "
+            f"lại khẳng định có quà tặng kèm. Hãy sửa thành "
+            f"'Không có quà tặng kèm' cho {s}."
+        )
+    if unverified:
+        s = ", ".join(unverified)
+        return (
+            f"Câu trả lời đề cập quà tặng cho ({s}) nhưng không có "
+            f"pricing.get_quote tương ứng. Hãy gọi đúng SKU để xác minh."
+        )
+    if no_attr:
+        by_sku = {k: (v.get("gifts") or []) for k, v in quote_by_sku.items()}
+        if all(not g for g in by_sku.values()):
+            s = ", ".join(sorted(by_sku.keys()))
+            return (
+                f"Dữ liệu quà tặng sản phẩm ({s}) không khớp với tool output: "
+                f"pricing.get_quote trả về gifts: [] nhưng câu trả lời "
+                f"lại có quà tặng kèm."
+            )
+        if all(g for g in by_sku.values()):
+            return None
+        s = ", ".join(sorted(by_sku.keys()))
+        return (
+            f"Câu trả lời đề cập quà tặng nhưng không rõ SKU nào trong ({s}). "
+            f"Mỗi SKU có gifts riêng, không được lấy quà của sản phẩm khác. "
+            f"Hãy nêu quà theo đúng SKU có gifts, SKU gifts [] phải nói "
+            f"'Không có quà tặng kèm'."
+        )
     return None
 
 

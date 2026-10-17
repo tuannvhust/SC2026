@@ -33,6 +33,33 @@ def default_database_url() -> str:
     return database_url
 
 
+def checkpointer_database_url() -> str:
+    """Prefer the Supavisor pooler for long-lived checkpointer pools.
+
+    Direct ``db.<ref>.supabase.co:5432`` connections are frequently closed on
+    idle IPv6 from Windows/dev machines (``pool-1`` errors on Turn 2+).
+    ``SUPABASE_POOLER_URL`` is optional; falls back to ``default_database_url``.
+    """
+    pooler_url = os.getenv("SUPABASE_POOLER_URL", "").strip()
+    if pooler_url:
+        return pooler_url
+    return default_database_url()
+
+
+def describe_database_url(database_url: str) -> str:
+    """Safe host/port/db summary for logs (never includes credentials)."""
+    try:
+        url = make_url(database_url)
+        host = url.host or "unknown-host"
+        port = url.port or "default-port"
+        database = url.database or "unknown-db"
+        query = dict(url.query)
+        sslmode = query.get("sslmode", "unset")
+        return f"{host}:{port}/{database} sslmode={sslmode}"
+    except Exception:
+        return "unparseable-database-url"
+
+
 def _normalized_database_url(database_url: str):
     url = make_url(database_url)
     if url.get_backend_name() == "postgresql":
@@ -58,6 +85,7 @@ class PostgresMemoryStore:
         self.engine: Engine = create_engine(
             url,
             pool_pre_ping=True,
+            pool_recycle=300,
             connect_args=connect_args,
         )
         self.metadata = MetaData()
@@ -101,7 +129,36 @@ class PostgresMemoryStore:
             Column("provenance_session_id", String, nullable=False),
             Column("updated_at", String, nullable=False),
         )
+        self.profile_fact_history = Table(
+            "profile_fact_history",
+            self.metadata,
+            Column("history_id", Integer, primary_key=True, autoincrement=True),
+            Column("customer_id", String, nullable=False),
+            Column("profile_key", String, nullable=False),
+            Column("old_value_json", String),
+            Column("new_value_json", String, nullable=False),
+            Column("provenance_session_id", String, nullable=False),
+            Column("changed_at", String, nullable=False),
+        )
+        Index(
+            "idx_profile_fact_history_customer",
+            self.profile_fact_history.c.customer_id,
+            self.profile_fact_history.c.profile_key,
+            self.profile_fact_history.c.changed_at,
+        )
         self.metadata.create_all(self.engine)
+
+    def _ensure_profile_fact_history_table(self) -> None:
+        """Create history table on existing DBs (minimal migration)."""
+        self.profile_fact_history.create(self.engine, checkfirst=True)
+        with self.engine.begin() as connection:
+            connection.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS "
+                    "idx_profile_fact_history_customer ON profile_fact_history "
+                    "(customer_id, profile_key, changed_at)"
+                )
+            )
 
     def append_turn(
         self,
@@ -341,8 +398,25 @@ class PostgresMemoryStore:
         session_id: str,
         updated_at: str,
     ) -> None:
+        self._ensure_profile_fact_history_table()
         with self.engine.begin() as connection:
             for fact in facts:
+                key = fact["key"]
+                new_value_json = json.dumps(
+                    fact["value"],
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+                old_row = connection.execute(
+                    text(
+                        """
+                        SELECT profile_value_json FROM profile_facts
+                        WHERE customer_id = :customer_id AND profile_key = :profile_key
+                        """
+                    ),
+                    {"customer_id": customer_id, "profile_key": key},
+                ).mappings().first()
+                old_value_json = old_row["profile_value_json"] if old_row else None
                 connection.execute(
                     text(
                         """
@@ -361,16 +435,64 @@ class PostgresMemoryStore:
                     ),
                     {
                         "customer_id": customer_id,
-                        "profile_key": fact["key"],
-                        "profile_value_json": json.dumps(
-                            fact["value"],
-                            ensure_ascii=False,
-                            separators=(",", ":"),
-                        ),
+                        "profile_key": key,
+                        "profile_value_json": new_value_json,
                         "provenance_session_id": session_id,
                         "updated_at": updated_at,
                     },
                 )
+                if old_value_json != new_value_json:
+                    connection.execute(
+                        text(
+                            """
+                            INSERT INTO profile_fact_history (
+                                customer_id, profile_key, old_value_json,
+                                new_value_json, provenance_session_id, changed_at
+                            ) VALUES (
+                                :customer_id, :profile_key, :old_value_json,
+                                :new_value_json, :provenance_session_id, :changed_at
+                            )
+                            """
+                        ),
+                        {
+                            "customer_id": customer_id,
+                            "profile_key": key,
+                            "old_value_json": old_value_json,
+                            "new_value_json": new_value_json,
+                            "provenance_session_id": session_id,
+                            "changed_at": updated_at,
+                        },
+                    )
+
+    def get_profile_fact_history(
+        self, customer_id: str, profile_key: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        self._ensure_profile_fact_history_table()
+        query = (
+            "SELECT customer_id, profile_key, old_value_json, new_value_json, "
+            "provenance_session_id, changed_at FROM profile_fact_history "
+            "WHERE customer_id = :customer_id"
+        )
+        params: Dict[str, Any] = {"customer_id": customer_id}
+        if profile_key:
+            query += " AND profile_key = :profile_key"
+            params["profile_key"] = profile_key
+        query += " ORDER BY changed_at"
+        with self.engine.connect() as connection:
+            rows = connection.execute(text(query), params).mappings().all()
+        return [
+            {
+                "customer_id": row["customer_id"],
+                "profile_key": row["profile_key"],
+                "old_value": json.loads(row["old_value_json"])
+                if row["old_value_json"] is not None
+                else None,
+                "new_value": json.loads(row["new_value_json"]),
+                "provenance_session_id": row["provenance_session_id"],
+                "changed_at": row["changed_at"],
+            }
+            for row in rows
+        ]
 
     def get_profile_facts(self, customer_id: str) -> Dict[str, Any]:
         with self.engine.connect() as connection:

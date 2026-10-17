@@ -5,7 +5,11 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
-from src.api.routers.graph_runner import invoke_customer_turn, response_from_graph
+from src.api.routers.graph_runner import (
+    finalize_session,
+    invoke_customer_turn,
+    response_from_graph,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -19,6 +23,30 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     turn_id: Optional[str] = None
     session_ended: bool = False
+
+class ChatEndSessionRequest(BaseModel):
+    session_id: str
+    customer_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@router.post("/chat/end-session")
+def end_chat_session(request: ChatEndSessionRequest):
+    finalized = finalize_session(
+        session_id=request.session_id,
+        customer_id=request.customer_id,
+        customer_info=request.metadata,
+    )
+    return {
+        "finalized": finalized["finalized"],
+        "already_finalized": finalized["already_finalized"],
+        "empty_session": finalized["empty_session"],
+        "status": "already_finalized"
+        if finalized["already_finalized"]
+        else ("empty_session" if finalized["empty_session"] else "finalized"),
+        **finalized,
+    }
+
 
 @router.post("/chat")
 def handle_chat(request: ChatRequest):
