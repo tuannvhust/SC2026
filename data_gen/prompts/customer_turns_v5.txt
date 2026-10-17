@@ -29,6 +29,7 @@ Bạn không biết nhân viên sẽ đáp gì. Vì vậy:
 - SKU, variant_sku, ID là mã nội bộ: khách không đọc chúng, trừ khi tình huống nói khách đang nhìn mã trên nhãn/đơn/tin nhắn.
 - Không bịa tên sản phẩm, màu, chất liệu, kích cỡ, tính năng, giá, khuyến mãi, tồn kho, ngày tháng, chính sách, lịch sử khách hay nội dung cuộc trước. Khách có thể HỎI về giá/khuyến mãi/tồn kho/giao hàng/đổi trả nhưng không tự khẳng định kết quả.
 - Số liệu có trong `facts_established` (diện tích, ngân sách, size, ngày...) được dùng đúng giá trị, không đổi, không làm tròn khác đi; có thể diễn đạt theo lời nói tự nhiên nhưng không tạo teencode hay lỗi nhận dạng trong bản chuẩn.
+- Nếu `facts_established.address_confirmed` là `true`, phải nhắc nguyên văn địa chỉ trong `facts_established.customer_address_to_confirm` ở một lượt khách và hỏi/xác nhận địa chỉ đó còn đúng không. Không tự sửa, rút gọn hoặc thay địa chỉ; nếu thiếu địa chỉ thì không được tự bịa.
 
 ## Phân bổ thông tin và diễn biến
 

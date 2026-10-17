@@ -2,24 +2,22 @@
 
 ## Scenario / call matrix (current contract)
 
-`reports/coverage_matrix.csv` contains scenario-level metadata only. Per-call assignments live in `reports/coverage_calls.csv`; each `slot_id` plus `call_index` identifies a call. The call table is the source of truth for CRM customer, channel, products, story, expected outcome, promotion timing/condition, and policy references. `stubs` reads these assignments directly.
+`reports/coverage_matrix.csv` chứa metadata ở cấp độ scenario. Thong tin chi tiết về từng cuộc gọi được lưu trong `reports/coverage_calls.csv`; mỗi `slot_id` cộng với `call_index` xác định một cuộc gọi. Bảng cuộc gọi là nguồn thông tin chính cho khách hàng CRM, kênh, sản phẩm, câu chuyện, kết quả mong muốn, thời gian/số lượng khuyến mãi và các tham chiếu chính sách. `stubs` đọc các phân công này trực tiếp.
 
-The old combined matrix can be migrated once, preserving reviewed IDs and using existing briefs where available:
+<!-- Matrix cũ The old combined matrix can be migrated once, preserving reviewed IDs and using existing briefs where available:
 
 ```powershell
 python -m data_gen.coverage_matrix.make_coverage_matrix migrate `
   --matrix data_gen/reports/coverage_matrix.csv `
   --briefs data_gen/briefs/
-```
+``` -->
 
-Then validate the CRM/catalog/policy links, continuous call indexes, shared-phone pairs, and the M1 outcome floor:
+Cần validate các liên kết CRM/catalog/policy, chỉ số cuộc gọi liên tục, cặp điện thoại chung, và ngưỡng kết quả M1:
 
 ```powershell
 python -m data_gen.coverage_matrix.make_coverage_matrix validate
 python -m data_gen.coverage_matrix.make_coverage_matrix report --defer-audio
 ```
-
-Outcome counts are reported by level, layer, hard-case tag, and call. The configured floor is 10 calls per outcome in each enabled level. M2 remains disabled in `dataset_config.json` until the M1 gate is met; M2 planning rows do not cause M2 artifacts to be generated.
 
 ## Contract đang chạy
 
@@ -46,15 +44,15 @@ Script không hard-code persona, SKU, customer ID hoặc promotion ID. Các giá
 
 ## File trong folder
 
-| File | Chức năng |
-|---|---|
-| `matrix_config.json` | Chứa owner, thứ tự ngành và quota nội bộ. Không chứa placeholder persona/ngành. |
-| `../dataset_config.json` | Mục tiêu chính thức M1/M2, thứ tự level và số slot nền cho matrix. |
-| `make_coverage_matrix.py` | CLI generate/report/stubs. Đọc BTC data qua `data_gen.config.BTC_DIR`. |
-| `README.md` | Hướng dẫn vận hành. |
-| `__init__.py` | Cho phép chạy script bằng `python -m data_gen.coverage_matrix...`. |
+| File                      | Chức năng                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `matrix_config.json`      | Chứa owner, thứ tự ngành và quota nội bộ. Không chứa placeholder persona/ngành. |
+| `../dataset_config.json`  | Mục tiêu chính thức M1/M2, thứ tự level và số slot nền cho matrix.              |
+| `make_coverage_matrix.py` | CLI generate/report/stubs. Đọc BTC data qua `data_gen.config.BTC_DIR`.          |
+| `README.md`               | Hướng dẫn vận hành.                                                             |
+| `__init__.py`             | Cho phép chạy script bằng `python -m data_gen.coverage_matrix...`.              |
 
-Matrix CSV mặc định được ghi vào `data_gen/reports/coverage_matrix.csv`; brief stub mặc định được ghi vào `data_gen/briefs/`. Matrix mới có `level`, `case_number` global và `slot_id` dạng `SC-001`, `SC-002`, ...`. Generation config hiện bật M1; M2 chỉ được mở lại khi chủ động đổi cấu hình. M1 hiện dùng `thoi-trang` và miền `bac`, `nam` theo `dataset_config.json`.
+Matrix CSV mặc định được ghi vào `data_gen/reports/coverage_matrix.csv`; brief stub mặc định được ghi vào `data_gen/briefs/`. Matrix mới có `level`, `case_number` global và `slot_id` dạng `SC-001`, `SC-002`, ...`. Generation config hiện bật M1; M2 chỉ được mở lại khi chủ động đổi cấu hình. M1 hiện dùng `thoi-trang`và miền`bac`, `nam`theo`dataset_config.json`.
 
 ## Ý nghĩa cột `layer`
 
@@ -174,7 +172,7 @@ python -m data_gen.coverage_matrix.make_coverage_matrix track `
 `track` không ghi đè matrix đã review. Nó xuất bản tracking riêng, cập nhật `todo → briefed → generated_dry_run | generated_llm`; chỉ giữ `validated` nếu brief, raw và prompt fingerprint vẫn khớp. Lệnh hiện tại đọc manifest audio tùy chọn `data_gen/audio/<slot_id>.json`:
 
 ```json
-{"source": "tts", "hours": 0.03, "noisy": true}
+{ "source": "tts", "hours": 0.03, "noisy": true }
 ```
 
 Sau đó dùng `--matrix data_gen/reports/coverage_tracking.csv` khi chạy `report`.

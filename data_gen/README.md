@@ -80,7 +80,7 @@ Lệnh này giúp điền thông tin vào trong cấu trúc brief và không ghi
 Người phụ trách cần đọc và hoàn thiện từng brief, bảo đảm:
 
 1. `level`, `case_number`, `brief_id`, `persona_id`, `customer_id` khớp matrix.
-2. Mệi call có `call_index` liên tục, `days_later`, `channel`, `products`/variant và `expected_outcome` hợp lý. Pipeline sinh `customer_goal` sau khi có customer turns và chỉ đặt ở `call_1`.
+2. Moi call có `call_index` liên tục, `days_later`, `channel`, `products`/variant và `expected_outcome` hợp lý. Pipeline sinh `customer_goal` sau khi có customer turns và chỉ đặt ở `call_1`.
 3. Dữ kiện khách nói nằm trong `facts_to_establish`; không tự điền giá cuối, kết quả tồn kho/khuyến mãi hay nội dung policy. Pipeline lấy factual values từ catalog/mock tools.
 4. `story_hint`/diễn biến call làm cho hard case xảy ra rõ ràng. Ví dụ: callback nêu đúng thời điểm; hàng hết giữa các cuộc phải có mốc ngày; shared phone phải xác minh người gọi; khách thiếu kiên nhẫn phải giới hạn câu hỏi; đổi hàng cần có lịch sử mua và SKU cụ thể.
 5. `success_if` kiểm thử đúng hành vi mong đợi. `story_hints` chỉ hướng dẫn diễn biến phía khách, không thay thế điều kiện chấm hoặc danh sách tool bị cấm.
@@ -103,22 +103,16 @@ Chỉ tiếp tục khi tất cả brief được đưa vào batch đều pass. L
 Dry-run không gọi Gemini và không dùng để đánh giá chất lượng hội thoại. Chạy một vài brief để kiểm tra đường đi và schema:
 
 ```powershell
-python -m data_gen.run_batch `
-  --briefs data_gen/briefs/ `
-  --out data_gen/scenarios_dryrun/ `
-  --dry-run `
-  --level M1 `
-  --limit 3 `
-  --seed 7
+python -m data_gen.run_batch --briefs data_gen/briefs/ `
+  --out data_gen/scenarios_dryrun/ --dry-run `
+  --level M1 --limit 3 --seed 7
 ```
 
 Sau đó chạy kiểm tra tự động:
 
 ```powershell
-python -m data_gen.auto_check `
-  --scenarios data_gen/scenarios_dryrun/ `
-  --briefs data_gen/briefs/ `
-  --fact-packs data_gen/fact_packs/ `
+python -m data_gen.auto_check --scenarios data_gen/scenarios_dryrun/ `
+  --briefs data_gen/briefs/ --fact-packs data_gen/fact_packs/ `
   --raw data_gen/raw/
 ```
 
@@ -133,12 +127,8 @@ Dry-run chỉ xác nhận pipeline có thể tạo output. Không đưa dry-run 
 Chỉ sinh sau khi matrix và brief đã review, lint pass, và dry-run/auto-check không còn lỗi cần xử lý. Bắt đầu bằng một batch nhỏ vào thư mục production:
 
 ```powershell
-python -m data_gen.run_batch `
-  --briefs data_gen/briefs/ `
-  --out data_gen/scenarios/ `
-  --level M1 `
-  --limit 3 `
-  --seed 7
+python -m data_gen.run_batch --briefs data_gen/briefs/ --out data_gen/scenarios/ `
+  --level M1 --limit 3 --seed 7
 ```
 
 Đọc log, `data_gen/reports/manifest.jsonl`, các file trong `data_gen/raw/` và `data_gen/scenarios/`. Nếu ổn, bỏ `--limit 3` để chạy toàn bộ brief M1 đã pass lint. Không chạy đồng thời nhiều batch dùng chung API key; nếu gặp giới hạn tốc độ, tăng `GEMINI_MIN_INTERVAL_SECONDS` trong `.env`.
@@ -164,10 +154,8 @@ Chế độ này yêu cầu raw/fact pack có sẵn cho mọi call, không sinh 
 Sau khi sinh, chạy lại `auto_check` trên thư mục production:
 
 ```powershell
-python -m data_gen.auto_check `
-  --scenarios data_gen/scenarios/ `
-  --briefs data_gen/briefs/ `
-  --fact-packs data_gen/fact_packs/
+python -m data_gen.auto_check --scenarios data_gen/scenarios/ `
+  --briefs data_gen/briefs/ --fact-packs data_gen/fact_packs/
 ```
 
 Review thủ công ít nhất các hard case và một mẫu của từng persona/kênh. Xác nhận:
@@ -181,8 +169,6 @@ Nếu có lỗi, sửa brief/prompt/code/story_hints theo đúng nguồn, sinh l
 
 ## 10. Checklist trước khi bàn giao/freeze
 
-- [ ] Matrix có owner/status rõ, ID liên tục/duy nhất, quota M1 và channel/persona/customer nhất quán.
-- [ ] Brief khớp matrix, không còn TODO, pass `lint_briefs`.
 - [ ] Hard case có facts và điều kiện chấm rõ; review bằng người thật, không chỉ dựa vào tag.
 - [ ] Production scenario sinh từ LLM, pass `auto_check`, pass contract và đã review thủ công.
 - [ ] Có manifest và tracking report; chỉ artifact đã được review mới đánh dấu `validated`.

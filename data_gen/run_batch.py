@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .assemble_scenario import run as assemble
 from .config import BTC_DIR, FACT_PACKS_DIR, MODEL, PROMPT_VERSION, PROVIDER, REPORTS_DIR, RAW_DIR, SCENARIOS_DIR, load_dataset_config
-from .gen_dialogue import generation_prompt, persona_record, run as generate
+from .gen_dialogue import generation_payload, generation_prompt, persona_record, run as generate
 from .facts import build_fact_pack
 from .lint_briefs import btc_data, lint_one
 from .provenance import brief_digest
@@ -25,7 +25,7 @@ from .scenario_metadata import (
 )
 
 
-def raw_requires_regeneration(raw_path: Path, *, dry_run: bool, seed: int, brief_digest: str | None = None, prompt_digest: str | None = None) -> bool:
+def raw_requires_regeneration(raw_path: Path, *, dry_run: bool, seed: int, brief_digest: str | None = None, prompt_digest: str | None = None, payload_digest: str | None = None) -> bool:
     """Do not reuse dialogue generated in a different mode/configuration."""
     if not raw_path.exists():
         return True
@@ -47,6 +47,8 @@ def raw_requires_regeneration(raw_path: Path, *, dry_run: bool, seed: int, brief
     if brief_digest is not None and metadata.get("brief_digest") != brief_digest:
         return True
     if prompt_digest is not None and metadata.get("prompt_digest") != prompt_digest:
+        return True
+    if payload_digest is not None and metadata.get("payload_digest") != payload_digest:
         return True
     if not dry_run and (metadata.get("provider") != PROVIDER or metadata.get("model") != MODEL):
         return True
@@ -215,6 +217,10 @@ def main() -> None:
         brief_digest_value=brief_digest(brief)
         scenario_num_calls = len(brief["calls"])
         prompt_digests = [generation_prompt(brief["persona_id"], call, scenario_num_calls)[1] for call in brief["calls"]]
+        payload_digests = [hashlib.sha256(json.dumps(
+            {**generation_payload(brief, call["call_index"]), "input_mode": "clean", "teencode_level": "none"},
+            ensure_ascii=False, sort_keys=True,
+        ).encode("utf-8")).hexdigest() for call in brief["calls"]]
         summary_path = scenario_summary_path(RAW_DIR, sid)
         summary_seed = args.seed + int(brief.get("case_number", 0))
         summary_prompt_digest = hashlib.sha256(
@@ -228,6 +234,7 @@ def main() -> None:
                         RAW_DIR / f"{sid}_c{call['call_index']}.json",
                         dry_run=args.dry_run, seed=args.seed, brief_digest=brief_digest_value,
                         prompt_digest=generation_prompt(brief["persona_id"], call, scenario_num_calls)[1],
+                        payload_digest=payload_digests[call["call_index"] - 1],
                     )
                     for call in brief["calls"]
                 )
@@ -281,6 +288,7 @@ def main() -> None:
                     if args.force or raw_requires_regeneration(
                         raw_path, dry_run=args.dry_run, seed=args.seed,
                         brief_digest=brief_digest_value, prompt_digest=prompt_digests[idx - 1],
+                        payload_digest=payload_digests[idx - 1],
                     ):
                         print(f"[{position}/{total}] CALL  {sid} c{idx}: generating raw ({mode})", flush=True)
                         raw_generated=generate(brief,idx,args.seed,args.dry_run)

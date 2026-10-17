@@ -85,6 +85,7 @@ REPORT_DESCRIPTIONS.update({
     "E5_MATRIX_PROMOTION_MISMATCH": "Brief uses a promotion absent from the matrix row.",
     "E5_MATRIX_POLICY_MISMATCH": "Policy chunk IDs differ between matrix and brief.",
     "E5_CALL_CUSTOMER_REGION_MISMATCH": "Call customer identity/region in fact pack differs from the caller assigned in CRM.",
+    "E1_ADDRESS_CONFIRMATION_MISSING": "Address-confirmation call must include the exact CRM address in customer turns.",
 })
 
 
@@ -153,11 +154,45 @@ def _ground_truth_matches(call: dict, fact_pack: dict) -> bool:
     return isinstance(supplied, dict) and supplied == derive_ground_truth(fact_pack)
 
 
-def _read_matrix(path: Path) -> dict[str, dict[str, str]]:
+def _read_csv_rows(path: Path) -> list[dict[str, str]]:
     if not path.exists():
-        return {}
+        return []
     with path.open("r", encoding="utf-8-sig", newline="") as stream:
-        return {row.get("slot_id", ""): row for row in csv.DictReader(stream) if row.get("slot_id")}
+        return list(csv.DictReader(stream))
+
+
+def _read_matrix(path: Path, calls_path: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Read the current split coverage files (slot metadata + call assignments).
+
+    Keep the call rows attached to each slot so validation can compare the
+    correct customer/promotion/policy assignment for each call. Also expose
+    aggregate legacy fields for checks which operate at slot level.
+    """
+    slots = {
+        row.get("slot_id", ""): row
+        for row in _read_csv_rows(path)
+        if row.get("slot_id")
+    }
+    if not slots:
+        return {}
+    assigned_calls: dict[str, list[dict[str, str]]] = {slot_id: [] for slot_id in slots}
+    calls_file = calls_path or path.with_name("coverage_calls.csv")
+    for row in _read_csv_rows(calls_file):
+        slot_id = row.get("slot_id", "")
+        if slot_id in assigned_calls:
+            assigned_calls[slot_id].append(row)
+    for slot_id, slot in slots.items():
+        call_rows = assigned_calls[slot_id]
+        slot["_calls"] = call_rows
+        slot["customer_ids"] = "|".join(dict.fromkeys(r.get("customer_id", "") for r in call_rows if r.get("customer_id")))
+        slot["promo_codes_in_play"] = "|".join(dict.fromkeys(r.get("promotion_code", "") for r in call_rows if r.get("promotion_code")))
+        slot["policy_chunk_ids"] = "|".join(dict.fromkeys(
+            policy.strip()
+            for r in call_rows
+            for policy in (r.get("policy_chunk_ids", "") or "").split("|")
+            if policy.strip()
+        ))
+    return slots
 
 
 def _error(rows: list[dict], sid: str, call_index: str, code: str, message: str,
@@ -268,6 +303,26 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
             brief_policy = {x for c in brief.get("calls", []) for x in c.get("policy_chunk_ids", [])}
             if matrix_policy != brief_policy:
                 _error(rows, sid, "*", "E5_MATRIX_POLICY_MISMATCH", "brief policy chunk IDs differ from its matrix row", repr({"matrix": sorted(matrix_policy), "brief": sorted(brief_policy)}))
+            # The current coverage format assigns these facts per call. Check
+            # each assignment rather than relying only on slot-level unions.
+            assigned_by_call = {str(r.get("call_index", "")): r for r in matrix_row.get("_calls", [])}
+            for call_spec in brief.get("calls", []):
+                call_id = str(call_spec.get("call_index", ""))
+                assigned = assigned_by_call.get(call_id)
+                if not assigned:
+                    continue  # Older, single-file matrices have no call rows.
+                assigned_customer = assigned.get("customer_id", "")
+                brief_customer = call_spec.get("customer_id", brief.get("customer_id", ""))
+                if assigned_customer and assigned_customer != brief_customer:
+                    _error(rows, sid, call_id, "E5_MATRIX_CUSTOMER_MISMATCH", "call customer_id differs from coverage_calls assignment", repr({"coverage": assigned_customer, "brief": brief_customer}))
+                assigned_promo = {assigned["promotion_code"]} if assigned.get("promotion_code") else set()
+                brief_promo = set(call_spec.get("promo_codes_in_play", []))
+                if assigned_promo != brief_promo:
+                    _error(rows, sid, call_id, "E5_MATRIX_PROMOTION_MISMATCH", "call promotion codes differ from coverage_calls assignment", repr({"coverage": sorted(assigned_promo), "brief": sorted(brief_promo)}))
+                assigned_policy = {x.strip() for x in (assigned.get("policy_chunk_ids", "") or "").split("|") if x.strip()}
+                brief_call_policy = set(call_spec.get("policy_chunk_ids", []))
+                if assigned_policy != brief_call_policy:
+                    _error(rows, sid, call_id, "E5_MATRIX_POLICY_MISMATCH", "call policy chunk IDs differ from coverage_calls assignment", repr({"coverage": sorted(assigned_policy), "brief": sorted(brief_call_policy)}))
             promo_catalog = _read(BTC_DIR / "catalog" / "promotions.json").get("promotions", [])
             promo_by_code = {item.get("promo_code"): item for item in promo_catalog}
             product_catalog = _catalog_facts()
@@ -327,6 +382,11 @@ def check_one(path: Path, briefs_dir: Path = BRIEFS_DIR, packs_dir: Path = FACT_
             _error(rows, sid, idx, "E1_TURN_COUNT", "customer_turns must contain 4-8 non-empty customer turns", str(turns))
         elif any(ROLE_LEAK_RE.search(t) for t in turns):
             _error(rows, sid, idx, "E1_AGENT_TEXT_IN_CUSTOMER_TURNS", "customer_turns contains an agent/assistant line", _customer_text(call))
+        facts_established = call.get("facts_established", {})
+        address = facts_established.get("customer_address_to_confirm") if isinstance(facts_established, dict) else None
+        if isinstance(facts_established, dict) and facts_established.get("address_confirmed") is True:
+            if not address or not isinstance(turns, list) or address not in " ".join(turns):
+                _error(rows, sid, idx, "E1_ADDRESS_CONFIRMATION_MISSING", "address_confirmed requires the exact delivery address in customer turns")
         asr_turns = call.get("customer_turns_asr")
         if call.get("input_mode", "clean") != "clean" and (
             not isinstance(asr_turns, list)
@@ -490,10 +550,12 @@ def main() -> None:
     parser.add_argument("--fact-packs", type=Path, default=FACT_PACKS_DIR)
     parser.add_argument("--raw", type=Path, default=RAW_DIR)
     parser.add_argument("--matrix", type=Path, default=REPORTS_DIR / "coverage_matrix.csv")
+    parser.add_argument("--calls", type=Path, default=None,
+                        help="Per-call coverage CSV; defaults to coverage_calls.csv beside --matrix")
     parser.add_argument("--report", type=Path, default=REPORTS_DIR / "auto_check_report.csv")
     args = parser.parse_args()
     rows: list[dict] = []
-    matrix_rows = _read_matrix(args.matrix)
+    matrix_rows = _read_matrix(args.matrix, args.calls)
     scenario_paths = sorted(args.scenarios.glob("*.json"))
     checked_paths = []
     orphan_count = 0

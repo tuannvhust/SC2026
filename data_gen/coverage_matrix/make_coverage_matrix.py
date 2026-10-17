@@ -14,6 +14,7 @@ import csv
 import hashlib
 import json
 import re
+import unicodedata
 from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
@@ -442,6 +443,27 @@ def synchronize_context_assignments(matrix_path: Path, briefs_dir: Path) -> int:
 
 def load_config(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def crm_delivery_address(customer: dict[str, Any]) -> str | None:
+    """Return a delivery address from synthetic CRM history when its region is clear."""
+    region_places = {
+        "bac": ("ha noi", "hai phong", "quang ninh", "bac ninh", "hai duong", "nam dinh", "thai binh", "lao cai", "yen bai", "son la", "dien bien", "cao bang", "lang son", "ha giang", "tuyen quang", "phu tho", "thai nguyen", "vinh phuc", "bac giang", "hung yen", "ninh binh"),
+        "trung": ("da nang", "hue", "thua thien hue", "quang nam", "quang ngai", "binh dinh", "phu yen", "khanh hoa", "ninh thuan", "binh thuan", "nghe an", "ha tinh", "quang binh", "quang tri", "gia lai", "kon tum", "dak lak", "dak nong", "lam dong"),
+        "nam": ("ho chi minh", "can tho", "binh duong", "dong nai", "ba ria", "vung tau", "long an", "tien giang", "ben tre", "vinh long", "tra vinh", "soc trang", "hau giang", "an giang", "kien giang", "dong thap", "ca mau", "tay ninh", "binh phuoc"),
+    }
+    norm = lambda value: "".join(c for c in unicodedata.normalize("NFD", value.lower()) if unicodedata.category(c) != "Mn")
+    region = customer.get("region")
+    for session in customer.get("sessions", []):
+        summary = session.get("summary", "")
+        match = re.search(r"(?:địa chỉ giao|địa chỉ nhận|địa chỉ)\s*:\s*(.+)$", summary, re.IGNORECASE)
+        if not match:
+            continue
+        address = match.group(1).strip().rstrip(".,;")
+        address_norm = norm(address)
+        if any(place in address_norm for place in region_places.get(region, ())):
+            return address
+    return None
 
 
 def generate(config: dict[str, Any], out: Path, dataset_config: dict[str, Any] | None = None, *, force: bool = False) -> None:
@@ -1251,9 +1273,11 @@ def _brief_for_row(row: dict[str, str], customer: dict[str, Any], products: list
             facts["existing_order_sku"] = delivered_order.get("sku", "")
         if index == 1:
             facts["blocker"] = "can hoi con gai" if tag == "shared_phone" else "can hoi nguoi nha" if tag in {"teencode", "promo_condition_fail"} else "dang can nhac"
-        else:
-            facts["address_confirmed"] = True
-
+        elif tag == "ttl_long_history" and index > 1:
+            address = crm_delivery_address(call_customer)
+            if address:
+                facts["address_confirmed"] = True
+                facts["customer_address_to_confirm"] = address
         if tag in {"order_in_transit", "three_call_order_status"}:
             success_if = {"tool_called": "order.status"}
         elif tag == "product_exchange_refund_difference":

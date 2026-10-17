@@ -182,6 +182,7 @@ def generation_payload(brief: dict, call_index: int) -> dict:
         "call_index": call_index,
         "scenario_num_calls": len(brief["calls"]),
         "story_hint": call.get("story_hint", ""),
+        "expected_outcome": call.get("expected_outcome"),
         "facts_established": facts_established,
         "visible_products": visible_products,
         "previous_customer_facts": structured_previous_summary(brief, call_index),
@@ -234,6 +235,8 @@ def parse_customer_turns(text: str) -> list[str]:
 def generate_turn_array(system: str, payload: dict, *, seed: int, dry_run: bool, expected_count: int | None = None) -> list[str]:
     """Retry malformed model output with a deterministic validation repair prompt."""
     last_error = "unknown output error"
+    facts = payload.get("facts_established", {})
+    required_address = facts.get("customer_address_to_confirm") if facts.get("address_confirmed") is True else None
     for attempt in range(3):
         request = dict(payload)
         if attempt:
@@ -241,6 +244,8 @@ def generate_turn_array(system: str, payload: dict, *, seed: int, dry_run: bool,
                 f"Lần trước không hợp lệ: {last_error}. Hãy tạo lại duy nhất một JSON array "
                 "đúng 4-8 chuỗi khách hàng, không thiếu hoặc thừa phần tử."
             )
+            if required_address:
+                request["format_correction"] += f" Include this exact address in one customer turn: {required_address}."
         text = complete(
             system,
             json.dumps(request, ensure_ascii=False, sort_keys=True),
@@ -252,6 +257,8 @@ def generate_turn_array(system: str, payload: dict, *, seed: int, dry_run: bool,
             turns = parse_customer_turns(text)
             if expected_count is not None and len(turns) != expected_count:
                 raise ValueError(f"expected {expected_count} turns, got {len(turns)}")
+            if required_address and required_address not in " ".join(turns):
+                raise ValueError("customer turns must include the exact CRM delivery address to confirm")
             return turns
         except (ValueError, json.JSONDecodeError) as exc:
             last_error = str(exc)
