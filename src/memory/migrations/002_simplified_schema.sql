@@ -91,18 +91,58 @@ ALTER TABLE public.profile_facts ADD COLUMN IF NOT EXISTS source_session_id TEXT
 ALTER TABLE public.profile_facts ADD COLUMN IF NOT EXISTS source_event_id UUID REFERENCES public.working_events(event_id) ON DELETE RESTRICT;
 ALTER TABLE public.profile_facts ADD COLUMN IF NOT EXISTS source_kind TEXT NOT NULL DEFAULT 'customer_stated';
 ALTER TABLE public.profile_facts ADD COLUMN IF NOT EXISTS confidence NUMERIC(4,3);
-DO $$
+
+DO $migration$
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profile_facts' AND column_name='profile_value_json') THEN
-    EXECUTE $$UPDATE public.profile_facts SET profile_value = profile_value_json::jsonb WHERE profile_value IS NULL AND profile_value_json IS NOT NULL$$;
+  -- Chuyển dữ liệu từ tên cột cũ nếu cột cũ còn tồn tại.
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'profile_facts'
+      AND column_name = 'profile_value_json'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE public.profile_facts
+      SET profile_value = profile_value_json::jsonb
+      WHERE profile_value IS NULL
+        AND profile_value_json IS NOT NULL
+    $sql$;
   END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profile_facts' AND column_name='provenance_session_id') THEN
-    EXECUTE $$UPDATE public.profile_facts SET source_session_id = provenance_session_id WHERE source_session_id IS NULL AND provenance_session_id IS NOT NULL$$;
+
+  -- Chuyển provenance từ tên cột cũ nếu còn tồn tại.
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'profile_facts'
+      AND column_name = 'provenance_session_id'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE public.profile_facts
+      SET source_session_id = provenance_session_id
+      WHERE source_session_id IS NULL
+        AND provenance_session_id IS NOT NULL
+    $sql$;
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_profile_facts_confidence') THEN
-    ALTER TABLE public.profile_facts ADD CONSTRAINT chk_profile_facts_confidence CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1));
+
+  -- Thêm CHECK constraint nếu bảng chưa có constraint này.
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'chk_profile_facts_confidence'
+      AND conrelid = 'public.profile_facts'::regclass
+  ) THEN
+    ALTER TABLE public.profile_facts
+      ADD CONSTRAINT chk_profile_facts_confidence
+      CHECK (
+        confidence IS NULL
+        OR (confidence >= 0 AND confidence <= 1)
+      );
   END IF;
-END $$;
+END
+$migration$;
+
 CREATE INDEX IF NOT EXISTS idx_profile_facts_session ON public.profile_facts (source_session_id);
 
 -- 5. Drops ONLY after preflight + backup + refactor. No CASCADE.

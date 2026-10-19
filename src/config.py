@@ -13,7 +13,7 @@ from src.services.gemini_embedder import GeminiDenseEmbedder
 from src.services.mongo_store import MongoStore
 from src.services.vector_store import QdrantVectorStore
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 def _build_chat_llm(model_name: str, api_key: Optional[str]):
