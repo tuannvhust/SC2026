@@ -332,9 +332,10 @@
 			}
 			.workspace {
 				display: grid;
-				grid-template-columns:
-					minmax(250px, 0.82fr) minmax(390px, 1.48fr)
-					minmax(270px, 0.9fr);
+				grid-template-columns: minmax(250px, 0.82fr) minmax(
+						390px,
+						1.48fr
+					) minmax(270px, 0.9fr);
 				gap: 14px;
 				align-items: stretch;
 				min-height: 650px;
@@ -1121,6 +1122,302 @@
 					opacity: 1;
 				}
 			}
+
+			.catalog-toolbar {
+				display: grid;
+				grid-template-columns: minmax(220px, 1fr) 200px 200px;
+				gap: 10px;
+				margin: 0 0 16px;
+				background: #fff;
+				border: 1px solid var(--line);
+				padding: 12px;
+				border-radius: 13px;
+			}
+			.catalog-toolbar .search-wrap {
+				min-width: 0;
+			}
+			.catalog-select {
+				border: 1px solid #e1e6ef;
+				border-radius: 9px;
+				padding: 9px 10px;
+				background: #fbfcfe;
+				color: #475467;
+				min-width: 0;
+			}
+			.catalog-card {
+				background: #fff;
+				border: 1px solid var(--line);
+				border-radius: 15px;
+				padding: 17px;
+				box-shadow: 0 2px 8px rgba(20, 35, 70, 0.025);
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+			}
+			.catalog-card-top {
+				display: flex;
+				align-items: flex-start;
+				gap: 12px;
+			}
+			.catalog-art {
+				width: 58px;
+				height: 58px;
+				border-radius: 14px;
+				display: grid;
+				place-items: center;
+				font-size: 28px;
+				background: linear-gradient(135deg, #edf1ff, #f7f8ff);
+				flex-shrink: 0;
+			}
+			.catalog-card h2 {
+				font-size: 15px;
+				line-height: 1.35;
+			}
+			.catalog-card .sku {
+				font-size: 10px;
+				color: #8993a2;
+				margin-top: 4px;
+			}
+			.catalog-card .desc {
+				font-size: 12px;
+				line-height: 1.55;
+				color: #667085;
+				min-height: 38px;
+			}
+			.catalog-price {
+				font-size: 22px;
+				font-weight: 800;
+				letter-spacing: -0.6px;
+			}
+			.catalog-price small {
+				font-size: 11px;
+				font-weight: 500;
+				color: #8993a2;
+				letter-spacing: 0;
+			}
+			.catalog-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 6px;
+			}
+			.catalog-card .card-foot {
+				margin-top: auto;
+				padding-top: 10px;
+				border-top: 1px solid #eef0f4;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 8px;
+			}
+			.promo-art {
+				background: linear-gradient(135deg, #fff0dc, #fff8ee);
+				color: #a9660a;
+			}
+			.promo-value {
+				font-size: 23px;
+				font-weight: 850;
+				color: #a9660a;
+				letter-spacing: -0.6px;
+			}
+			.catalog-detail {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 15px;
+			}
+			.catalog-detail .detail-block {
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				padding: 12px;
+			}
+			.catalog-detail .detail-block label {
+				font-size: 10px;
+				color: #8993a2;
+				display: block;
+				margin-bottom: 5px;
+			}
+			.catalog-detail .detail-block strong {
+				font-size: 12px;
+				display: block;
+			}
+			.catalog-detail .full {
+				grid-column: 1/-1;
+			}
+			.detail-list {
+				padding-left: 17px;
+				margin: 0;
+				color: #596579;
+				font-size: 12px;
+				line-height: 1.8;
+			}
+			.source-note {
+				font-size: 10px;
+				color: #8993a2;
+				margin-top: 4px;
+			}
+			.policy-toolbar {
+				margin-bottom: 22px;
+			}
+			.policy-section-head {
+				display: flex;
+				align-items: flex-end;
+				justify-content: space-between;
+				gap: 14px;
+				margin: 23px 0 12px;
+			}
+			.policy-section-head h2 {
+				font-size: 17px;
+			}
+			.policy-section-head .sub {
+				margin-top: 4px;
+				font-size: 11px;
+			}
+			.archive-head {
+				border-top: 1px solid var(--line);
+				padding-top: 23px;
+				margin-top: 32px;
+			}
+			.policy-card {
+				gap: 11px;
+			}
+			.policy-card .policy-title-row {
+				display: flex;
+				align-items: flex-start;
+				gap: 10px;
+			}
+			.policy-icon {
+				width: 42px;
+				height: 42px;
+				display: grid;
+				place-items: center;
+				border-radius: 12px;
+				background: #edf1ff;
+				color: var(--brand);
+				font-size: 20px;
+				flex-shrink: 0;
+			}
+			.policy-card.archived .policy-icon {
+				background: #fff3dc;
+				color: #a56809;
+			}
+			.policy-card h2 {
+				line-height: 1.35;
+			}
+			.policy-id {
+				font-size: 10px;
+				color: #8993a2;
+				margin-top: 4px;
+			}
+			.policy-summary {
+				font-size: 12px;
+				line-height: 1.55;
+				color: #667085;
+			}
+			.policy-meta {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 9px;
+				padding: 11px;
+				background: #fafbfe;
+				border: 1px solid #edf0f5;
+				border-radius: 10px;
+			}
+			.policy-meta label {
+				display: block;
+				color: #8993a2;
+				font-size: 10px;
+				margin-bottom: 3px;
+			}
+			.policy-meta strong {
+				font-size: 11px;
+				display: block;
+				overflow-wrap: anywhere;
+			}
+			.policy-card .card-foot {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 8px;
+				padding-top: 11px;
+				border-top: 1px solid #eef0f4;
+				margin-top: auto;
+			}
+			.policy-version-list {
+				display: grid;
+				gap: 8px;
+			}
+			.policy-version-item {
+				padding: 10px 11px;
+				border: 1px solid var(--line);
+				border-radius: 9px;
+				display: flex;
+				align-items: flex-start;
+				justify-content: space-between;
+				gap: 10px;
+			}
+			.policy-version-item strong {
+				font-size: 11px;
+				display: block;
+			}
+			.policy-version-item small {
+				display: block;
+				color: var(--muted);
+				font-size: 10px;
+				margin-top: 3px;
+			}
+			.policy-text {
+				font-size: 12px;
+				line-height: 1.75;
+				color: #475467;
+				white-space: pre-line;
+			}
+			.policy-archive-note {
+				background: #fff7e6;
+				border: 1px solid #f0dfb5;
+				color: #805916;
+				border-radius: 9px;
+				padding: 10px 12px;
+				font-size: 11px;
+				line-height: 1.5;
+			}
+			.policy-badges {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+				margin-top: 8px;
+			}
+			@media (max-width: 850px) {
+				.policy-section-head {
+					align-items: flex-start;
+					flex-direction: column;
+				}
+				.policy-meta {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+			@media (max-width: 850px) {
+				.catalog-toolbar {
+					grid-template-columns: 1fr 1fr;
+				}
+				.catalog-toolbar .search-wrap {
+					grid-column: 1/-1;
+				}
+				.catalog-detail {
+					grid-template-columns: 1fr;
+				}
+				.catalog-detail .full {
+					grid-column: auto;
+				}
+			}
+			@media (max-width: 520px) {
+				.catalog-toolbar {
+					grid-template-columns: 1fr;
+				}
+				.catalog-toolbar .search-wrap {
+					grid-column: auto;
+				}
+			}
+
 			@media (max-width: 1250px) {
 				.app {
 					grid-template-columns: 75px minmax(0, 1fr);
@@ -1314,6 +1611,16 @@
 						</button>
 						<button data-view="customers">
 							<span class="ico">♙</span><span class="nav-text">Customers</span>
+						</button>
+						<button data-view="products">
+							<span class="ico">▣</span><span class="nav-text">Products</span>
+						</button>
+						<button data-view="promotions">
+							<span class="ico">％</span
+							><span class="nav-text">Promotions</span>
+						</button>
+						<button data-view="policies">
+							<span class="ico">▤</span><span class="nav-text">Policies</span>
 						</button>
 						<button data-view="evaluation">
 							<span class="ico">◷</span><span class="nav-text">Evaluation</span>
@@ -1564,6 +1871,140 @@
 							</div>
 						</div>
 						<div class="customer-grid" id="customerGrid"></div>
+					</section>
+					<section class="view" id="view-products">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Product catalog</div>
+								<h1>Products</h1>
+								<p class="sub">
+									Browse product facts that an agent can use when answering
+									customer questions.
+								</p>
+							</div>
+							<span class="demo-pill">CATALOG DEMO</span>
+						</div>
+						<div class="banner">
+							<strong>Data note:</strong> catalog source files were not
+							available in the inspected repository branch. The products below
+							are illustrative fixtures and should be replaced with records from
+							<code>data/catalog/products.js</code>.
+						</div>
+						<div class="kpis" id="productKpis"></div>
+						<div class="catalog-toolbar">
+							<div class="search-wrap">
+								<input
+									class="search"
+									id="productSearch"
+									placeholder="Search product name, SKU, category…"
+								/>
+							</div>
+							<select id="productCategory" class="catalog-select">
+								<option value="All">All categories</option></select
+							><select id="productAvailability" class="catalog-select">
+								<option value="All">All availability</option>
+								<option value="In stock">In stock</option>
+								<option value="Low stock">Low stock</option>
+								<option value="Out of stock">Out of stock</option>
+							</select>
+						</div>
+						<div class="customer-grid" id="productGrid"></div>
+					</section>
+					<section class="view" id="view-promotions">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Offers & eligibility</div>
+								<h1>Promotions</h1>
+								<p class="sub">
+									Review offer conditions before mentioning a discount or
+									benefit to a customer.
+								</p>
+							</div>
+							<span class="demo-pill">PROMOTION DEMO</span>
+						</div>
+						<div class="banner">
+							<strong>Data note:</strong> promotion source files were not
+							available in the inspected repository branch. These examples are
+							illustrative only and should be replaced with records from
+							<code>data/catalog/promotions.js</code>.
+						</div>
+						<div class="kpis" id="promotionKpis"></div>
+						<div class="catalog-toolbar">
+							<div class="search-wrap">
+								<input
+									class="search"
+									id="promotionSearch"
+									placeholder="Search promotion name, code, or product…"
+								/>
+							</div>
+							<select id="promotionStatus" class="catalog-select">
+								<option value="All">All statuses</option>
+								<option value="Active">Active</option>
+								<option value="Upcoming">Upcoming</option>
+								<option value="Expired">Expired</option></select
+							><select id="promotionType" class="catalog-select">
+								<option value="All">All offer types</option>
+							</select>
+						</div>
+						<div class="customer-grid" id="promotionGrid"></div>
+					</section>
+					<section class="view" id="view-policies">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Knowledge & governance</div>
+								<h1>Store policies</h1>
+								<p class="sub">
+									A versioned policy library for agents and supervisors. Current
+									rules are separated from archived versions.
+								</p>
+							</div>
+							<span class="demo-pill">POLICY ARCHIVE DEMO</span>
+						</div>
+						<div class="banner">
+							<strong>Prototype data notice:</strong> policy text below is
+							illustrative, not an approved store policy. In a real deployment,
+							each version should come from an authorized source and carry an
+							owner, approval record, effective date, and audit history.
+						</div>
+						<div class="kpis" id="policyKpis"></div>
+						<div class="catalog-toolbar policy-toolbar">
+							<div class="search-wrap">
+								<input
+									class="search"
+									id="policySearch"
+									placeholder="Search policy title, ID, keyword, or content…"
+								/>
+							</div>
+							<select id="policyCategory" class="catalog-select">
+								<option value="All">All categories</option></select
+							><select id="policySort" class="catalog-select">
+								<option value="effective-desc">Newest effective first</option>
+								<option value="effective-asc">Oldest effective first</option>
+								<option value="title-asc">Policy title A–Z</option>
+							</select>
+						</div>
+						<div class="policy-section-head">
+							<div>
+								<h2>Current policies</h2>
+								<p class="sub">
+									Use these versions for new customer interactions, subject to
+									real-time approval and access controls.
+								</p>
+							</div>
+							<span class="tag green" id="currentPolicyCount">0 current</span>
+						</div>
+						<div class="customer-grid" id="currentPolicyGrid"></div>
+						<div class="policy-section-head archive-head">
+							<div>
+								<h2>Archived policy versions</h2>
+								<p class="sub">
+									Read-only history for supervisor review, disputes, and
+									checking which rule applied at an earlier date.
+								</p>
+							</div>
+							<span class="tag amber" id="archivedPolicyCount">0 archived</span>
+						</div>
+						<div class="customer-grid" id="archivedPolicyGrid"></div>
 					</section>
 					<section class="view" id="view-evaluation">
 						<div class="page-head">
@@ -2222,10 +2663,16 @@
 					({
 						workspace: "Workspace",
 						customers: "Customers",
+						products: "Products",
+						promotions: "Promotions",
+						policies: "Store policies",
 						evaluation: "Evaluation",
 						improvement: "Improvement",
 					}[view] || view);
 				if (view === "customers") renderCustomers();
+				if (view === "products") renderProducts();
+				if (view === "promotions") renderPromotions();
+				if (view === "policies") renderPolicies();
 			}
 			function renderCustomers() {
 				const q = (
@@ -2279,6 +2726,508 @@
 					if (result !== false) close();
 				};
 			}
+
+			// Illustrative catalog fixtures. Replace these with the project's data/catalog modules when available.
+			const products = [
+				{
+					id: "PRD-001",
+					sku: "AIR-X",
+					name: "AirPure X",
+					category: "Air Purifier",
+					price: 4890000,
+					availability: "In stock",
+					stock: 24,
+					description:
+						"Máy lọc không khí cho không gian gia đình, lựa chọn cân đối về chi phí.",
+					features: [
+						"Lọc bụi và tác nhân gây dị ứng",
+						"Chế độ vận hành ban đêm",
+						"Phù hợp phòng ngủ hoặc phòng làm việc",
+					],
+					warranty: "24 tháng",
+					tags: ["Bán chạy", "Gia đình"],
+					icon: "❋",
+				},
+				{
+					id: "PRD-002",
+					sku: "AIR-Y",
+					name: "AirPure Y",
+					category: "Air Purifier",
+					price: 6890000,
+					availability: "Low stock",
+					stock: 4,
+					description:
+						"Dòng máy lọc không khí cao cấp hơn, dành cho khách hàng cần thêm tính năng.",
+					features: [
+						"Tự động điều chỉnh chế độ lọc",
+						"Hiển thị chất lượng không khí",
+						"Chế độ vận hành yên tĩnh",
+					],
+					warranty: "24 tháng",
+					tags: ["Cao cấp", "Tiết kiệm điện"],
+					icon: "✺",
+				},
+				{
+					id: "PRD-003",
+					sku: "BREEZE-MINI",
+					name: "Breeze Mini",
+					category: "Air Purifier",
+					price: 2190000,
+					availability: "In stock",
+					stock: 38,
+					description:
+						"Thiết kế nhỏ gọn cho bàn làm việc hoặc phòng diện tích nhỏ.",
+					features: ["Kích thước nhỏ gọn", "Dễ di chuyển", "Ba mức quạt"],
+					warranty: "12 tháng",
+					tags: ["Nhỏ gọn", "Phổ thông"],
+					icon: "❊",
+				},
+				{
+					id: "PRD-004",
+					sku: "PURE-FILTER-Y",
+					name: "AirPure Y Replacement Filter",
+					category: "Accessories",
+					price: 590000,
+					availability: "Out of stock",
+					stock: 0,
+					description: "Bộ lọc thay thế tương thích với dòng AirPure Y.",
+					features: ["Phụ kiện thay thế", "Kiểm tra tương thích trước khi đặt"],
+					warranty: "Theo chính sách phụ kiện",
+					tags: ["Phụ kiện"],
+					icon: "▤",
+				},
+			];
+			const promotions = [
+				{
+					id: "PROMO-001",
+					code: "AIRCARE10",
+					name: "Air Care — giảm 10%",
+					type: "Percentage discount",
+					status: "Active",
+					value: "10%",
+					start: "2026-10-01",
+					end: "2026-10-31",
+					minimum: 3000000,
+					products: ["AIR-X", "AIR-Y"],
+					description:
+						"Ưu đãi cho một số mẫu máy lọc không khí trong thời gian chương trình.",
+					terms: [
+						"Áp dụng cho sản phẩm được liệt kê",
+						"Đơn hàng tối thiểu 3.000.000đ",
+						"Không tự động cộng dồn với ưu đãi khác",
+					],
+					icon: "％",
+				},
+				{
+					id: "PROMO-002",
+					code: "BUNDLECARE",
+					name: "Ưu đãi mua kèm bộ lọc",
+					type: "Bundle offer",
+					status: "Active",
+					value: "Tặng phụ kiện",
+					start: "2026-10-10",
+					end: "2026-11-15",
+					minimum: 0,
+					products: ["AIR-Y", "PURE-FILTER-Y"],
+					description: "Ưu đãi mua kèm phụ kiện cho sản phẩm đủ điều kiện.",
+					terms: [
+						"Cần xác nhận tồn kho phụ kiện trước khi tư vấn",
+						"Áp dụng theo cặp sản phẩm đủ điều kiện",
+						"Quà tặng có thể hết trước ngày kết thúc",
+					],
+					icon: "✦",
+				},
+				{
+					id: "PROMO-003",
+					code: "WELCOME5",
+					name: "Ưu đãi khách hàng mới",
+					type: "Percentage discount",
+					status: "Upcoming",
+					value: "5%",
+					start: "2026-11-01",
+					end: "2026-11-30",
+					minimum: 1500000,
+					products: ["AIR-X", "BREEZE-MINI"],
+					description: "Chương trình dự kiến dành cho khách hàng mới.",
+					terms: [
+						"Chỉ có hiệu lực trong thời gian chương trình",
+						"Đơn hàng tối thiểu 1.500.000đ",
+						"Cần kiểm tra điều kiện khách hàng",
+					],
+					icon: "↗",
+				},
+				{
+					id: "PROMO-004",
+					code: "SUMMER15",
+					name: "Summer Refresh",
+					type: "Percentage discount",
+					status: "Expired",
+					value: "15%",
+					start: "2026-06-01",
+					end: "2026-06-30",
+					minimum: 2000000,
+					products: ["AIR-X", "AIR-Y"],
+					description:
+						"Chương trình đã kết thúc; không nên giới thiệu như ưu đãi còn hiệu lực.",
+					terms: ["Đã hết hạn", "Không áp dụng cho đơn hàng mới"],
+					icon: "◷",
+				},
+			];
+			const money = (n) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
+			function renderProductKpis() {
+				const root = document.getElementById("productKpis");
+				root.innerHTML = `<div class="kpi"><div class="kpi-top">Catalog items <span class="kpi-icon">▣</span></div><strong>${products.length}</strong><small>Illustrative product fixtures</small></div><div class="kpi"><div class="kpi-top">In stock <span class="kpi-icon">✓</span></div><strong>${products.filter((p) => p.availability === "In stock").length}</strong><small>Seeded availability only</small></div><div class="kpi"><div class="kpi-top">Low stock <span class="kpi-icon">◷</span></div><strong>${products.filter((p) => p.availability === "Low stock").length}</strong><small>Check before making promises</small></div><div class="kpi"><div class="kpi-top">Categories <span class="kpi-icon">⌘</span></div><strong>${new Set(products.map((p) => p.category)).size}</strong><small>Illustrative categories</small></div>`;
+			}
+			function renderProducts() {
+				const q = (
+						document.getElementById("productSearch")?.value || ""
+					).toLowerCase(),
+					cat = document.getElementById("productCategory")?.value || "All",
+					av = document.getElementById("productAvailability")?.value || "All";
+				const root = document.getElementById("productGrid");
+				const list = products.filter(
+					(p) =>
+						(cat === "All" || p.category === cat) &&
+						(av === "All" || p.availability === av) &&
+						[p.id, p.sku, p.name, p.category, p.description, ...p.tags]
+							.join(" ")
+							.toLowerCase()
+							.includes(q),
+				);
+				root.innerHTML =
+					list
+						.map(
+							(p) =>
+								`<article class="catalog-card"><div class="catalog-card-top"><div class="catalog-art">${p.icon}</div><div style="min-width:0;flex:1"><h2>${escapeHtml(p.name)}</h2><div class="sku">${p.id} · SKU ${p.sku}</div><div class="catalog-meta" style="margin-top:8px"><span class="tag">${escapeHtml(p.category)}</span><span class="tag ${p.availability === "In stock" ? "green" : p.availability === "Low stock" ? "amber" : ""}">${escapeHtml(p.availability)}</span></div></div></div><p class="desc">${escapeHtml(p.description)}</p><div class="catalog-price">${money(p.price)} <small>incl. VAT · demo</small></div><div class="catalog-meta">${p.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div><div class="card-foot"><small style="color:var(--muted)">Stock: ${p.stock} · Warranty: ${escapeHtml(p.warranty)}</small><button class="btn small" data-product="${p.id}">View details ↗</button></div></article>`,
+						)
+						.join("") ||
+					'<div class="empty">No products match these filters.</div>';
+				root
+					.querySelectorAll("[data-product]")
+					.forEach((b) => (b.onclick = () => showProduct(b.dataset.product)));
+			}
+			function showProduct(id) {
+				const p = products.find((x) => x.id === id);
+				if (!p) return;
+				const linked = promotions.filter((x) => x.products.includes(p.sku));
+				openModal(
+					p.name,
+					`<div class="catalog-detail"><div class="detail-block"><label>Product ID / SKU</label><strong>${p.id} · ${p.sku}</strong></div><div class="detail-block"><label>Category</label><strong>${escapeHtml(p.category)}</strong></div><div class="detail-block"><label>Price (demo)</label><strong>${money(p.price)}</strong></div><div class="detail-block"><label>Availability (demo)</label><strong>${escapeHtml(p.availability)} · ${p.stock} units</strong></div><div class="detail-block full"><label>Description</label><strong style="font-weight:500;line-height:1.65">${escapeHtml(p.description)}</strong></div><div class="detail-block"><label>Warranty</label><strong>${escapeHtml(p.warranty)}</strong></div><div class="detail-block"><label>Tags</label><strong>${p.tags.map(escapeHtml).join(" · ")}</strong></div><div class="detail-block full"><label>Key features</label><ul class="detail-list">${p.features.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div><div class="detail-block full"><label>Linked promotions (demo mapping)</label>${linked.length ? linked.map((x) => `<p style="font-size:12px;margin:5px 0"><strong>${escapeHtml(x.name)}</strong> · ${escapeHtml(x.code)} · ${escapeHtml(x.status)}</p>`).join("") : "<strong>No linked promotion in the mock catalog.</strong>"}</div></div><p class="source-note">Illustrative data only — verify price, inventory, warranty and compatibility against the real catalog before making customer commitments.</p>`,
+					() => true,
+					"Close details",
+				);
+			}
+			function renderPromotionKpis() {
+				const root = document.getElementById("promotionKpis");
+				root.innerHTML = `<div class="kpi"><div class="kpi-top">Total promotions <span class="kpi-icon">％</span></div><strong>${promotions.length}</strong><small>Illustrative promotion fixtures</small></div><div class="kpi"><div class="kpi-top">Active <span class="kpi-icon">✓</span></div><strong>${promotions.filter((p) => p.status === "Active").length}</strong><small>Still verify terms and eligibility</small></div><div class="kpi"><div class="kpi-top">Upcoming <span class="kpi-icon">◷</span></div><strong>${promotions.filter((p) => p.status === "Upcoming").length}</strong><small>Not active yet</small></div><div class="kpi"><div class="kpi-top">Expired <span class="kpi-icon">!</span></div><strong>${promotions.filter((p) => p.status === "Expired").length}</strong><small>Do not offer as current</small></div>`;
+			}
+			function renderPromotions() {
+				const q = (
+						document.getElementById("promotionSearch")?.value || ""
+					).toLowerCase(),
+					st = document.getElementById("promotionStatus")?.value || "All",
+					type = document.getElementById("promotionType")?.value || "All";
+				const root = document.getElementById("promotionGrid");
+				const list = promotions.filter(
+					(p) =>
+						(st === "All" || p.status === st) &&
+						(type === "All" || p.type === type) &&
+						[p.id, p.code, p.name, p.type, p.description, ...p.products]
+							.join(" ")
+							.toLowerCase()
+							.includes(q),
+				);
+				root.innerHTML =
+					list
+						.map(
+							(p) =>
+								`<article class="catalog-card"><div class="catalog-card-top"><div class="catalog-art promo-art">${p.icon}</div><div style="min-width:0;flex:1"><h2>${escapeHtml(p.name)}</h2><div class="sku">${p.id} · Code ${escapeHtml(p.code)}</div><div class="catalog-meta" style="margin-top:8px"><span class="tag ${p.status === "Active" ? "green" : p.status === "Upcoming" ? "blue" : ""}">${escapeHtml(p.status)}</span><span class="tag">${escapeHtml(p.type)}</span></div></div></div><div class="promo-value">${escapeHtml(p.value)}</div><p class="desc">${escapeHtml(p.description)}</p><div class="kv"><div><label>Valid from</label><strong>${p.start}</strong></div><div><label>Valid until</label><strong>${p.end}</strong></div><div><label>Minimum order</label><strong>${p.minimum ? money(p.minimum) : "No minimum (demo)"}</strong></div><div><label>Eligible SKUs</label><strong>${p.products.map(escapeHtml).join(", ")}</strong></div></div><div class="card-foot"><small style="color:var(--muted)">${p.terms.length} conditions to check</small><button class="btn small" data-promotion="${p.id}">View terms ↗</button></div></article>`,
+						)
+						.join("") ||
+					'<div class="empty">No promotions match these filters.</div>';
+				root
+					.querySelectorAll("[data-promotion]")
+					.forEach(
+						(b) => (b.onclick = () => showPromotion(b.dataset.promotion)),
+					);
+			}
+			function showPromotion(id) {
+				const p = promotions.find((x) => x.id === id);
+				if (!p) return;
+				const linked = products.filter((x) => p.products.includes(x.sku));
+				openModal(
+					p.name,
+					`<div class="catalog-detail"><div class="detail-block"><label>Promotion ID / Code</label><strong>${p.id} · ${escapeHtml(p.code)}</strong></div><div class="detail-block"><label>Status</label><strong>${escapeHtml(p.status)} · ${escapeHtml(p.type)}</strong></div><div class="detail-block"><label>Offer</label><strong>${escapeHtml(p.value)}</strong></div><div class="detail-block"><label>Minimum order</label><strong>${p.minimum ? money(p.minimum) : "No minimum (demo)"}</strong></div><div class="detail-block"><label>Start date</label><strong>${p.start}</strong></div><div class="detail-block"><label>End date</label><strong>${p.end}</strong></div><div class="detail-block full"><label>Description</label><strong style="font-weight:500;line-height:1.65">${escapeHtml(p.description)}</strong></div><div class="detail-block full"><label>Terms & eligibility checks</label><ul class="detail-list">${p.terms.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div><div class="detail-block full"><label>Eligible products (demo mapping)</label>${linked.map((x) => `<p style="font-size:12px;margin:5px 0"><strong>${escapeHtml(x.name)}</strong> · ${escapeHtml(x.sku)} · ${money(x.price)}</p>`).join("") || "<strong>No matching products.</strong>"}</div></div><p class="source-note">Never promise an offer from this prototype. Confirm live dates, stock, customer eligibility, stacking rules and checkout behavior from the source of truth.</p>`,
+					() => true,
+					"Close details",
+				);
+			}
+			const policies = [
+				{
+					id: "POL-RET",
+					topic: "Returns & refunds",
+					category: "Returns",
+					version: "2.0",
+					status: "Current",
+					effective: "2026-08-01",
+					published: "2026-07-25",
+					owner: "Customer Operations",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative current return window and refund handling guidance.",
+					keywords: ["return", "refund", "exchange", "receipt"],
+					content:
+						"1. Customers may request a return within 14 calendar days of delivery.\n2. Items must meet the store's stated condition requirements.\n3. Refund timing depends on the original payment provider.\n4. Escalate exceptions or unclear product-condition cases to a supervisor.",
+					changeNote:
+						"Revised the illustrative return window and clarified escalation requirements.",
+					previous: "POL-RET-v1.0",
+				},
+				{
+					id: "POL-RET-v1.0",
+					topic: "Returns & refunds",
+					category: "Returns",
+					version: "1.0",
+					status: "Archived",
+					effective: "2026-01-01",
+					effectiveTo: "2026-07-31",
+					published: "2025-12-18",
+					owner: "Customer Operations",
+					approvedBy: "Legacy example record",
+					summary:
+						"Previous illustrative return guidance, retained for historical review.",
+					keywords: ["return", "refund", "exchange", "legacy"],
+					content:
+						"1. Customers could request a return within 7 calendar days of delivery.\n2. Exceptions were handled case by case.\n3. Unclear cases were referred to a supervisor.",
+					changeNote: "Superseded by version 2.0 on 2026-08-01.",
+					supersededBy: "POL-RET",
+				},
+				{
+					id: "POL-WAR",
+					topic: "Warranty & repair",
+					category: "Warranty",
+					version: "1.2",
+					status: "Current",
+					effective: "2026-06-15",
+					published: "2026-06-10",
+					owner: "Product Support",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative warranty intake checklist and repair escalation path.",
+					keywords: ["warranty", "repair", "serial number", "receipt"],
+					content:
+						"1. Confirm the product model, serial number, purchase date, and proof of purchase where available.\n2. Do not promise warranty coverage before eligibility is checked.\n3. Route damage, safety, or unclear coverage cases to Product Support.",
+					changeNote:
+						"Added a reminder not to confirm coverage before verification.",
+					previous: "POL-WAR-v1.0",
+				},
+				{
+					id: "POL-WAR-v1.0",
+					topic: "Warranty & repair",
+					category: "Warranty",
+					version: "1.0",
+					status: "Archived",
+					effective: "2025-10-01",
+					effectiveTo: "2026-06-14",
+					published: "2025-09-20",
+					owner: "Product Support",
+					approvedBy: "Legacy example record",
+					summary: "Previous illustrative warranty intake guidance.",
+					keywords: ["warranty", "repair", "serial number", "legacy"],
+					content:
+						"1. Ask for the product model and purchase date.\n2. Refer unclear coverage questions to Product Support.",
+					changeNote: "Superseded by version 1.2 on 2026-06-15.",
+					supersededBy: "POL-WAR",
+				},
+				{
+					id: "POL-SHP",
+					topic: "Shipping & delivery",
+					category: "Shipping",
+					version: "1.1",
+					status: "Current",
+					effective: "2026-05-01",
+					published: "2026-04-22",
+					owner: "Fulfilment Operations",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative guidance for delivery estimates, delays, and order tracking.",
+					keywords: ["shipping", "delivery", "tracking", "delay"],
+					content:
+						"1. Share only delivery estimates returned by the live order or fulfilment system.\n2. If tracking has not updated, explain that the status is not yet confirmed.\n3. Escalate delivery exceptions using the order reference.",
+					changeNote:
+						"Clarified how to communicate unconfirmed tracking information.",
+				},
+				{
+					id: "POL-SHP-v1.0",
+					topic: "Shipping & delivery",
+					category: "Shipping",
+					version: "1.0",
+					status: "Archived",
+					effective: "2025-11-01",
+					effectiveTo: "2026-04-30",
+					published: "2025-10-21",
+					owner: "Fulfilment Operations",
+					approvedBy: "Legacy example record",
+					summary: "Previous illustrative delivery-delay handling guidance.",
+					keywords: ["shipping", "delivery", "tracking", "legacy"],
+					content:
+						"1. Provide the estimated delivery window shown in the order record.\n2. Ask a supervisor for help when an order appears delayed.",
+					changeNote: "Superseded by version 1.1 on 2026-05-01.",
+					supersededBy: "POL-SHP",
+				},
+				{
+					id: "POL-DAT",
+					topic: "Customer data & privacy",
+					category: "Privacy",
+					version: "1.0",
+					status: "Current",
+					effective: "2026-03-01",
+					published: "2026-02-15",
+					owner: "Operations & Compliance",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative safeguards for identity checks and handling customer information.",
+					keywords: ["privacy", "identity", "personal data", "verification"],
+					content:
+						"1. Verify identity before disclosing account-specific information or committing sensitive changes.\n2. Access only customer data needed to handle the request.\n3. Refer privacy requests or suspected data exposure to the designated supervisor.",
+					changeNote: "Initial illustrative version.",
+				},
+			];
+			function policyMatches(p, q, cat) {
+				return (
+					(cat === "All" || p.category === cat) &&
+					[
+						p.id,
+						p.topic,
+						p.category,
+						p.version,
+						p.status,
+						p.summary,
+						p.owner,
+						p.approvedBy,
+						p.content,
+						...p.keywords,
+					]
+						.join(" ")
+						.toLowerCase()
+						.includes(q)
+				);
+			}
+			function renderPolicyKpis() {
+				const root = document.getElementById("policyKpis");
+				const current = policies.filter((p) => p.status === "Current"),
+					archived = policies.filter((p) => p.status === "Archived");
+				root.innerHTML = `<div class="kpi"><div class="kpi-top">Current policies <span class="kpi-icon">✓</span></div><strong>${current.length}</strong><small>Use only after source verification</small></div><div class="kpi"><div class="kpi-top">Archived versions <span class="kpi-icon">▤</span></div><strong>${archived.length}</strong><small>Kept for historical lookup</small></div><div class="kpi"><div class="kpi-top">Policy topics <span class="kpi-icon">⌘</span></div><strong>${new Set(policies.map((p) => p.category)).size}</strong><small>Illustrative categories</small></div><div class="kpi"><div class="kpi-top">Version history <span class="kpi-icon">↻</span></div><strong>${new Set(policies.map((p) => p.id.replace(/-v\d+\.\d+$/, ""))).size}</strong><small>Policy IDs and version labels</small></div>`;
+			}
+			function renderPolicies() {
+				const q = (document.getElementById("policySearch")?.value || "")
+						.trim()
+						.toLowerCase(),
+					cat = document.getElementById("policyCategory")?.value || "All",
+					sort =
+						document.getElementById("policySort")?.value || "effective-desc";
+				const sorted = policies
+					.filter((p) => policyMatches(p, q, cat))
+					.sort((a, b) =>
+						sort === "title-asc"
+							? a.topic.localeCompare(b.topic) ||
+								b.effective.localeCompare(a.effective)
+							: sort === "effective-asc"
+								? a.effective.localeCompare(b.effective)
+								: b.effective.localeCompare(a.effective),
+					);
+				const current = sorted.filter((p) => p.status === "Current"),
+					archived = sorted.filter((p) => p.status === "Archived");
+				const card = (p) =>
+					`<article class="catalog-card policy-card ${p.status === "Archived" ? "archived" : ""}"><div class="policy-title-row"><div class="policy-icon">${p.status === "Archived" ? "◷" : "▤"}</div><div style="min-width:0;flex:1"><h2>${escapeHtml(p.topic)}</h2><div class="policy-id">${escapeHtml(p.id)} · Version ${escapeHtml(p.version)}</div><div class="policy-badges"><span class="tag ${p.status === "Current" ? "green" : "amber"}">${p.status === "Current" ? "Current / effective" : "Archived / read-only"}</span><span class="tag">${escapeHtml(p.category)}</span></div></div></div><p class="policy-summary">${escapeHtml(p.summary)}</p><div class="policy-meta"><div><label>Effective from</label><strong>${p.effective}</strong></div><div><label>${p.status === "Archived" ? "Effective until" : "Published"}</label><strong>${p.status === "Archived" ? p.effectiveTo || "Not specified" : p.published}</strong></div><div><label>Policy owner</label><strong>${escapeHtml(p.owner)}</strong></div><div><label>Approval record</label><strong>${escapeHtml(p.approvedBy)}</strong></div></div>${p.status === "Archived" ? `<div class="policy-archive-note">Historical record. ${escapeHtml(p.changeNote)} Do not use as the current rule.</div>` : ""}<div class="card-foot"><small style="color:var(--muted)">${p.status === "Current" ? "Current reference" : "Historical lookup"}</small><button class="btn small" data-policy="${escapeHtml(p.id)}">${p.status === "Current" ? "View policy ↗" : "View archived version ↗"}</button></div></article>`;
+				document.getElementById("currentPolicyGrid").innerHTML =
+					current.map(card).join("") ||
+					'<div class="empty">No current policies match this search.</div>';
+				document.getElementById("archivedPolicyGrid").innerHTML =
+					archived.map(card).join("") ||
+					'<div class="empty">No archived versions match this search.</div>';
+				document.getElementById("currentPolicyCount").textContent =
+					`${current.length} current`;
+				document.getElementById("archivedPolicyCount").textContent =
+					`${archived.length} archived`;
+				document
+					.querySelectorAll("[data-policy]")
+					.forEach((b) => (b.onclick = () => showPolicy(b.dataset.policy)));
+			}
+			function showPolicy(id) {
+				const p = policies.find((x) => x.id === id);
+				if (!p) return;
+				const related = policies
+					.filter((x) => x.topic === p.topic)
+					.sort((a, b) => b.effective.localeCompare(a.effective));
+				const versions = related
+					.map(
+						(v) =>
+							`<div class="policy-version-item"><div><strong>Version ${escapeHtml(v.version)} · ${escapeHtml(v.status)}</strong><small>Effective ${v.effective} · Published ${v.published}</small></div><button class="btn small" data-policy-version="${escapeHtml(v.id)}">Open</button></div>`,
+					)
+					.join("");
+				openModal(
+					`${p.topic} · v${p.version}`,
+					`<div class="policy-badges" style="margin:0 0 14px"><span class="tag ${p.status === "Current" ? "green" : "amber"}">${p.status === "Current" ? "Current version" : "Archived version · read-only"}</span><span class="tag">${escapeHtml(p.id)}</span><span class="tag">${escapeHtml(p.category)}</span></div>${p.status === "Archived" ? `<div class="policy-archive-note" style="margin-bottom:14px">Historical lookup only. ${escapeHtml(p.changeNote)} This version must not be used to answer a new customer request. Superseded by ${escapeHtml(p.supersededBy || "a later version")}. </div>` : ""}<div class="catalog-detail"><div class="detail-block"><label>Effective from</label><strong>${p.effective}</strong></div><div class="detail-block"><label>${p.status === "Archived" ? "Effective until" : "Published"}</label><strong>${p.status === "Archived" ? p.effectiveTo || "Not specified" : p.published}</strong></div><div class="detail-block"><label>Owner</label><strong>${escapeHtml(p.owner)}</strong></div><div class="detail-block"><label>Approval record</label><strong>${escapeHtml(p.approvedBy)}</strong></div><div class="detail-block full"><label>Summary</label><strong style="font-weight:500;line-height:1.6">${escapeHtml(p.summary)}</strong></div><div class="detail-block full"><label>Policy text (illustrative)</label><div class="policy-text">${escapeHtml(p.content)}</div></div><div class="detail-block full"><label>Version history for this policy</label><div class="policy-version-list">${versions}</div></div></div><p class="source-note">In production, preserve immutable version content and approval metadata. Historical lookup should be searchable by the interaction date, while current answers should resolve only to an approved effective version.</p>`,
+					() => true,
+					"Close",
+				);
+				document
+					.querySelectorAll("[data-policy-version]")
+					.forEach(
+						(b) => (b.onclick = () => showPolicy(b.dataset.policyVersion)),
+					);
+			}
+			function initPolicies() {
+				const cats = [...new Set(policies.map((p) => p.category))];
+				document.getElementById("policyCategory").innerHTML =
+					'<option value="All">All categories</option>' +
+					cats.map((x) => `<option>${escapeHtml(x)}</option>`).join("");
+				renderPolicyKpis();
+				renderPolicies();
+			}
+
+			function initCatalog() {
+				const cats = [...new Set(products.map((p) => p.category))];
+				document.getElementById("productCategory").innerHTML =
+					'<option value="All">All categories</option>' +
+					cats.map((x) => `<option>${escapeHtml(x)}</option>`).join("");
+				const types = [...new Set(promotions.map((p) => p.type))];
+				document.getElementById("promotionType").innerHTML =
+					'<option value="All">All offer types</option>' +
+					types.map((x) => `<option>${escapeHtml(x)}</option>`).join("");
+				renderProductKpis();
+				renderProducts();
+				renderPromotionKpis();
+				renderPromotions();
+			}
+
+			document
+				.getElementById("productSearch")
+				.addEventListener("input", renderProducts);
+			document
+				.getElementById("productCategory")
+				.addEventListener("change", renderProducts);
+			document
+				.getElementById("productAvailability")
+				.addEventListener("change", renderProducts);
+			document
+				.getElementById("promotionSearch")
+				.addEventListener("input", renderPromotions);
+			document
+				.getElementById("promotionStatus")
+				.addEventListener("change", renderPromotions);
+			document
+				.getElementById("promotionType")
+				.addEventListener("change", renderPromotions);
+			document
+				.getElementById("policySearch")
+				.addEventListener("input", renderPolicies);
+			document
+				.getElementById("policyCategory")
+				.addEventListener("change", renderPolicies);
+			document
+				.getElementById("policySort")
+				.addEventListener("change", renderPolicies);
 			document
 				.querySelectorAll("[data-view]")
 				.forEach((b) =>
@@ -2508,6 +3457,8 @@
 						),
 					),
 				);
+			initCatalog();
+			initPolicies();
 			renderAll();
 		</script>
 	</body>

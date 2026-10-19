@@ -1,37 +1,45 @@
 # SC2026 Mock UI — User Flows
 
-## Handle an interaction
+## Policy lookup and historical review
 
 ```mermaid
 flowchart TD
-    A[Open Workspace] --> B[Select interaction]
-    B --> C[Review transcript and customer context]
-    C --> D{Identity verified?}
-    D -- Yes --> E[Review Call Brief and related case]
-    D -- No --> F[Show limited context and restrict commit actions]
-    E --> G{Next action}
-    F --> G
-    G -- Reply --> H[Compose or use suggested response]
-    H --> I[Add demo message locally]
-    I --> J{Resolved?}
-    J -- No --> G
-    J -- Yes --> K[Mark resolved in local state]
-    G -- Need context --> L[Open journey timeline]
-    L --> G
-    G -- Handoff --> M[Set handoff state and record demo event]
+  A[Open Store policies] --> B[Search by topic, policy ID, keyword, or text]
+  B --> C{Which version is needed?}
+  C -->|Current answer| D[Open Current policies section]
+  D --> E[Review effective date, owner, approval metadata, and policy text]
+  E --> F[Verify against the approved source before answering]
+  C -->|Past interaction / dispute| G[Open Archived policy versions]
+  G --> H[Check effective date and supersession note]
+  H --> I[Open version history for the same policy topic]
+  I --> J[Compare historical text and version dates]
 ```
 
-## Memory proposal
+## Design rules
+
+- Current and archived versions appear in separate sections.
+- Archived versions are marked read-only and include a warning not to use them for new customer requests.
+- Search and category filters cover both sections; sorting supports effective date and title.
+- Each detail view shows version metadata and links to other versions of the same topic.
+- The mock data is illustrative. Production retrieval should select the approved policy version effective at the time of the interaction when investigating historical cases, and the current approved version for new answers.
+
+## Product question
 
 ```mermaid
 flowchart TD
-    A[Potential memory update] --> B[Create proposal]
-    B --> C[Authorized reviewer checks proposal]
-    C --> D{Decision}
-    D -- Approve --> E[Mark approved in demo only]
-    D -- Reject --> F[Mark rejected in demo only]
-    E --> G[Display demo review event]
-    F --> G
+  A[Customer asks about product] --> B[Open Products]
+  B --> C[Search / filter catalog]
+  C --> D[Inspect product facts]
+  D --> E[Check linked promotions if relevant]
+  E --> F[Verify live source before making a commitment]
 ```
 
-All flows are simulated in local UI state. They do not execute real agent or backend operations.
+## Promotion eligibility
+
+```mermaid
+flowchart TD
+  A[Customer asks about an offer] --> B[Open Promotions]
+  B --> C[Search code or offer name]
+  C --> D[Inspect status, dates, terms, eligible products]
+  D --> E[Verify live eligibility and checkout rules]
+```
