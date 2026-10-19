@@ -31,8 +31,24 @@ export interface Message {
 }
 
 export interface ChatStreamPayload {
+  type?: "call_brief" | "response" | "error";
   text?: string;
   error?: string;
   done?: boolean;
   products?: Product[];
+  call_brief?: CallBriefSummary | null;
+}
+
+export interface CallBriefSummary {
+  status: "loading" | "loaded" | "empty" | "partial" | "error";
+  has_history: boolean;
+  current_need: string;
+  recent_sessions: Array<{
+    date: string;
+    summary: string;
+    outcome: string;
+  }>;
+  open_blockers: string[];
+  open_questions: string[];
+  suggested_next_action: string;
 }

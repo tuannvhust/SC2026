@@ -33,6 +33,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Shared [GRAPH][run=...] trace helper (stdlib-only; same format as the API).
+from src.graph.trace import GraphTrace, new_run_id  # noqa: E402
+
 
 async def main():
     parser = argparse.ArgumentParser(description="Interactive LangGraph demo tester.")
@@ -137,62 +140,56 @@ async def main():
                     state_input["messages"] = [*history_msgs, *state_input["messages"]]
 
             print(f"\n>>> Đang chạy graph cho turn {turn}...")
-            step = 1
+            trace = GraphTrace(
+                run_id=new_run_id(),
+                session_id=session_id,
+                turn_id=f"turn-{turn}",
+            )
 
             try:
-                stream = graph.astream(state_input, config)
+                stream = graph.astream(
+                    state_input, config, stream_mode=["values", "debug"]
+                )
             except Exception as error:
                 if checkpoint_ready and _is_pool_connection_error(error):
                     print(f"[WARN] Pool checkpointer rớt: {error}")
                     print("[INFO] Reopen pool 1 lần rồi chạy lại turn này...")
                     await reopen_graph_async_checkpointer()
-                    stream = graph.astream(state_input, config)
+                    stream = graph.astream(
+                        state_input, config, stream_mode=["values", "debug"]
+                    )
                 else:
+                    trace.run_failed(error)
                     raise
 
+            trace.run_start(mode="cli", thread=session_id, checkpointer=checkpoint_ready)
+            last_values = None
             try:
-                async for event in stream:
-                    for node, update in event.items():
-                        print(f"  [{step}] Node: [{node}]")
-                        step += 1
-
-                        if not isinstance(update, dict):
-                            continue
-
-                        if "input_valid" in update:
-                            print(f"       -> Input Valid: {update['input_valid']}")
-                        if "output_valid" in update:
-                            print(f"       -> Output Valid: {update['output_valid']}")
-                            if update.get("guardrail_feedback"):
-                                print(f"       [!] Guardrail Feedback / Lý do lỗi:\n           {update['guardrail_feedback']}")
-                        if "customer_id" in update:
-                            print(f"       -> Resolved Customer ID: {update['customer_id']}")
-
-                        if "messages" in update and update["messages"]:
-                            msg = update["messages"][-1]
-                            m_type = getattr(msg, "type", "unknown")
-
-                            if tool_calls := getattr(msg, "tool_calls", None):
-                                for tc in tool_calls:
-                                    print(f"       -> Tool Call: {tc.get('name')} | Args: {tc.get('args')}")
-                            elif m_type == "tool":
-                                print(f"       -> Tool Output ({getattr(msg, 'name', 'N/A')}): {msg.content}")
-                            elif msg.content:
-                                content_str = msg.content
-                                if isinstance(content_str, list):
-                                    content_str = " ".join(
-                                        str(item["text"])
-                                        for item in content_str
-                                        if isinstance(item, dict) and "text" in item
-                                    )
-                                print(f"       -> Agent Response ({m_type}): {content_str}")
+                async for mode, payload in stream:
+                    if mode == "values":
+                        last_values = payload
+                    elif mode == "debug":
+                        trace.debug_event(payload)
+                trace.run_end(status="success")
             except Exception as error:
                 if checkpoint_ready and _is_pool_connection_error(error):
+                    trace.run_failed(error)
                     print(f"[WARN] Turn {turn} rớt pool giữa chừng: {error}")
                     print("[INFO] Reopen pool 1 lần — turn này giữ lại, bạn Enter để chạy lại.")
                     await reopen_graph_async_checkpointer()
                     continue
+                trace.run_failed(error)
                 raise
+
+            if isinstance(last_values, dict):
+                try:
+                    from src.api.routers.graph_runner import response_from_graph
+
+                    reply = response_from_graph(last_values).get("reply")
+                    if reply:
+                        print(f"[Turn {turn}] Agent > {reply}")
+                except Exception:
+                    pass  # node trace above already shows where it stopped.
 
             print("-" * 50)
             turn += 1

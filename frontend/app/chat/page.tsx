@@ -12,6 +12,7 @@ export default function ChatPage() {
   const {
     messages,
     loading,
+    callBrief,
     sendMessage,
     clearChat,
     retryLast,
@@ -110,7 +111,7 @@ export default function ChatPage() {
           />
         </main>
 
-        <SidebarRight />
+        <SidebarRight callBrief={callBrief} memoryLoading={loading} />
       </div>
 
       {toast && (

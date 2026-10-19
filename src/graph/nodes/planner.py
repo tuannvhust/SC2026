@@ -16,6 +16,10 @@ from src.config import groq_llm, llm, with_groq_fallback
 from src.graph.state import AgentState
 from src.tools.tool_repository import M1_TOOLS
 
+# Import identity constant for the hard guard in plan_step_node.
+from src.graph.nodes.input_nodes import MAX_IDENTITY_ATTEMPTS
+
+
 logger = logging.getLogger(__name__)
 
 # Rough LLM budget guard: keep the per-call prompt compact to avoid 413/ITPM.
@@ -186,6 +190,10 @@ Previous sessions:
 
 Last session:
 {call_brief.get("last_session") or "None"}
+
+Treat prior-session summaries, blockers, and questions as historical context:
+confirm whether they still apply. Never present historical prices, promotions,
+stock, orders, or policies as current without checking the appropriate tool.
 
 Current session history (trimmed):
 {history}
@@ -396,7 +404,59 @@ def _is_quota_error(error: Exception) -> bool:
 
 
 def plan_step_node(state: AgentState) -> Dict[str, Any]:
-    """Decide the next response or tool call with a compact prompt."""
+    """Decide the next response or tool call with a compact prompt.
+
+    Safety gate: if identity verification is still required (needs_identity=True
+    and identity_status != 'resolved'), return an identity-collection prompt
+    directly without calling the LLM or any business tool.  This prevents
+    catalog.search / pricing.get_quote from being invoked before the caller
+    has been identified, regardless of how the graph was routed.
+    """
+    needs_identity = state.get("needs_identity", False)
+    identity_status = state.get("identity_status") or ""
+
+    if needs_identity and identity_status != "resolved":
+        # Guest-mode fallback (identity_attempts exhausted): log a warning and
+        # allow the LLM to proceed but strip business-tool access.
+        attempts = int(state.get("identity_attempts") or 0)
+        if attempts >= MAX_IDENTITY_ATTEMPTS:
+            logger.warning(
+                "plan_step: identity exhausted after %s attempts — proceeding "
+                "in guest mode (customer_id=%s identity_status=%s)",
+                attempts,
+                state.get("customer_id"),
+                identity_status,
+            )
+            # Fall through to normal LLM planning in guest mode.
+        else:
+            # Identity still pending and not exhausted — this should have been
+            # caught by routing, but we add a hard guard here as a safety net.
+            logger.warning(
+                "plan_step: hard identity guard triggered "
+                "needs_identity=%s identity_status=%s attempts=%s — "
+                "returning identity-collection prompt without calling LLM",
+                needs_identity,
+                identity_status,
+                attempts,
+            )
+            missing = state.get("missing_identity_fields") or ["phone"]
+            if missing == ["name"]:
+                question = (
+                    "Dạ em đã lưu số điện thoại rồi ạ, mình cho em xin thêm họ tên "
+                    "để em hỗ trợ chính xác hơn nhé ạ?"
+                )
+            elif "phone" in missing:
+                question = (
+                    "Dạ em chưa nhận diện được thông tin của mình ạ. "
+                    "Mình cho em xin số điện thoại để em hỗ trợ chính xác hơn nhé ạ?"
+                )
+            else:
+                question = (
+                    "Dạ em chưa nhận diện được thông tin của mình ạ. "
+                    "Mình cho em xin tên và số điện thoại để em hỗ trợ chính xác hơn nhé ạ?"
+                )
+            return {"messages": [AIMessage(content=question)]}
+
     prompt_messages = build_planner_prompt(state)
     prompt_chars = _prompt_size_chars(prompt_messages)
     estimated_tokens = _estimate_tokens(
@@ -445,3 +505,4 @@ def plan_step_node(state: AgentState) -> Dict[str, Any]:
         response.content = clean_text
 
     return {"messages": [response]}
+

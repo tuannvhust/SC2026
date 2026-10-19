@@ -11,6 +11,7 @@ import {
   Headphones,
   MoreHorizontal,
 } from "lucide-react";
+import type { CallBriefSummary } from "@/types/product";
 
 interface TreeNode {
   id: string;
@@ -141,9 +142,68 @@ function TreeItem({
   );
 }
 
-export function SidebarRight() {
+export function SidebarRight({
+  callBrief,
+  memoryLoading,
+}: {
+  callBrief: CallBriefSummary | null;
+  memoryLoading: boolean;
+}) {
+  const memoryStatus = memoryLoading
+    ? "Đang tải ngữ cảnh..."
+    : callBrief?.status === "partial"
+      ? "Đã tải một phần"
+      : callBrief?.status === "error"
+        ? "Không thể tải memory"
+        : callBrief?.has_history
+          ? "Đã khôi phục ngữ cảnh"
+          : callBrief
+            ? "Chưa có lịch sử"
+            : "Chưa nhận diện khách hàng";
+
   return (
     <aside className="sidebar-right flex h-full min-h-0 w-[240px] shrink-0 flex-col gap-3 overflow-y-auto p-3">
+      <section
+        className="glass-card rounded-[20px] p-3"
+        aria-label="Customer Call Brief"
+        aria-live="polite"
+      >
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          Call Brief
+        </p>
+        <p className="text-[12px] font-medium text-[var(--text-primary)]">
+          {memoryStatus}
+        </p>
+        {callBrief?.current_need && (
+          <p className="mt-2 line-clamp-3 text-[11px] text-[var(--text-secondary)]">
+            Nhu cầu: {callBrief.current_need}
+          </p>
+        )}
+        {callBrief?.recent_sessions.map((session, index) => (
+          <p
+            key={`${session.date}-${index}`}
+            className="mt-2 line-clamp-3 text-[11px] text-[var(--text-secondary)]"
+          >
+            {session.summary || "Lần trao đổi trước chưa có tóm tắt."}
+          </p>
+        ))}
+        {callBrief?.open_blockers.map((blocker) => (
+          <p key={blocker} className="mt-2 text-[11px] text-amber-800">
+            Vấn đề cần xác nhận lại: {blocker}
+          </p>
+        ))}
+        {callBrief?.open_questions.map((question) => (
+          <p key={question} className="mt-2 text-[11px] text-[var(--text-secondary)]">
+            Cần làm rõ: {question}
+          </p>
+        ))}
+        {callBrief?.suggested_next_action && (
+          <p className="mt-2 border-t border-black/5 pt-2 text-[11px] text-[var(--text-primary)]">
+            Tiếp theo: {callBrief.suggested_next_action}
+          </p>
+        )}
+      </section>
+
       {/* Header */}
       <div className="glass-card rounded-[20px] px-4 py-3">
         <div className="flex items-center justify-between">

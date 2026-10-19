@@ -1,5 +1,7 @@
+import logging
 import os
 from contextlib import asynccontextmanager
+from typing import Any
 
 import uvicorn
 from dotenv import load_dotenv
@@ -13,6 +15,19 @@ from src.graph.nodes.persistence_nodes import close_working_memory_store
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+trace_logger = logging.getLogger("src.graph.trace")
+
+
+def _model_name(client: Any) -> str:
+    if client is None:
+        return "none"
+    return str(
+        getattr(client, "model", None)
+        or getattr(client, "model_name", None)
+        or "unknown"
+    )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,6 +35,14 @@ async def lifespan(app: FastAPI):
     try:
         initialize_graph_checkpointer()
         warmup_reranker()
+        from src.config import groq_llm, llm
+
+        trace_logger.info(
+            "[SERVER] startup trace_level=%s llm_primary=%s llm_fallback=%s",
+            os.getenv("GRAPH_TRACE_LEVEL", "info"),
+            _model_name(llm),
+            _model_name(groq_llm),
+        )
         yield
     finally:
         clear_components()

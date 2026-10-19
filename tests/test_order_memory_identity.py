@@ -1,12 +1,38 @@
-"""Regression: order delivery date, memory provenance commit, identity reuse."""
+﻿"""Regression: order delivery date, memory provenance commit, identity reuse."""
 
 from datetime import date, datetime, timedelta
+from sqlalchemy import create_engine, text
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from src.graph.nodes import input_nodes, persistence_nodes
 from src.graph.nodes.input_nodes import normalize_input_node, resolve_identity_node
-from src.tools.tool_repository import compute_estimated_delivery, memory_write, order_create
+from src.tools.tool_repository import (
+    compute_estimated_delivery,
+    crm_get_customer,
+    memory_write,
+    order_create,
+)
+
+
+def _new_sqlite_memory_store(database_url):
+    bootstrap = create_engine(database_url)
+    with bootstrap.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS conversation_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    customer_id TEXT,
+                    channel TEXT NOT NULL DEFAULT 'web_chat',
+                    status TEXT NOT NULL DEFAULT 'active',
+                    updated_at TEXT
+                )
+                """
+            )
+        )
+    bootstrap.dispose()
+    return persistence_nodes.PostgresMemoryStore(database_url)
 
 
 def test_order_delivery_never_in_past_and_skips_sunday_and_holiday():
@@ -45,7 +71,7 @@ def test_order_delivery_never_in_past_and_skips_sunday_and_holiday():
 
 
 def test_memory_write_provenance_then_commit_and_read_back(tmp_path, monkeypatch):
-    store = persistence_nodes.PostgresMemoryStore(
+    store = _new_sqlite_memory_store(
         f"sqlite+pysqlite:///{tmp_path / 'memory.sqlite3'}"
     )
     monkeypatch.setattr(persistence_nodes, "_store", store)
@@ -63,7 +89,7 @@ def test_memory_write_provenance_then_commit_and_read_back(tmp_path, monkeypatch
 
     # 2) persist_turn records the memory.write call/result pair.
     messages = [
-        HumanMessage(content="Tên mình là An nhé"),
+        HumanMessage(content="TÃªn mÃ¬nh lÃ  An nhÃ©"),
         AIMessage(
             content="",
             tool_calls=[
@@ -117,7 +143,7 @@ def test_memory_write_provenance_then_commit_and_read_back(tmp_path, monkeypatch
     )
     persistence_nodes.persist_call_node(state)
 
-    # 4) Read back in a later turn/session — not just the queue message.
+    # 4) Read back in a later turn/session â€” not just the queue message.
     assert committed["session_id"] == "SESSION-1"
     assert committed["customer_id"] == "CUST-1029"
     read_back = ReadableProfileStore().get_profile_facts("CUST-1029")
@@ -132,12 +158,42 @@ def test_identity_survives_when_customer_info_rebuilt(monkeypatch):
 
     monkeypatch.setattr(input_nodes, "get_postgres_memory_store", lambda: FakeStore())
 
+    def _fake_crm_invoke(payload):
+        phone = payload.get("phone", "")
+        if phone == "0912345678":
+            return {
+                "found": True,
+                "customer_id": "CUST-1029",
+                "name": None,
+                "honorific": "Ch",
+                "phone": "0912345678",
+                "is_verified": True,
+                "ambiguous": False,
+                "error": None,
+            }
+        return {
+            "found": False,
+            "customer_id": None,
+            "name": None,
+            "honorific": None,
+            "phone": phone,
+            "is_verified": False,
+            "ambiguous": False,
+            "error": None,
+        }
+
+    monkeypatch.setattr(
+        input_nodes,
+        "crm_get_customer",
+        type("FakeCrm", (), {"invoke": staticmethod(_fake_crm_invoke)})(),
+    )
+
     # customer_info intentionally empty (simulates rebuilt dict on Turn 4);
     # phone/name only available in the previous CallBrief.
     state = {
-        "messages": [HumanMessage(content="tư vấn giúp em tiếp đi")],
+        "messages": [HumanMessage(content="tÆ° váº¥n giÃºp em tiáº¿p Ä‘i")],
         "customer_id": None,
-        "customer_info": {"channel": "web_chat", "_input_text": "tư vấn giúp em tiếp đi"},
+        "customer_info": {"channel": "web_chat", "_input_text": "tÆ° váº¥n giÃºp em tiáº¿p Ä‘i"},
         "call_brief": {
             "customer_id": "CUST-1029",
             "customer_phone": "0912345678",

@@ -257,24 +257,28 @@ def test_graph_runner_restores_session_messages_and_passes_context(monkeypatch):
         graph_runner,
         "get_postgres_memory_store",
         lambda: SimpleNamespace(
-            get_session_events=lambda _session_id: [
+            ensure_session=lambda **kwargs: kwargs["customer_id"],
+            get_session_customer_id=lambda _session_id: None,
+            get_session_events=lambda _session_id, **_kwargs: [
                 {"payload": {"messages": messages_to_dict(previous)}}
             ]
         ),
     )
 
-    def invoke(state):
+    def stream(state, config=None, stream_mode=None):
         captured.update(state)
-        return {
+        captured["stream_mode"] = stream_mode
+        final = {
             **state,
             "messages": [*state["messages"], AIMessage(content="Answer.")],
             "turn_number": 2,
         }
+        yield ("values", final)
 
     monkeypatch.setattr(
         graph_runner,
         "graph",
-        SimpleNamespace(invoke=invoke),
+        SimpleNamespace(stream=stream),
     )
 
     state = graph_runner.invoke_customer_turn(

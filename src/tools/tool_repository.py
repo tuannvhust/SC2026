@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import time
 from datetime import date, datetime, timedelta
 from threading import Lock
@@ -12,6 +13,7 @@ import httpx
 from dotenv import load_dotenv
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
+from sqlalchemy import create_engine, text
 try:
     from supabase import Client, ClientOptions, create_client
 except ImportError:
@@ -29,6 +31,62 @@ SUPABASE_RETRY_DELAY_SECONDS = 0.25
 SUPABASE_POSTGREST_TIMEOUT_SECONDS = 10.0
 _PROMOTIONS_CACHE_TTL_SECONDS = 60.0
 _promotions_cache: Dict[str, Any] = {"rows": None, "expires_at": 0.0}
+
+# ---------------------------------------------------------------------------
+# CRM database (direct PostgreSQL via SUPABASE_DATABASE_URL)
+# ---------------------------------------------------------------------------
+
+_CRM_ENGINE = None
+_CRM_ENGINE_LOCK = Lock()
+
+
+def _normalize_phone(raw: Optional[str]) -> Optional[str]:
+    """Chuẩn hóa số điện thoại Việt Nam.
+
+    - Loại bỏ khoảng trắng, dấu gạch ngang, dấu ngoặc, dấu chấm.
+    - Chuyển mã quốc gia +84 -> 0.
+    - Trả về chuỗi chỉ chứa chữ số hoặc None nếu rỗng.
+    """
+    if not raw:
+        return None
+    digits = re.sub(r"[^\d+]", "", raw)
+    if not digits:
+        return None
+    if digits.startswith("+84"):
+        digits = "0" + digits[3:]
+    elif digits.startswith("84") and len(digits) > 9:
+        digits = "0" + digits[2:]
+    return digits
+
+
+def _is_valid_phone(value: Optional[str]) -> bool:
+    """Kiểm tra định dạng SĐT Việt Nam sau khi chuẩn hóa: 0 + 9 chữ số."""
+    if not value:
+        return False
+    return bool(re.fullmatch(r"0\d{9}", value))
+
+
+def _get_crm_engine():
+    """Lazily create a SQLAlchemy engine bound to SUPABASE_DATABASE_URL."""
+    global _CRM_ENGINE
+    if _CRM_ENGINE is None:
+        with _CRM_ENGINE_LOCK:
+            if _CRM_ENGINE is None:
+                database_url = (
+                    os.getenv("SUPABASE_DATABASE_URL", "")
+                    or os.getenv("DATABASE_URL", "")
+                ).strip()
+                if not database_url:
+                    raise RuntimeError(
+                        "SUPABASE_DATABASE_URL must be configured for CRM lookups."
+                    )
+                _CRM_ENGINE = create_engine(
+                    database_url,
+                    pool_pre_ping=True,
+                    pool_recycle=300,
+                    connect_args={"connect_timeout": 10, "sslmode": "require"},
+                )
+    return _CRM_ENGINE
 
 
 def _create_supabase_client(url: str, key: str) -> Any:
@@ -425,22 +483,113 @@ def crm_get_customer(
     fb_id: Optional[str] = None,
     on: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Look up a customer by phone or channel identity."""
+    """Look up a real customer by phone (MVP) using Supabase PostgreSQL.
 
-    return {
-        "found": bool(phone or zalo_id or fb_id),
-        "customer_id": "CUST-1029" if phone else None,
-        "name": "Khách hàng",
-        "honorific": "Anh/Chị",
-        "phone": phone,
-        "identities": {
-            "zalo_id": zalo_id,
-            "fb_id": fb_id,
-        },
-        "orders": [],
+    Queries ``customer_identities`` joined with ``customers``:
+      - identity_type = 'phone' AND disabled_at IS NULL
+      - customers.deleted_at IS NULL AND status IN ('active', 'provisional')
+
+    Returns:
+        found: bool — whether exactly one active customer was resolved.
+        customer_id: Optional[str]
+        name: Optional[str] — from customers.full_name / preferred_name.
+        honorific: Optional[str]
+        phone: Optional[str] — normalized input phone.
+        is_verified: bool — identity.is_verified.
+        ambiguous: bool — True when multiple distinct customers match.
+        error: Optional[str] — database/system error (not a not-found case).
+    """
+    result: Dict[str, Any] = {
+        "found": False,
+        "customer_id": None,
+        "name": None,
+        "honorific": None,
+        "phone": None,
+        "is_verified": False,
         "ambiguous": False,
-        "sessions": [],
+        "error": None,
     }
+
+    # Only phone is supported in MVP. Ignore zalo_id/fb_id for lookup but keep
+    # them echoed in result so callers can see what was provided.
+    normalized_phone = _normalize_phone(phone)
+    result["phone"] = normalized_phone
+
+    if not normalized_phone or not _is_valid_phone(normalized_phone):
+        # Invalid input: do not query the database. Return not-found, not error.
+        result["error"] = None
+        return result
+
+    try:
+        engine = _get_crm_engine()
+        with engine.connect() as connection:
+            rows = connection.execute(
+                text(
+                    """
+                    SELECT
+                        ci.customer_id,
+                        ci.normalized_value,
+                        ci.is_verified,
+                        c.full_name,
+                        c.preferred_name,
+                        c.honorific,
+                        c.status,
+                        c.deleted_at
+                    FROM public.customer_identities ci
+                    JOIN public.customers c
+                      ON c.customer_id = ci.customer_id
+                    WHERE ci.identity_type = 'phone'
+                      AND ci.normalized_value = :phone
+                      AND ci.disabled_at IS NULL
+                      AND c.deleted_at IS NULL
+                      AND c.status IN ('active', 'provisional')
+                    """
+                ),
+                {"phone": normalized_phone},
+            ).mappings().all()
+    except Exception as error:  # noqa: BLE001 — system errors must surface, not mask as not-found
+        logger.error("CRM lookup failed for phone=%s: %s", normalized_phone, error, exc_info=True)
+        result["error"] = f"database_lookup_failed: {type(error).__name__}"
+        return result
+
+    if not rows:
+        # No active identity found. Not an error — genuinely not found.
+        return result
+
+    # Deduplicate by customer_id to detect genuinely distinct customers.
+    distinct_customers = {}
+    for row in rows:
+        distinct_customers[row["customer_id"]] = row
+
+    if len(distinct_customers) > 1:
+        # Ambiguous: multiple distinct customers share the same phone identity.
+        # Do NOT auto-pick. Surface ambiguous so the node can ask for disambiguation.
+        result["ambiguous"] = True
+        result["found"] = False
+        first = next(iter(distinct_customers.values()))
+        result["customer_id"] = None
+        result["name"] = None
+        result["is_verified"] = bool(first["is_verified"])
+        return result
+
+    # Exactly one customer matched.
+    row = next(iter(distinct_customers.values()))
+    result["found"] = True
+    result["customer_id"] = row["customer_id"]
+    result["name"] = _real_crm_name(row["full_name"], row["preferred_name"])
+    result["honorific"] = row["honorific"]
+    result["is_verified"] = bool(row["is_verified"])
+    return result
+
+
+def _real_crm_name(full_name: Optional[str], preferred_name: Optional[str]) -> Optional[str]:
+    """Return a non-generic CRM name, preferring preferred_name."""
+    for candidate in (preferred_name, full_name):
+        if candidate and isinstance(candidate, str):
+            cleaned = candidate.strip()
+            if cleaned and cleaned.lower() not in {"khach hang", "khách hàng"}:
+                return cleaned
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -593,9 +742,42 @@ def catalog_search(
                     "variants": live_variants,
                 }
             )
-        return {"items": format_catalog_results(hydrated)}
+        formatted_items = format_catalog_results(hydrated)
+        from src.graph.tool_observer import log_catalog_search_detail
+        log_catalog_search_detail(
+            query=str(search_query),
+            sku=sku,
+            category=category,
+            top_k=30,
+            backend="BM25/Embedding+Rerank+Supabase",
+            candidates_before_rerank=len(candidates),
+            candidates_after_rerank=len(ranked),
+            supabase_products=len(products),
+            supabase_variants=len(variants),
+            final_items=len(formatted_items),
+            duration_ms=0,
+            status="success" if formatted_items else "success_empty",
+            top_results=formatted_items,
+        )
+        return {"items": formatted_items}
     except (httpx.TransportError, httpx.HTTPStatusError) as exc:
         logger.warning("catalog.search Supabase connectivity failure: %s", exc)
+        from src.graph.tool_observer import log_catalog_search_detail
+        log_catalog_search_detail(
+            query=str(query or sku or category or ""),
+            sku=sku,
+            category=category,
+            top_k=30,
+            backend="Supabase",
+            candidates_before_rerank=0,
+            candidates_after_rerank=0,
+            supabase_products=0,
+            supabase_variants=0,
+            final_items=0,
+            duration_ms=0,
+            status="error",
+            error=str(exc),
+        )
         return {
             "items": [],
             "status": "error",
@@ -604,7 +786,24 @@ def catalog_search(
         }
     except Exception as exc:
         logger.exception("catalog.search failed")
+        from src.graph.tool_observer import log_catalog_search_detail
+        log_catalog_search_detail(
+            query=str(query or sku or category or ""),
+            sku=sku,
+            category=category,
+            top_k=30,
+            backend="General",
+            candidates_before_rerank=0,
+            candidates_after_rerank=0,
+            supabase_products=0,
+            supabase_variants=0,
+            final_items=0,
+            duration_ms=0,
+            status="error",
+            error=str(exc),
+        )
         return {"items": [], "status": "error", "error": f"catalog search unavailable ({type(exc).__name__})."}
+
 
 
 def format_catalog_results(raw_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1247,7 +1446,9 @@ def memory_write(
 # Tool registry
 # ---------------------------------------------------------------------------
 
-M1_TOOLS = [
+from src.graph.tool_observer import observe_tools
+
+M1_TOOLS = observe_tools([
     crm_get_customer,
     catalog_search,
     inventory_check,
@@ -1258,10 +1459,11 @@ M1_TOOLS = [
     handoff_transfer,
     memory_read,
     memory_write,
-]
+])
 
-M2_TOOLS = [
+M2_TOOLS = observe_tools([
     order_status,
-]
+])
 
 ALL_TOOLS = M1_TOOLS + M2_TOOLS
+

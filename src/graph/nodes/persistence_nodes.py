@@ -151,13 +151,15 @@ def persist_turn_node(state: AgentState) -> Dict[str, Any]:
             "session_outcome": state.get("session_outcome"),
         },
     }
-    turn_number = get_working_memory_store().append_turn(
+    store = get_working_memory_store()
+    turn_number = store.append_turn(
         event_id=str(uuid.uuid4()),
         session_id=session_id,
         turn_id=turn_id,
         customer_id=state.get("customer_id"),
         created_at=now,
         payload=payload,
+        channel=(state.get("customer_info") or {}).get("channel") or "web_chat",
     )
     return {
         "session_id": session_id,
@@ -264,6 +266,7 @@ def _episode_from_events(events: List[Dict[str, Any]], state: AgentState) -> Dic
             outcome = "completed"
 
     return {
+        "current_need": call_brief.get("current_need"),
         "products_advised": list(products.values()),
         "open_blockers": call_brief.get("open_blockers", []),
         "open_questions": call_brief.get("open_questions", []),
@@ -279,6 +282,11 @@ def _episode_from_events(events: List[Dict[str, Any]], state: AgentState) -> Dic
         ),
         "handoff_reason": state.get("handoff_reason"),
         "profile_facts_written": [fact["key"] for fact in profile_updates],
+        "next_actions": (
+            [call_brief["suggested_next_action"]]
+            if call_brief.get("suggested_next_action")
+            else []
+        ),
         "turn_count": len(events),
         "started_at": state.get("session_started_at"),
     }
@@ -295,7 +303,12 @@ def persist_call_node(state: AgentState) -> Dict[str, Any]:
         raise ValueError("session_id is required to persist a completed call.")
 
     store = get_working_memory_store()
-    events = store.get_session_events(session_id)
+    events = store.get_session_events(
+        session_id,
+        customer_id=customer_id,
+        limit=1000,
+        unassigned_only=not customer_id,
+    )
     if not events:
         existing = store.get_episode(session_id)
         if existing is not None:

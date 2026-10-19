@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatStreamPayload, Message, Product } from "@/types/product";
+import type {
+  CallBriefSummary,
+  ChatStreamPayload,
+  Message,
+  Product,
+} from "@/types/product";
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -40,6 +45,7 @@ function isValidSessionId(value: string | null): value is string {
 export function useChatStream() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [callBrief, setCallBrief] = useState<CallBriefSummary | null>(null);
   const [lastUserMessage, setLastUserMessage] = useState("");
   // Null on first render so server and client produce identical HTML.
   // The real ID is created/restored after mount (client-only).
@@ -77,6 +83,15 @@ export function useChatStream() {
     if (sessionStatus === "ending" || sessionStatus === "ended") return;
 
     setLastUserMessage(userMsg);
+    setCallBrief({
+      status: "loading",
+      has_history: false,
+      current_need: userMsg,
+      recent_sessions: [],
+      open_blockers: [],
+      open_questions: [],
+      suggested_next_action: "",
+    });
     const assistantId = uid();
 
     setMessages((prev) => [
@@ -95,7 +110,7 @@ export function useChatStream() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer_id: "anonymous",
+          customer_id: "",
           session_id: sessionId,
           message: userMsg,
           stream: true,
@@ -136,6 +151,10 @@ export function useChatStream() {
           throw new Error(payload.error);
         }
 
+        if (Object.prototype.hasOwnProperty.call(payload, "call_brief")) {
+          setCallBrief(payload.call_brief ?? null);
+        }
+
         if (payload.products && Array.isArray(payload.products)) {
           collectedProducts = payload.products;
         }
@@ -162,7 +181,13 @@ export function useChatStream() {
 
       while (true) {
         const { done, value } = await reader.read();
-        buffer += decoder.decode(value, { stream: !done }).replace(/\r\n/g, "\n");
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+        }
+        if (done) {
+          buffer += decoder.decode();
+        }
+        buffer = buffer.replace(/\r\n/g, "\n");
         let boundary = buffer.indexOf("\n\n");
         while (boundary >= 0) {
           processEvent(buffer.slice(0, boundary));
@@ -188,6 +213,19 @@ export function useChatStream() {
     } catch (e) {
       if ((e as Error).name === "AbortError") return;
       console.error(e);
+      setCallBrief((previous) =>
+        previous
+          ? { ...previous, status: "error" }
+          : {
+              status: "error",
+              has_history: false,
+              current_need: "",
+              recent_sessions: [],
+              open_blockers: [],
+              open_questions: [],
+              suggested_next_action: "",
+            }
+      );
       const errorText =
         e instanceof Error ? e.message : "Lỗi khi gọi API.";
       setMessages((prev) => {
@@ -215,7 +253,7 @@ export function useChatStream() {
     setSessionStatus("ending");
     setEndError("");
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
     try {
       const res = await fetch("/api/chat/end-session", {
         method: "POST",
@@ -223,9 +261,24 @@ export function useChatStream() {
         body: JSON.stringify({ session_id: sessionId, customer_id: "anonymous" }),
         signal: controller.signal,
       });
+
       if (!res.ok) {
-        const details = await res.text();
-        throw new Error(`End session HTTP ${res.status}: ${details || res.statusText}`);
+        let errorDetail = "";
+        try {
+          const jsonError = await res.json();
+          errorDetail =
+            typeof jsonError.error === "string"
+              ? jsonError.error
+              : typeof jsonError.detail === "string"
+              ? jsonError.detail
+              : "";
+        } catch {
+          // Response is HTML or plain text, do not render raw HTML
+        }
+        if (errorDetail) {
+          throw new Error(`Không thể kết thúc phiên: ${errorDetail} (HTTP ${res.status})`);
+        }
+        throw new Error(`Không thể kết thúc phiên: API trả về HTTP ${res.status}`);
       }
       const payload = (await res.json()) as EndSessionResult;
       // Only report success after backend confirms persistence.
@@ -251,6 +304,7 @@ export function useChatStream() {
     setLastUserMessage("");
     setEndResult(null);
     setEndError("");
+    setCallBrief(null);
     const nextId = newSessionId();
     setSessionId(nextId);
     try {
@@ -282,6 +336,7 @@ export function useChatStream() {
     sessionStatus,
     endResult,
     endError,
+    callBrief,
     sendMessage,
     endSession,
     startNewSession,

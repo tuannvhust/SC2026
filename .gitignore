@@ -34,3 +34,8 @@ yarn-error.log*
 # Accidental root npm manifests; frontend has its own package files
 /package.json
 /package-lock.json
+
+# Memory dump and audit reports (may contain sensitive database exports)
+supabase_memory_dump.md
+reports/
+*.dump.md

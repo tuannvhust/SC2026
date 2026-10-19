@@ -47,11 +47,37 @@ def route_after_identity(
     Falls back to guest mode after MAX_IDENTITY_ATTEMPTS so the session can
     still continue to build_call_brief without a resolved customer_id.
     """
+    if state.get("customer_id"):
+        return "build_call_brief"
     if not state.get("needs_identity", False):
         return "build_call_brief"
     if int(state.get("identity_attempts") or 0) >= MAX_IDENTITY_ATTEMPTS:
         return "build_call_brief"
     return "request_identity"
+
+
+def route_after_call_brief(
+    state: AgentState,
+) -> Literal["request_identity", "plan_step"]:
+    """Route after call_brief: enforce identity gate before planning.
+
+    - If identity is not needed or already resolved: allow planning.
+    - If still needed AND attempts < MAX: ask again via request_identity.
+    - If attempts >= MAX: guest-mode fallback to plan_step (plan_step_node
+      carries its own guard so business tools are still blocked).
+    """
+    needs = state.get("needs_identity", False)
+    if not needs:
+        return "plan_step"
+    identity_status = state.get("identity_status") or ""
+    if identity_status == "resolved":
+        return "plan_step"
+    attempts = int(state.get("identity_attempts") or 0)
+    if attempts < MAX_IDENTITY_ATTEMPTS:
+        return "request_identity"
+    # Guest-mode fallback after max attempts exhausted.
+    return "plan_step"
+
 
 
 def route_after_plan(state: AgentState) -> Literal["tools", "output_guardrail"]:
@@ -64,8 +90,8 @@ def route_after_plan(state: AgentState) -> Literal["tools", "output_guardrail"]:
 
 def route_after_output_guardrail(
     state: AgentState,
-) -> Literal["persist_turn", "retry_node"]:
-    return "persist_turn" if state.get("output_valid", False) else "retry_node"
+) -> Literal["refresh_call_brief", "retry_node"]:
+    return "refresh_call_brief" if state.get("output_valid", False) else "retry_node"
 
 
 def route_after_persist_turn(
@@ -83,6 +109,7 @@ def build_graph(checkpointer=None):
     workflow.add_node("resolve_identity", resolve_identity_node)
     workflow.add_node("request_identity", request_identity_node)
     workflow.add_node("build_call_brief", build_call_brief_node)
+    workflow.add_node("refresh_call_brief", build_call_brief_node)
     workflow.add_node("plan_step", plan_step_node)
     workflow.add_node("tools", tool_node)
     workflow.add_node("output_guardrail", output_guardrail_node)
@@ -96,7 +123,7 @@ def build_graph(checkpointer=None):
     workflow.add_edge("normalize_input", "resolve_identity")
     workflow.add_conditional_edges("resolve_identity", route_after_identity)
     workflow.add_edge("request_identity", "persist_turn")
-    workflow.add_edge("build_call_brief", "plan_step")
+    workflow.add_conditional_edges("build_call_brief", route_after_call_brief)
 
     workflow.add_conditional_edges("plan_step", route_after_plan)
     workflow.add_edge("tools", "plan_step")
@@ -104,7 +131,9 @@ def build_graph(checkpointer=None):
     workflow.add_conditional_edges(
         "output_guardrail",
         route_after_output_guardrail,
+        {"refresh_call_brief": "refresh_call_brief", "retry_node": "retry_node"},
     )
+    workflow.add_edge("refresh_call_brief", "persist_turn")
     workflow.add_conditional_edges(
         "retry_node",
         route_after_retry,
@@ -130,6 +159,9 @@ class GraphRuntime:
 
     def invoke(self, *args, **kwargs):
         return self._graph.invoke(*args, **kwargs)
+
+    def stream(self, *args, **kwargs):
+        return self._graph.stream(*args, **kwargs)
 
     def astream(self, *args, **kwargs):
         return self._graph.astream(*args, **kwargs)

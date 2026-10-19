@@ -16,7 +16,11 @@ from langchain_core.messages import AIMessage
 from src.graph.state import AgentState
 from src.memory.profile.profile_store import get_profile_store
 from src.memory.working.postgres_store import get_postgres_memory_store
-from src.tools.tool_repository import crm_get_customer
+from src.tools.tool_repository import (
+    _is_valid_phone,
+    _normalize_phone,
+    crm_get_customer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +49,7 @@ class CallBrief(BaseModel):
     n_previous_sessions: int
 
     last_session: Optional[LastSession] = None
+    recent_sessions: List[LastSession] = Field(default_factory=list)
 
     # Original request that triggered identity collection (Turn 1 need).
     current_need: Optional[str] = None
@@ -69,6 +74,8 @@ class CallBrief(BaseModel):
     latency_ms: int
 
     precomputed_parts: List[str] = Field(default_factory=list)
+    memory_status: str = "empty"
+    memory_sources: Dict[str, Any] = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -76,23 +83,23 @@ class CallBrief(BaseModel):
 # ---------------------------------------------------------------------------
 
 TEENCODE_MAP = {
-    "sp": "sản phẩm",
-    "spm": "sản phẩm",
-    "k": "không",
-    "ko": "không",
-    "kh": "khách hàng",
-    "mk": "mình",
-    "mik": "mình",
-    "dc": "được",
-    "đc": "được",
-    "vs": "với",
-    "bn": "bao nhiêu",
+    "sp": "sáº£n pháº©m",
+    "spm": "sáº£n pháº©m",
+    "k": "khÃ´ng",
+    "ko": "khÃ´ng",
+    "kh": "khÃ¡ch hÃ ng",
+    "mk": "mÃ¬nh",
+    "mik": "mÃ¬nh",
+    "dc": "Ä‘Æ°á»£c",
+    "Ä‘c": "Ä‘Æ°á»£c",
+    "vs": "vá»›i",
+    "bn": "bao nhiÃªu",
     "ib": "inbox",
-    "roi": "rồi",
-    "r": "rồi",
-    "a": "ạ",
+    "roi": "rá»“i",
+    "r": "rá»“i",
+    "a": "áº¡",
     "e": "em",
-    "cj": "chị",
+    "cj": "chá»‹",
 }
 
 
@@ -146,8 +153,8 @@ def _normalize_money(text: str) -> str:
         amount = int(float(value) * 1_000)
         return f"{amount:,}".replace(",", ".")
 
-    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)\b", replace_million, text, flags=re.IGNORECASE)
-    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:k|nghìn)\b", replace_thousand, text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:tr|triá»‡u)\b", replace_million, text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:k|nghÃ¬n)\b", replace_thousand, text, flags=re.IGNORECASE)
 
     return text
 
@@ -160,8 +167,25 @@ def _normalize_input(text: str) -> str:
 
 
 def _extract_phone(text: str) -> Optional[str]:
-    match = re.search(r"\b0\d{9}\b", text or "")
-    return match.group(0) if match else None
+    """Extract and normalize a Vietnamese phone number from free text.
+
+    Supports:
+    - 0xxxxxxxxx
+    - +84xxxxxxxxx or +84 xxxxxxxxx
+    - Numbers separated by spaces, dots, or hyphens (e.g. 0912 345 678, 0912.345.678)
+    """
+    if not text:
+        return None
+    # Find sequence starting with +84, 84, or 0 followed by 9 digits with optional separators
+    pattern = re.compile(r"(?:(?:\+84|84|0)[.\s-]?)(\d[.\s-]?){8}\d")
+    match = pattern.search(text)
+    if match:
+        digits = re.sub(r"\D", "", match.group(0))
+        if digits.startswith("84") and len(digits) > 9:
+            digits = "0" + digits[2:]
+        if len(digits) == 10 and digits.startswith("0"):
+            return digits
+    return None
 
 
 # Max times we ask for name+phone before falling back to guest mode.
@@ -186,11 +210,11 @@ def _real_name(value: Any) -> Optional[str]:
 
 
 # Common Vietnamese lead-ins before a name, e.g. "mình tên Lan", "tôi là Minh".
-# Patterns accept both accented and unaccented spellings.
 _NAME_PATTERNS = [
-    r"(?:m[iì]nh|t[ôo]i|tớ|to|em|anh|ch[ịi])\s+t[êe]n\s+(?:l[àa]\s+)?([^\W\d_]+(?:\s+[^\W\d_]+){0,3})",
-    r"(?:t[êe]n\s+(?:m[iì]nh|t[ôo]i|em|anh|ch[ịi])\s+(?:l[àa]\s+)?)([^\W\d_]+(?:\s+[^\W\d_]+){0,3})",
-    r"(?:t[ôo]i|m[iì]nh|em|anh|ch[ịi])\s+l[àa]\s+([^\W\d_]+(?:\s+[^\W\d_]+){0,3})",
+    r"(?:m(?:i|ì)nh|t(?:o|ô)i|tớ|to|em|anh|ch(?:i|ị))\s+t(?:e|ê)n\s+(?:l(?:a|à)\s+)?([^\W\d_]+(?:\s+[^\W\d_]+){0,3})",
+    r"(?:t(?:e|ê)n\s+(?:m(?:i|ì)nh|t(?:o|ô)i|em|anh|ch(?:i|ị))\s+(?:l(?:a|à)\s+)?)([^\W\d_]+(?:\s+[^\W\d_]+){0,3})",
+    r"(?:t(?:o|ô)i|m(?:i|ì)nh|em|anh|ch(?:i|ị))\s+l(?:a|à)\s+([^\W\d_]+(?:\s+[^\W\d_]+){0,3})",
+    r"(?:t(?:e|ê)n\s*(?:l(?:a|à)|:)?\s*)([^\W\d_]+(?:\s+[^\W\d_]+){0,3})",
 ]
 
 
@@ -202,28 +226,52 @@ def _clean_name_candidate(candidate: str) -> Optional[str]:
     if re.search(r"\d", name):
         return None
     tokens = name.split()
-    if len(tokens) > 4:
-        return None
     stopwords = {
         "ạ", "nhé", "nha", "dạ", "vâng", "ừ", "ok", "oke",
-        "số", "điện", "thoại", "sdt", "phone", "tên",
+        "số", "điện", "thoại", "sdt", "phone", "tên", "la", "là",
     }
-    if all(token.lower() in stopwords for token in tokens):
+    valid_tokens = [tok for tok in tokens if tok.lower() not in stopwords]
+    if not valid_tokens or len(valid_tokens) > 4:
         return None
-    return name.title()
+    return " ".join(valid_tokens).title()
 
 
 def _extract_name(text: str) -> Optional[str]:
     cleaned = _clean_whitespace(text or "")
     if not cleaned:
         return None
+
+    # Strip out any phone number before analyzing name
+    phone_p = re.compile(r"(?:(?:\+84|84|0)[.\s-]?)(\d[.\s-]?){8}\d")
+    m = phone_p.search(cleaned)
+    text_without_phone = cleaned
+    if m:
+        text_without_phone = cleaned[:m.start()] + " " + cleaned[m.end():]
+
     for pattern in _NAME_PATTERNS:
-        match = re.search(pattern, cleaned, flags=re.IGNORECASE)
+        match = re.search(pattern, text_without_phone, flags=re.IGNORECASE)
         if match:
             name = _clean_name_candidate(match.group(1))
             if name:
                 return name
+
+    # Fallback: check if user provided direct name format (e.g. "Kim Trúc, sđt 0912..." or "Kim Trúc")
+    # Clean marker words like 'sdt', 'so dien thoai', 'phone'
+    stripped = re.sub(
+        r"(?i)\b(s(?:đ|d)t|s(?:ố|o)\s*(?:đ|d)i(?:ệ|e)n\s*tho(?:ạ|a)i|phone|d(?:ạ|a)|v(?:â|a)ng)\b",
+        " ",
+        text_without_phone,
+    )
+    stripped = _clean_whitespace(stripped).strip(" ,.;:-_")
+    candidate = _clean_name_candidate(stripped)
+    if candidate:
+        # Extra guard: avoid common phrases like "tư vấn giúp mình", "xem máy lọc"
+        not_names = {"tư vấn", "tu van", "xem", "mua", "hoi", "hỏi", "giá", "gia", "máy lọc", "may loc"}
+        if not any(nn in candidate.lower() for nn in not_names):
+            return candidate
+
     return None
+
 
 
 # ---------------------------------------------------------------------------
@@ -282,15 +330,32 @@ def normalize_input_node(state: AgentState) -> Dict[str, Any]:
 def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
     """Resolve the current customer through the CRM tool.
 
-    When no identifier is available, collect name + phone from the reply
-    text first so ``build_call_brief`` has enough data in the next turn.
+    Handles three cases:
+      A. customer_id already present in state — reuse if valid, never overwrite
+         a resolved identity with unverified data.
+      B. No phone available — ask user to supply one (needs_input).
+      C. Phone provided — normalize, validate, call crm_get_customer, then
+         act on resolved / not_found / ambiguous / invalid_input / system_error.
     """
 
-    context = dict(state.get("customer_info") or {})
+    # ---- Case A — customer_id already present in state ----
+    existing_customer_id = state.get("customer_id")
+    if existing_customer_id:
+        context = dict(state.get("customer_info") or {})
+        context["_input_text"] = context.get("_input_text", "") or ""
+        return {
+            "customer_id": existing_customer_id,
+            "customer_info": context,
+            "needs_identity": False,
+            "identity_status": "resolved",
+            "identity_attempts": 0,
+            "missing_identity_fields": [],
+            "pending_need": state.get("pending_need"),
+        }
 
+    # ---- Prepare context and extract phone ----
+    context = dict(state.get("customer_info") or {})
     text = context.get("_input_text", "") or ""
-    # Parse identity from the raw last message: teencode normalization maps
-    # "e" -> "em" and would corrupt guest names, so prefer raw text here.
     raw_text = _get_last_message_text(state) or text
 
     # Fallback: phone/name may live in a previous brief if customer_info was
@@ -298,92 +363,147 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
     brief_fallback = dict(state.get("call_brief") or {})
     if not context.get("name") and brief_fallback.get("customer_name"):
         context["name"] = brief_fallback["customer_name"]
-    previous_name = _real_name(context.get("name"))
+    if not context.get("name"):
+        extracted_name = _extract_name(raw_text or text)
+        if extracted_name:
+            context["name"] = extracted_name
+
     phone = (
         context.get("phone")
         or _extract_phone(text)
         or _extract_phone(raw_text)
         or brief_fallback.get("customer_phone")
     )
-    parsed_name = _extract_name(text) or _extract_name(raw_text)
-    name = previous_name or parsed_name
-    if phone:
-        context["phone"] = phone
-    if name and not previous_name:
-        # Keep guest-provided names temporarily for the next call brief.
-        # A self-declared name alone never identifies an existing customer.
-        context["name"] = name
-    elif previous_name:
-        context["name"] = previous_name
-    zalo_id = context.get("zalo_id")
-    fb_id = context.get("fb_id")
 
-    # Only a phone (or existing channel identifiers) may look up CRM.
-    # Never create/synthesize a customer record from a self-declared name.
-    result = crm_get_customer.invoke({"phone": phone, "zalo_id": zalo_id, "fb_id": fb_id})
+    # ---- Case B — no phone available ----
+    if not phone:
+        pending_need = state.get("pending_need")
+        if not pending_need:
+            pending_need = _clean_whitespace(raw_text or text)[:500] or None
+        return {
+            "customer_id": None,
+            "customer_info": context,
+            "needs_identity": True,
+            "identity_status": "needs_input",
+            "identity_attempts": int(state.get("identity_attempts") or 0),
+            "missing_identity_fields": ["phone", "name"],
+            "pending_need": pending_need,
+        }
 
-    customer_info = {**context, **result}
+    # ---- Case C — phone present: normalize & validate ----
+    normalized_phone = _normalize_phone(phone)
+    if not _is_valid_phone(normalized_phone):
+        return {
+            "customer_id": None,
+            "customer_info": {**context, "phone": phone},
+            "needs_identity": True,
+            "identity_status": "invalid_input",
+            "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+            "missing_identity_fields": ["phone"],
+            "pending_need": state.get("pending_need"),
+        }
+    context["phone"] = normalized_phone
 
-    customer_info["phone"] = result.get("phone") or phone
-    crm_name = _real_name(result.get("name"))
-    if crm_name:
-        customer_info["name"] = crm_name
-    elif name:
-        customer_info["name"] = name
-    elif previous_name:
-        customer_info["name"] = previous_name
-    else:
-        customer_info.pop("name", None)
-    customer_info["channel"] = context.get("channel") or result.get("channel")
-    customer_info["_input_text"] = text
-    customer_id = state.get("customer_id") or result.get("customer_id")
+    # ---- Call CRM repository (real query on Supabase) ----
+    result = crm_get_customer.invoke(
+        {"phone": normalized_phone, "zalo_id": None, "fb_id": None}
+    )
+
+    # System error (not not_found) — distinguish clearly.
+    # Increment identity_attempts so repeated system errors eventually exhaust
+    # the attempt budget and fall through to guest mode instead of looping.
+    if result.get("error"):
+        current_missing = list(state.get("missing_identity_fields") or ["phone"])
+        if not current_missing:
+            current_missing = ["phone"]
+        return {
+            "customer_id": None,
+            "customer_info": {**context, "phone": normalized_phone},
+            "needs_identity": True,
+            "identity_status": "system_error",
+            "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+            "missing_identity_fields": current_missing,
+            "pending_need": state.get("pending_need"),
+        }
+
+    # Ambiguous / conflicting result — do not auto-pick a customer
+    if result.get("ambiguous"):
+        return {
+            "customer_id": None,
+            "customer_info": {**context, "phone": normalized_phone},
+            "needs_identity": True,
+            "identity_status": "ambiguous",
+            "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+            "missing_identity_fields": ["phone"],
+            "pending_need": state.get("pending_need"),
+        }
+
+    # Determine customer_id from CRM result
+    crm_customer_id = result["customer_id"] if result.get("found") else None
+
+    # ---- No matching identity found — customer not in CRM ----
+    if not crm_customer_id:
+        # Check if caller has provided both valid phone and name
+        has_provided_name = _real_name(context.get("name")) is not None
+        missing = []
+        if not has_provided_name:
+            missing.append("name")
+
+        # If customer already provided their phone and name, we do not need to ask again.
+        # They will proceed in guest mode with customer_id=None.
+        still_needs = bool(missing)
+        return {
+            "customer_id": None,
+            "customer_info": {**context, "phone": normalized_phone},
+            "needs_identity": still_needs,
+            "identity_status": "not_found",
+            "identity_attempts": int(state.get("identity_attempts") or 0) if not still_needs else int(state.get("identity_attempts") or 0) + 1,
+            "missing_identity_fields": missing,
+            "pending_need": state.get("pending_need"),
+        }
+
+
+    # ---- Exactly one valid customer found ----
+    customer_id = crm_customer_id
     session_id = state.get("session_id")
     if customer_id and session_id:
         get_postgres_memory_store().update_session_customer_id(
             session_id, customer_id
         )
 
-    attempts = int(state.get("identity_attempts") or 0)
-    # NOTE: per current product decision, zalo/fb ids alone do NOT count as
-    # identified. Require BOTH a resolved customer_id (via phone lookup) AND
-    # a verified/real name before clearing the flag.
-    has_phone = bool(re.fullmatch(r"0\d{9}", str(customer_info.get("phone") or "")))
+    customer_info = {**context, **result}
+    customer_info["phone"] = normalized_phone
+    crm_name = _real_name(result.get("name"))
+    if crm_name:
+        customer_info["name"] = crm_name
+    elif context.get("name"):
+        customer_info["name"] = context.get("name")
+
+    # needs_identity: require both customer_id AND a real name
     has_name = _real_name(customer_info.get("name")) is not None
-    missing_fields = [
-        field
-        for field, present in (("phone", has_phone), ("name", has_name))
-        if not present
-    ]
-    needs_identity = (not customer_id) or bool(missing_fields)
+    missing_fields = []
+    if not has_name:
+        missing_fields.append("name")
+    needs_identity = bool(missing_fields)
+
     pending_need = state.get("pending_need")
-    if needs_identity and not pending_need:
-        # Keep the original Turn-1 ask so the sale need survives identity turns.
-        first_text = _clean_whitespace(raw_text or text)
-        if first_text:
-            pending_need = first_text[:500]
-    if not needs_identity:
-        attempts = 0
-        missing_fields = []
-        # Identity complete: keep the original Turn-1 need; append latest only
-        # if it adds new sale content beyond name/phone.
-        latest_text = _clean_whitespace(raw_text or text)
-        if latest_text and pending_need and latest_text not in pending_need:
-            stripped = re.sub(r"\b0\d{9}\b", "", latest_text).strip(" ,.;:-")
-            if stripped and stripped not in pending_need:
-                pending_need = f"{pending_need} | {stripped[:500]}"[:1000]
-        elif latest_text and not pending_need:
-            pending_need = latest_text[:500]
+    latest_text = _clean_whitespace(raw_text or text)
+    if latest_text and pending_need and latest_text not in pending_need:
+        stripped = re.sub(r"\b0\d{9}\b", "", latest_text).strip(" ,.;:-")
+        if stripped and stripped not in pending_need:
+            pending_need = f"{pending_need} | {stripped[:500]}"[:1000]
+    elif latest_text and not pending_need:
+        pending_need = latest_text[:500]
 
     return {
         "customer_id": customer_id,
         "customer_info": customer_info,
         "needs_identity": needs_identity,
-        "identity_attempts": attempts,
+        "identity_status": "resolved" if not needs_identity else "needs_input",
+        "identity_attempts": 0 if not needs_identity else int(state.get("identity_attempts") or 0) + 1,
         "missing_identity_fields": missing_fields,
         "pending_need": pending_need,
     }
-
-
 def request_identity_node(state: AgentState) -> Dict[str, Any]:
     """Pause the turn and ask for the missing name/phone slots.
 
@@ -404,7 +524,13 @@ def request_identity_node(state: AgentState) -> Dict[str, Any]:
             missing.append("phone")
         if not has_name:
             missing.append("name")
-    if missing == ["name"]:
+    identity_status = state.get("identity_status")
+    if identity_status == "ambiguous":
+        question = (
+            "Dạ số điện thoại này đang được dùng chung cho nhiều khách hàng ạ. "
+            "Mình cho em xin chính xác họ tên của mình để em tra cứu đúng hồ sơ nhé ạ?"
+        )
+    elif missing == ["name"]:
         question = (
             "Dạ em đã lưu số điện thoại rồi ạ, mình cho em xin thêm họ tên "
             "để em hỗ trợ chính xác hơn nhé ạ? Mình không cần gửi lại số đâu ạ."
@@ -416,6 +542,7 @@ def request_identity_node(state: AgentState) -> Dict[str, Any]:
         )
     else:
         question = _IDENTITY_QUESTION
+
 
     pending_need = state.get("pending_need") or _clean_whitespace(
         customer_info.get("_input_text", "") or ""
@@ -485,7 +612,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
     if not cleaned:
         return {}
     constraints: Dict[str, Any] = {}
-    area = re.search(r"(\d+(?:[.,]\d+)?)\s*(m2|m²|m\^2|mét vuông)", cleaned, re.IGNORECASE)
+    area = re.search(r"(\d+(?:[.,]\d+)?)\s*(m2|mÂ²|m\^2|mÃ©t vuÃ´ng)", cleaned, re.IGNORECASE)
     area_value: Optional[float] = None
     if area:
         try:
@@ -495,7 +622,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
             area_value = None
     budget = _normalize_money(cleaned)
     amounts = []
-    for match in re.finditer(r"(\d[\d.,]*)\s*(triệu|tr|tỷ|ty|nghìn|nghin|k|đ|vnd|đồng)?", budget, re.IGNORECASE):
+    for match in re.finditer(r"(\d[\d.,]*)\s*(triá»‡u|tr|tá»·|ty|nghÃ¬n|nghin|k|Ä‘|vnd|Ä‘á»“ng)?", budget, re.IGNORECASE):
         raw_value, unit = match.group(1), (match.group(2) or "").lower()
         try:
             number = float(raw_value.replace(".", "").replace(",", ""))
@@ -505,13 +632,13 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
         if not unit and area_value is not None and abs(number - area_value) < 0.001:
             continue
         multiplier = 1
-        if unit in ("tỷ", "ty"):
+        if unit in ("tá»·", "ty"):
             multiplier = 1_000_000_000
-        elif unit in ("triệu", "tr"):
+        elif unit in ("triá»‡u", "tr"):
             multiplier = 1_000_000
-        elif unit in ("nghìn", "nghin", "k"):
+        elif unit in ("nghÃ¬n", "nghin", "k"):
             multiplier = 1_000
-        elif unit in ("đ", "vnd", "đồng", ""):
+        elif unit in ("Ä‘", "vnd", "Ä‘á»“ng", ""):
             # Only accept bare numbers >= 100k as VND to avoid area/SKU noise.
             if number < 100_000:
                 continue
@@ -519,7 +646,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
     if amounts:
         constraints["budget_hint_vnd"] = max(amounts)
     lowered = cleaned.lower()
-    keywords = ["airpure", "máy lọc", "may loc", "máy lạnh", "điều hòa", "dieu hoa"]
+    keywords = ["airpure", "mÃ¡y lá»c", "may loc", "mÃ¡y láº¡nh", "Ä‘iá»u hÃ²a", "dieu hoa"]
     interested = sorted({key for key in keywords if key in lowered})
     if interested:
         constraints["interested_keywords"] = interested
@@ -530,7 +657,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
 
 
 def _map_sample_to_sku(sample_no: int) -> Optional[Dict[str, Any]]:
-    """Resolve 'mẫu số N' to the Nth product in the project catalog (1-based)."""
+    """Resolve 'máº«u sá»‘ N' to the Nth product in the project catalog (1-based)."""
     if not sample_no or sample_no < 1:
         return None
     try:
@@ -580,18 +707,18 @@ def _build_suggested_opening(
     products_advised: List[Dict[str, Any]],
     open_blockers: List[str],
 ) -> str:
-    title = honorific or "anh/chị"
+    title = honorific or "anh/chá»‹"
 
     if customer_name:
-        greeting = f"Dạ chào {title} {customer_name} ạ."
+        greeting = f"Dáº¡ chÃ o {title} {customer_name} áº¡."
     else:
-        greeting = f"Dạ chào {title} ạ."
+        greeting = f"Dáº¡ chÃ o {title} áº¡."
 
     if not last_session:
-        return f"{greeting} Em hỗ trợ mình vấn đề gì hôm nay ạ?"
+        return f"{greeting} Em há»— trá»£ mÃ¬nh váº¥n Ä‘á» gÃ¬ hÃ´m nay áº¡?"
 
     if not products_advised:
-        return f"{greeting} Em tiếp tục hỗ trợ mình từ lần trao đổi trước nhé ạ?"
+        return f"{greeting} Em tiáº¿p tá»¥c há»— trá»£ mÃ¬nh tá»« láº§n trao Ä‘á»•i trÆ°á»›c nhÃ© áº¡?"
 
     product = products_advised[-1]
     sku = product.get("sku")
@@ -600,13 +727,13 @@ def _build_suggested_opening(
         blocker = open_blockers[0]
 
         return (
-            f"{greeting} Hôm trước bên em có tư vấn mẫu "
-            f"{sku or 'sản phẩm mình quan tâm'}. Mình còn băn khoăn về {blocker} đúng không ạ?"
+            f"{greeting} HÃ´m trÆ°á»›c bÃªn em cÃ³ tÆ° váº¥n máº«u "
+            f"{sku or 'sáº£n pháº©m mÃ¬nh quan tÃ¢m'}. MÃ¬nh cÃ²n bÄƒn khoÄƒn vá» {blocker} Ä‘Ãºng khÃ´ng áº¡?"
         )
 
     return (
-        f"{greeting} Hôm trước bên em có tư vấn mẫu "
-        f"{sku or 'sản phẩm mình quan tâm'}. Em hỗ trợ mình tiếp nhé ạ?"
+        f"{greeting} HÃ´m trÆ°á»›c bÃªn em cÃ³ tÆ° váº¥n máº«u "
+        f"{sku or 'sáº£n pháº©m mÃ¬nh quan tÃ¢m'}. Em há»— trá»£ mÃ¬nh tiáº¿p nhÃ© áº¡?"
     )
 
 
@@ -620,7 +747,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     Inputs: ``customer_id``/``customer_info`` (identity), Postgres session
     events + recent episodes + profile facts (memory), and the current turn
     text (need/constraints). Output is stored at ``state["call_brief"]`` as a
-    compact dict — never a raw copy of ``state["messages"]``.
+    compact dict â€” never a raw copy of ``state["messages"]``.
     """
 
     started_at = time.perf_counter()
@@ -633,11 +760,40 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     sessions = customer_info.get("sessions", [])
     orders = customer_info.get("orders", [])
 
-    session_events = (
-        get_postgres_memory_store().get_session_events(session_id)
-        if session_id
-        else []
-    )
+    memory_errors = []
+    working_store = None
+    working_store_error = None
+    try:
+        working_store = get_postgres_memory_store()
+    except Exception as error:
+        working_store_error = error
+        logger.warning(
+            "Call Brief memory-store initialization failed: %s",
+            type(error).__name__,
+            exc_info=True,
+        )
+        if session_id:
+            memory_errors.append("working_events")
+        if customer_id:
+            memory_errors.append("episodic_memory")
+
+    try:
+        session_events = (
+            working_store.get_session_events(
+                session_id, customer_id=customer_id, limit=20
+            )
+            if session_id and working_store
+            else []
+        )
+    except Exception as error:
+        logger.warning(
+            "Call Brief working-memory read failed for session %s: %s",
+            session_id,
+            type(error).__name__,
+            exc_info=True,
+        )
+        session_events = []
+        memory_errors.append("working_events")
     open_session_events = [
         event
         for event in session_events
@@ -661,51 +817,117 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         else {}
     )
 
-    profile_facts = (
-        get_profile_store().get_profile_facts(customer_id)
-        if customer_id
-        else {}
-    )
-    episodes = (
-        get_postgres_memory_store().get_recent_episodes(customer_id)
-        if customer_id
-        else []
-    )
+    try:
+        profile_store = get_profile_store()
+        profile_facts_with_provenance = (
+            profile_store.get_profile_facts_with_provenance(customer_id)
+            if customer_id
+            else {}
+        )
+        profile_facts = {
+            key: fact["value"]
+            for key, fact in profile_facts_with_provenance.items()
+        }
+    except Exception as error:
+        logger.warning(
+            "Call Brief profile-memory read failed for customer %s: %s",
+            customer_id,
+            type(error).__name__,
+            exc_info=True,
+        )
+        profile_facts_with_provenance = {}
+        profile_facts = {}
+        if customer_id:
+            memory_errors.append("profile_facts")
+    try:
+        episodes = (
+            working_store.get_recent_episodes(customer_id, limit=5)
+            if customer_id and working_store
+            else []
+        )
+    except Exception as error:
+        logger.warning(
+            "Call Brief episodic-memory read failed for customer %s: %s",
+            customer_id,
+            type(error).__name__,
+            exc_info=True,
+        )
+        episodes = []
+        if customer_id:
+            memory_errors.append("episodic_memory")
+
+    def _as_text_list(value):
+        if not isinstance(value, list):
+            return []
+        return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+
     episode_sessions = [
         {
             "session_id": episode["session_id"],
-            "date": episode["ended_at"],
-            "channel": "other",
-            "summary": episode.get("summary", ""),
+            "date": (
+                episode["ended_at"].isoformat()
+                if hasattr(episode.get("ended_at"), "isoformat")
+                else str(episode.get("ended_at") or "")
+            ),
+            "channel": str(episode.get("channel") or "other"),
+            "summary": (
+                "Historical, not verified as current: "
+                + str(episode.get("summary") or "")
+            ),
             "outcome": episode.get("outcome", "khac"),
         }
         for episode in episodes
+        if episode.get("session_id")
     ]
     sessions = [*sessions, *episode_sessions]
+
+    def _historical_product_summaries(items):
+        summaries = []
+        for item in items if isinstance(items, list) else []:
+            if not isinstance(item, dict):
+                continue
+            summary = {
+                key: item[key]
+                for key in ("sku", "name")
+                if isinstance(item.get(key), str) and item[key].strip()
+            }
+            if summary:
+                summaries.append(summary)
+        return summaries
+
     products_advised = [
         product
         for episode in reversed(episodes)
-        for product in episode.get("products_advised", [])
+        for product in _historical_product_summaries(
+            episode.get("products_advised")
+        )
     ]
     latest_episode = episodes[0] if episodes else {}
-    open_blockers = latest_open_brief.get("open_blockers") or latest_episode.get(
-        "open_blockers", []
+    open_blockers = _as_text_list(
+        latest_open_brief.get("open_blockers")
+        or latest_episode.get("open_blockers")
     )
-    open_questions = latest_open_brief.get("open_questions") or latest_episode.get(
-        "open_questions", []
+    open_questions = _as_text_list(
+        latest_open_brief.get("open_questions")
+        or latest_episode.get("open_questions")
     )
     if latest_open_brief.get("products_advised"):
-        products_advised.extend(latest_open_brief["products_advised"])
+        products_advised.extend(
+            _historical_product_summaries(latest_open_brief["products_advised"])
+        )
     last_session = _get_last_session(sessions)
 
     stale_warnings = []
-
-    for product in products_advised:
-        if product.get("promo_still_active") is False:
-            stale_warnings.append(
-                f"Promotion {product.get('promo_code') or 'previously quoted'} "
-                "may no longer be active."
-            )
+    if episodes or products_advised:
+        stale_warnings.append(
+            "Historical prices, stock, promotions, and policies must be "
+            "re-verified before advising."
+        )
+    if open_blockers or open_questions:
+        stale_warnings.append(
+            "Previously recorded blockers and questions need confirmation "
+            "before treating them as current."
+        )
 
     must_not_ask = _build_must_not_ask(profile_facts, products_advised, customer_info)
     suggested_opening = _build_suggested_opening(
@@ -716,8 +938,18 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         open_blockers,
     )
 
+    next_actions = _as_text_list(latest_episode.get("next_actions"))
     if open_blockers:
-        suggested_next_action = f"Address the open blocker: {open_blockers[0]}"
+        suggested_next_action = (
+            f"Confirm whether this previous blocker remains: {open_blockers[0]}"
+        )
+    elif open_questions:
+        suggested_next_action = (
+            f"Confirm whether this previous question is still open: "
+            f"{open_questions[0]}"
+        )
+    elif next_actions:
+        suggested_next_action = next_actions[0]
     elif products_advised:
         suggested_next_action = "Continue the previous discussion without repeating known information."
     else:
@@ -747,6 +979,29 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
             constraints["interested_product_name"] = interested_product["name"]
     tool_summary = _summarize_current_tools(state.get("messages", []))
 
+    memory_has_data = bool(profile_facts or episodes or current_session_history)
+    if memory_errors:
+        memory_status = "partial" if memory_has_data else "error"
+    else:
+        memory_status = "loaded" if memory_has_data else "empty"
+    memory_sources = {
+        "profile_facts": {
+            key: {
+                "session_id": fact.get("source_session_id"),
+                "updated_at": (
+                    fact["updated_at"].isoformat()
+                    if hasattr(fact.get("updated_at"), "isoformat")
+                    else fact.get("updated_at")
+                ),
+            }
+            for key, fact in profile_facts_with_provenance.items()
+        },
+        "episodes": [episode["session_id"] for episode in episodes if episode.get("session_id")],
+        "working_events": [
+            event["event_id"] for event in open_session_events if event.get("event_id")
+        ],
+    }
+
     brief = CallBrief(
         customer_id=customer_id,
         customer_phone=customer_info.get("phone") or "",
@@ -756,6 +1011,16 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         is_returning=bool(sessions),
         n_previous_sessions=len(sessions),
         last_session=last_session,
+        recent_sessions=[
+            LastSession(
+                session_id=str(session["session_id"]),
+                date=str(session["date"]),
+                channel=str(session.get("channel") or "other"),
+                summary=str(session.get("summary") or ""),
+                outcome=str(session.get("outcome") or "khac"),
+            )
+            for session in episode_sessions
+        ],
         current_need=current_need,
         constraints=constraints,
         tool_summary=tool_summary,
@@ -780,9 +1045,46 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
             "open_blockers",
             "must_not_ask",
         ],
+        memory_status=memory_status,
+        memory_sources=memory_sources,
     )
 
     brief_dict = brief.model_dump(mode="json")
+    if session_id:
+        if working_store is None:
+            raise RuntimeError(
+                "Cannot persist Call Brief because memory storage is unavailable."
+            ) from working_store_error
+        brief_dict["call_brief_revision"] = working_store.save_call_brief(
+            session_id=session_id,
+            customer_id=customer_id,
+            call_brief=brief_dict,
+        )
+        brief_dict["call_brief_updated_at"] = datetime.now().isoformat()
+
+    if customer_id and resolved_name:
+        identity_state = {
+            "needs_identity": False,
+            "identity_status": "resolved",
+            "identity_attempts": 0,
+            "missing_identity_fields": [],
+        }
+    elif customer_id and not resolved_name:
+        # Phone resolved to a customer_id but name still missing.
+        identity_state = {
+            "needs_identity": True,
+            "identity_status": "needs_input",
+            "missing_identity_fields": ["name"],
+        }
+    else:
+        # No customer_id — propagate current needs_identity from state so
+        # routing functions always see a consistent value (never stale).
+        current_needs = state.get("needs_identity", False)
+        current_status = state.get("identity_status") or "needs_input"
+        identity_state = {
+            "needs_identity": current_needs,
+            "identity_status": current_status,
+        }
     # Safe debug log: structure + masked phone only, never full PII.
     logger.debug(
         "call_brief built fields=%s has_name=%s has_phone=%s need_len=%s "
@@ -796,4 +1098,4 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         _mask_phone(brief_dict.get("customer_phone")),
     )
 
-    return {"call_brief": brief_dict}
+    return {"call_brief": brief_dict, **identity_state}

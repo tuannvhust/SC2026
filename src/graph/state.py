@@ -19,6 +19,9 @@ class AgentState(TypedDict, total=False):
     missing_identity_fields: Optional[List[str]]
     # Original Turn-1 request kept while asking for identity.
     pending_need: Optional[str]
+    # Explicit identity resolution status: needs_input | invalid_input |
+    # not_found | ambiguous | resolved | system_error
+    identity_status: Optional[str]
 
     # Session continuity
     call_brief: Optional[Dict[str, Any]]
