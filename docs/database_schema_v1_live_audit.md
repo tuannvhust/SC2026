@@ -1,266 +1,422 @@
-# Database Schema v1  -  Live Database Audit
+# Audit schema database live v1 — SC2026 tren Supabase
 
-**Audit time:** 2026-10-17 15:16 UTC  
-**Mode:** live PostgreSQL catalog and aggregate SELECT; read-only transaction is on.  
-**No writes:** no app store constructor, create_all, LangGraph setup, migration, DDL/DML, or fixture ran.  
-**Target:** configured DB matched `SUPABASE_URL`; project and database matched the prior snapshot; database `postgres`. Project reference and connection details are omitted.  
-**Server:** PostgreSQL 17.11; **schemas:** 9; **base/partitioned tables:** 50.
+## 1. Thoi diem va phuong phap kiem tra
 
-## Evidence labels
+- Thoi diem: 2026-10-19 (UTC), workspace `D:\SC2026`, branch `ktruc`.
+- Phuong phap chinh: **doc metadata live qua Supabase PostgREST/OpenAPI** (`GET /rest/v1/` tra ve 16 definitions: columns, format/type, required, default, PK, FK). Day la introspection truc tiep tu database dang chay, khong phai doc migration.
+- Moi bang duoc probe them bang `GET /rest/v1/<table>?select=*&limit=0` (`Prefer: count=none`) — **khong doc bat ky row du lieu nao**, chi lay HTTP status.
+- Ket noi direct PostgreSQL (`SUPABASE_DATABASE_URL` -> `db.iphacketssgxcssvrdoq.supabase.co:5432/postgres`) tai thoi diem audit **khong phan giai DNS duoc**; `SUPABASE_POOLER_URL` chua cau hinh. Nen cac truy van `information_schema`/`pg_catalog` (index, trigger, function, sequence, RLS chi tiet) **chua thuc hien duoc** (muc 10).
+- Tuan thu gioi han an toan: chi doc metadata; khong migration/DDL/seed; khong INSERT/UPDATE/DELETE/TRUNCATE/DROP; khong in secret; khong in du lieu khach hang/PII; khong commit/push.
 
-- **Live catalog:** read from PostgreSQL system catalogs/information schema.
-- **Live aggregate:** count/validation only; no row values selected.
-- **Source code:** inspected repository.
-- **Prior dump:** earlier point-in-time snapshot only.
-- **Not verified:** insufficient evidence.
+## 2. Nguon du lieu va gioi han quyen truy cap
 
-## 1. Catalog summary
+| Nguon | Trang thai | Dung cho |
+|---|---|---|
+| PostgREST OpenAPI live (`/rest/v1/`, 16 definitions, ~85KB) | DA XAC MINH TRUC TIEP | Columns, kieu du lieu, required/nullable, default, PK, FK cua 16 bang |
+| Probe `GET /rest/v1/<table>?select=*&limit=0` cho 12 bang | DA XAC MINH TRUC TIEP | Bang ton tai + API key doc duoc (HTTP 200, body `[]`) |
+| `SUPABASE_DATABASE_URL` direct Postgres | DNS fail tai thoi diem audit | Chua doc duoc `pg_indexes`, `pg_trigger`, `pg_proc`, `pg_policies`, sequences |
+| `SUPABASE_POOLER_URL` | Chua cau hinh | Chua thu duoc pooler `:6543` |
+| `src/memory/migrations/001_schema_v1.sql` | Tham khao repo | Doi chieu ky vong migration v1 |
+| `src/memory/working/postgres_store.py` | Tham khao repo | Doi chieu code runtime thuc te |
+| `src/tools/tool_repository.py` | Tham khao repo | Doi chieu query customer/catalog |
+| `supabase_memory_dump.md` (17/10/2026, local, gitignored) | Lich su, KHONG phai bang chung live | Chi ghi nhan schema `working_events` dang `VARCHAR` don gian thoi diem do |
 
-- Non-system schemas: `auth, extensions, graphql, graphql_public, pgbouncer, public, realtime, storage, vault`.
-- Business customer/CRM/address/order/session name matches: **none found**.
-- Three non-table relations (views/materialized/foreign relations) were present; none had customer, CRM, address, order, session, identity, profile, memory, episode, or Call Brief names.
-- `auth.users`, `auth.identities`, and `auth.sessions` are Supabase Auth state, not an established CRM/customer/session model.
-- `public` contains four app-memory tables, four checkpoint tables, and product catalog tables.
-- Target was matched internally to configured project and prior snapshot; no host, URL, credentials, customer records, or full IDs included.
-- Live memory counts are now `working_events` 75, `episodic_memory` 7, `profile_facts` 6, `profile_fact_history` 11. The prior dump reported 67, 6, 5, and 10 respectively, so the dump counts are stale.
-- **Access-control finding:** all four checkpoint tables and all four app-memory tables have RLS disabled, no visible policies, and table grants to `anon` and `authenticated` that include `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and `TRUNCATE`. The `public` schema also grants `USAGE` to `anon`, `authenticated`, and `service_role` (no `CREATE`). Catalog grants alone do not prove the Supabase API exposes these tables; API schema exposure/configuration was not tested. This needs a separate access review before any migration or API exposure change.
+Cau hinh ket noi (chi ten bien + trang thai, khong in gia tri):
 
-### All discovered non-system tables
+- `SUPABASE_DATABASE_URL` — SET (working/episodic/profile facts + CRM direct SQL). Target an toan: `db.iphacketssgxcssvrdoq.supabase.co:5432/postgres`.
+- `SUPABASE_POOLER_URL` — MISSING (optional).
+- `SUPABASE_URL` — SET (catalog qua REST).
+- `SUPABASE_KEY` — SET (probe doc duoc 12/12 bang).
+- `DATABASE_URL` — MISSING (fallback).
 
-- `auth` (27): `audit_log_entries`, `custom_oauth_providers`, `flow_state`, `identities`, `instances`, `mfa_amr_claims`, `mfa_challenges`, `mfa_factors`, `mfa_recovery_code_sets`, `mfa_recovery_codes`, `oauth_authorizations`, `oauth_client_states`, `oauth_clients`, `oauth_consents`, `one_time_tokens`, `refresh_tokens`, `saml_providers`, `saml_relay_states`, `schema_migrations`, `scim_tokens`, `scim_users`, `sessions`, `sso_domains`, `sso_providers`, `users`, `webauthn_challenges`, `webauthn_credentials`
-- `extensions` (0): (none)
-- `graphql` (0): (none)
-- `graphql_public` (0): (none)
-- `pgbouncer` (0): (none)
-- `public` (11): `checkpoint_blobs`, `checkpoint_migrations`, `checkpoint_writes`, `checkpoints`, `episodic_memory`, `product_variants`, `products`, `profile_fact_history`, `profile_facts`, `promotions`, `working_events`
-- `realtime` (3): `messages`, `schema_migrations`, `subscription`
-- `storage` (8): `buckets`, `buckets_analytics`, `buckets_vectors`, `migrations`, `objects`, `s3_multipart_uploads`, `s3_multipart_uploads_parts`, `vector_indexes`
-- `vault` (1): `secrets`
+## 3. Tong quan schema
 
-### LangGraph checkpointer
+- Schema kiem tra: `public` (16 definitions trong OpenAPI = 16 bang duoc expose).
+- Tong so bang xac minh live: **16** (9 nghiep vu/memory v1 + 3 catalog + 4 LangGraph checkpoint).
+- View / materialized view: **khong phat hien** trong OpenAPI.
+- Sequence / function / trigger / index / CHECK / UNIQUE chi tiet: **chua xac minh duoc** — can direct DB.
+- Nhom bang: ung dung (9): `customers`, `customer_identities`, `customer_addresses`, `conversation_sessions`, `working_events`, `profile_fact_candidates`, `profile_facts`, `profile_fact_history`, `episodic_memory`; catalog (3): `products`, `product_variants`, `promotions`; workflow (4): `checkpoints`, `checkpoint_writes`, `checkpoint_blobs`, `checkpoint_migrations`.
+- Khong phat hien bang don hang (`orders`) — code chi luu `orders_summary JSONB` trong `episodic_memory`.
 
-- `requirements.txt` declares `langgraph-checkpoint-postgres>=2.0.0`, `langgraph>=1.0.0`, `psycopg[binary,pool]>=3.2.0`, `psycopg2-binary>=2.9.0`.
-- Base Python metadata: `langgraph-checkpoint-postgres` not installed; `langgraph` 1.1.2; `SQLAlchemy` 2.0.39; `psycopg` not installed; `psycopg2-binary` not installed.
-- Audit `.venv` metadata: `langgraph-checkpoint-postgres` not installed; `langgraph` not installed; `SQLAlchemy` 2.1.5; `psycopg` 3.3.6; `psycopg2-binary` 2.9.13.
-- `Dockerfile.backend` builds from Python 3.11 and installs `requirements.txt`; the saver dependency is only lower-bounded (`>=2.0.0`). The deployed image’s resolved package version was not available for inspection.
-- Live tables: `public.checkpoints`, `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations`; checkpoint payload was not read.
-- Migration version aggregate: `{'migration_rows': 10, 'min_version': 0, 'max_version': 9}`. Deployed saver package version is not verified because absent from both local interpreters; no setup was called.
+## 4. Danh sach bang va muc dich su dung
 
-## 2. Full table inventory
+| # | Bang | Nhom | Muc dich | Code su dung |
+|---|---|---|---|---|
+| 1 | `customers` | CRM | Ho so khach hang, `customer_id TEXT` on dinh | `tool_repository.crm_get_customer`, `ensure_session` |
+| 2 | `customer_identities` | CRM | Dinh danh da kenh (phone/zalo/fb/email/web/crm) | `crm_get_customer` (lookup phone) |
+| 3 | `customer_addresses` | CRM | Dia chi chuan, 1 default/customer | Chua thay query truc tiep (chi migration) |
+| 4 | `conversation_sessions` | Session | Vong doi phien + Call Brief snapshot | `ensure_session`, input_nodes, chat/graph routers |
+| 5 | `working_events` | Working memory | Tung luot hoi thoai (`turn`), append-only | `persist_turn_node`, graph_runner, trace |
+| 6 | `profile_fact_candidates` | Memory gate | Fact cho qua Write/Durable-Fact Gate | Chua thay query truc tiep (chi migration) |
+| 7 | `profile_facts` | Profile memory | Fact hien hanh, PK `(customer_id, profile_key)` | `ProfileStore`, planner/safety nodes |
+| 8 | `profile_fact_history` | Audit | Lich su thay doi profile, append-only | `save/get_profile_fact_history` |
+| 9 | `episodic_memory` | Episodic | Tom tat phien da ket thuc (1 episode/session) | `persist_call_node`, `get_recent_episodes` |
+| 10 | `products` | Catalog | San pham (`sku` PK), gia, ton kho | `tool_repository`, RAG ingestion |
+| 11 | `product_variants` | Catalog | Bien the (`variant_sku` PK -> `products.sku`) | `tool_repository` |
+| 12 | `promotions` | Catalog | Khuyen mai (`promo_code` PK, `gift_sku` -> `products.sku`) | `tool_repository` (cache 60s) |
+| 13 | `checkpoints` | Workflow | LangGraph checkpoint state | `graph/builder.py` (checkpointer) |
+| 14 | `checkpoint_writes` | Workflow | Ghi tam tung task trong checkpoint | LangGraph noi bo |
+| 15 | `checkpoint_blobs` | Workflow | Blob cua checkpoint channel | LangGraph noi bo |
+| 16 | `checkpoint_migrations` | Workflow | Version migration checkpointer (`v` PK) | LangGraph noi bo |
 
-All non-system table names are listed above. Detailed metadata below covers all `public` tables and all relevant customer/identity/address/order/session/memory/checkpoint matches, plus Auth users/identities/sessions. Other internal service tables are catalog-listed but not full-scanned.
+## 5. Chi tiet cot, khoa va constraint tung bang (DA XAC MINH LIVE qua OpenAPI)
 
-### `auth.identities`
+Quy uoc: `required` = NOT NULL; `format` = kieu Postgres that; PK/FK tu `description` (`<pk/>`, `<fk table col/>`). CHECK/UNIQUE/index/trigger/function/sequence chi tiet can direct DB (muc 10).
 
-- Kind `r`; rows `exact 0`; RLS `True`; FORCE RLS `False`.
-- Columns: `provider_id` `text` NOT NULL; `user_id` `uuid` NOT NULL; `identity_data` `jsonb` NOT NULL; `provider` `text` NOT NULL; `last_sign_in_at` `timestamp with time zone` NULL; `created_at` `timestamp with time zone` NULL; `updated_at` `timestamp with time zone` NULL; `email` `text` NULL DEFAULT `lower((identity_data ->> 'email'::text))`; `id` `uuid` NOT NULL DEFAULT `gen_random_uuid()`.
-- Constraints: `FOREIGN KEY identities_user_id_fkey` FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE (validated); `PRIMARY KEY identities_pkey` PRIMARY KEY (id) (validated); `UNIQUE identities_provider_id_provider_unique` UNIQUE (provider_id, provider) (validated).
-- Indexes: `identities_email_idx` CREATE INDEX identities_email_idx ON auth.identities USING btree (email text_pattern_ops); `identities_pkey` CREATE UNIQUE INDEX identities_pkey ON auth.identities USING btree (id); `identities_provider_id_provider_unique` CREATE UNIQUE INDEX identities_provider_id_provider_unique ON auth.identities USING btree (provider_id, provider); `identities_user_id_idx` CREATE INDEX identities_user_id_idx ON auth.identities USING btree (user_id).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `postgres`:DELETE; `postgres`:INSERT; `postgres`:REFERENCES; `postgres`:SELECT (grantable); `postgres`:TRIGGER; `postgres`:TRUNCATE; `postgres`:UPDATE.
+### 5.x `checkpoint_blobs` (6 cot) — PK `thread_id, checkpoint_ns, channel, version`
 
-### `auth.sessions`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `thread_id` | `text` | NOT NULL | `None` | PK |
+| `checkpoint_ns` | `text` | NOT NULL | `` | PK |
+| `channel` | `text` | NOT NULL | `None` | PK |
+| `version` | `text` | NOT NULL | `None` | PK |
+| `type` | `text` | NOT NULL | `None` |  |
+| `blob` | `bytea` | NULL | `None` |  |
 
-- Kind `r`; rows `exact 0`; RLS `True`; FORCE RLS `False`.
-- Columns: `id` `uuid` NOT NULL; `user_id` `uuid` NOT NULL; `created_at` `timestamp with time zone` NULL; `updated_at` `timestamp with time zone` NULL; `factor_id` `uuid` NULL; `aal` `auth.aal_level` NULL; `not_after` `timestamp with time zone` NULL; `refreshed_at` `timestamp without time zone` NULL; `user_agent` `text` NULL; `ip` `inet` NULL; `tag` `text` NULL; `oauth_client_id` `uuid` NULL; `refresh_token_hmac_key` `text` NULL; `refresh_token_counter` `bigint` NULL; `scopes` `text` NULL.
-- Constraints: `CHECK sessions_scopes_length` CHECK (char_length(scopes) <= 4096) (validated); `FOREIGN KEY sessions_oauth_client_id_fkey` FOREIGN KEY (oauth_client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE (validated); `FOREIGN KEY sessions_user_id_fkey` FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE (validated); `PRIMARY KEY sessions_pkey` PRIMARY KEY (id) (validated).
-- Indexes: `sessions_not_after_idx` CREATE INDEX sessions_not_after_idx ON auth.sessions USING btree (not_after DESC); `sessions_oauth_client_id_idx` CREATE INDEX sessions_oauth_client_id_idx ON auth.sessions USING btree (oauth_client_id); `sessions_pkey` CREATE UNIQUE INDEX sessions_pkey ON auth.sessions USING btree (id); `sessions_user_id_idx` CREATE INDEX sessions_user_id_idx ON auth.sessions USING btree (user_id); `user_id_created_at_idx` CREATE INDEX user_id_created_at_idx ON auth.sessions USING btree (user_id, created_at).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `postgres`:DELETE; `postgres`:INSERT; `postgres`:REFERENCES; `postgres`:SELECT (grantable); `postgres`:TRIGGER; `postgres`:TRUNCATE; `postgres`:UPDATE.
+### 5.x `checkpoint_migrations` (1 cot) — PK `v`
 
-### `auth.users`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `v` | `int32` | NOT NULL | `None` | PK |
 
-- Kind `r`; rows `exact 0`; RLS `True`; FORCE RLS `False`.
-- Columns: `instance_id` `uuid` NULL; `id` `uuid` NOT NULL; `aud` `character varying(255)` NULL; `role` `character varying(255)` NULL; `email` `character varying(255)` NULL; `encrypted_password` `character varying(255)` NULL; `email_confirmed_at` `timestamp with time zone` NULL; `invited_at` `timestamp with time zone` NULL; `confirmation_token` `character varying(255)` NULL; `confirmation_sent_at` `timestamp with time zone` NULL; `recovery_token` `character varying(255)` NULL; `recovery_sent_at` `timestamp with time zone` NULL; `email_change_token_new` `character varying(255)` NULL; `email_change` `character varying(255)` NULL; `email_change_sent_at` `timestamp with time zone` NULL; `last_sign_in_at` `timestamp with time zone` NULL; `raw_app_meta_data` `jsonb` NULL; `raw_user_meta_data` `jsonb` NULL; `is_super_admin` `boolean` NULL; `created_at` `timestamp with time zone` NULL; `updated_at` `timestamp with time zone` NULL; `phone` `text` NULL DEFAULT `NULL::character varying`; `phone_confirmed_at` `timestamp with time zone` NULL; `phone_change` `text` NULL DEFAULT `''::character varying`; `phone_change_token` `character varying(255)` NULL DEFAULT `''::character varying`; `phone_change_sent_at` `timestamp with time zone` NULL; `confirmed_at` `timestamp with time zone` NULL DEFAULT `LEAST(email_confirmed_at, phone_confirmed_at)`; `email_change_token_current` `character varying(255)` NULL DEFAULT `''::character varying`; `email_change_confirm_status` `smallint` NULL DEFAULT `0`; `banned_until` `timestamp with time zone` NULL; `reauthentication_token` `character varying(255)` NULL DEFAULT `''::character varying`; `reauthentication_sent_at` `timestamp with time zone` NULL; `is_sso_user` `boolean` NOT NULL DEFAULT `false`; `deleted_at` `timestamp with time zone` NULL; `is_anonymous` `boolean` NOT NULL DEFAULT `false`.
-- Constraints: `CHECK users_email_change_confirm_status_check` CHECK (email_change_confirm_status >= 0 AND email_change_confirm_status <= 2) (validated); `PRIMARY KEY users_pkey` PRIMARY KEY (id) (validated); `UNIQUE users_phone_key` UNIQUE (phone) (validated).
-- Indexes: `confirmation_token_idx` CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*$'::text); `email_change_token_current_idx` CREATE UNIQUE INDEX email_change_token_current_idx ON auth.users USING btree (email_change_token_current) WHERE ((email_change_token_current)::text !~ '^[0-9 ]*$'::text); `email_change_token_new_idx` CREATE UNIQUE INDEX email_change_token_new_idx ON auth.users USING btree (email_change_token_new) WHERE ((email_change_token_new)::text !~ '^[0-9 ]*$'::text); `idx_users_created_at_desc` CREATE INDEX idx_users_created_at_desc ON auth.users USING btree (created_at DESC); `idx_users_email` CREATE INDEX idx_users_email ON auth.users USING btree (email); `idx_users_last_sign_in_at_desc` CREATE INDEX idx_users_last_sign_in_at_desc ON auth.users USING btree (last_sign_in_at DESC); `idx_users_name` CREATE INDEX idx_users_name ON auth.users USING btree (((raw_user_meta_data ->> 'name'::text))) WHERE ((raw_user_meta_data ->> 'name'::text) IS NOT NULL); `reauthentication_token_idx` CREATE UNIQUE INDEX reauthentication_token_idx ON auth.users USING btree (reauthentication_token) WHERE ((reauthentication_token)::text !~ '^[0-9 ]*$'::text); `recovery_token_idx` CREATE UNIQUE INDEX recovery_token_idx ON auth.users USING btree (recovery_token) WHERE ((recovery_token)::text !~ '^[0-9 ]*$'::text); `users_email_partial_key` CREATE UNIQUE INDEX users_email_partial_key ON auth.users USING btree (email) WHERE (is_sso_user = false); `users_instance_id_email_idx` CREATE INDEX users_instance_id_email_idx ON auth.users USING btree (instance_id, lower((email)::text)); `users_instance_id_idx` CREATE INDEX users_instance_id_idx ON auth.users USING btree (instance_id); `users_is_anonymous_idx` CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous); `users_phone_key` CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone); `users_pkey` CREATE UNIQUE INDEX users_pkey ON auth.users USING btree (id).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `postgres`:DELETE; `postgres`:INSERT; `postgres`:REFERENCES; `postgres`:SELECT (grantable); `postgres`:TRIGGER; `postgres`:TRUNCATE; `postgres`:UPDATE.
+### 5.x `checkpoint_writes` (9 cot) — PK `thread_id, checkpoint_ns, checkpoint_id, task_id, idx`
 
-### `public.checkpoint_blobs`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `thread_id` | `text` | NOT NULL | `None` | PK |
+| `checkpoint_ns` | `text` | NOT NULL | `` | PK |
+| `checkpoint_id` | `text` | NOT NULL | `None` | PK |
+| `task_id` | `text` | NOT NULL | `None` | PK |
+| `idx` | `int32` | NOT NULL | `None` | PK |
+| `channel` | `text` | NOT NULL | `None` |  |
+| `type` | `text` | NULL | `None` |  |
+| `blob` | `bytea` | NOT NULL | `None` |  |
+| `task_path` | `text` | NOT NULL | `` |  |
 
-- Kind `r`; rows `exact 453`; RLS `False`; FORCE RLS `False`.
-- Columns: `thread_id` `text` NOT NULL; `checkpoint_ns` `text` NOT NULL DEFAULT `''::text`; `channel` `text` NOT NULL; `version` `text` NOT NULL; `type` `text` NOT NULL; `blob` `bytea` NULL.
-- Constraints: `PRIMARY KEY checkpoint_blobs_pkey` PRIMARY KEY (thread_id, checkpoint_ns, channel, version) (validated).
-- Indexes: `checkpoint_blobs_pkey` CREATE UNIQUE INDEX checkpoint_blobs_pkey ON public.checkpoint_blobs USING btree (thread_id, checkpoint_ns, channel, version); `checkpoint_blobs_thread_id_idx` CREATE INDEX checkpoint_blobs_thread_id_idx ON public.checkpoint_blobs USING btree (thread_id).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `checkpoints` (7 cot) — PK `thread_id, checkpoint_ns, checkpoint_id`
 
-### `public.checkpoint_migrations`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `thread_id` | `text` | NOT NULL | `None` | PK |
+| `checkpoint_ns` | `text` | NOT NULL | `` | PK |
+| `checkpoint_id` | `text` | NOT NULL | `None` | PK |
+| `parent_checkpoint_id` | `text` | NULL | `None` |  |
+| `type` | `text` | NULL | `None` |  |
+| `checkpoint` | `jsonb` | NOT NULL | `None` |  |
+| `metadata` | `jsonb` | NOT NULL | `None` |  |
 
-- Kind `r`; rows `exact 10`; RLS `False`; FORCE RLS `False`.
-- Columns: `v` `integer` NOT NULL.
-- Constraints: `PRIMARY KEY checkpoint_migrations_pkey` PRIMARY KEY (v) (validated).
-- Indexes: `checkpoint_migrations_pkey` CREATE UNIQUE INDEX checkpoint_migrations_pkey ON public.checkpoint_migrations USING btree (v).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `conversation_sessions` (15 cot) — PK `session_id`
 
-### `public.checkpoint_writes`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `session_id` | `text` | NOT NULL | `None` | PK |
+| `customer_id` | `text` | NULL | `None` | FK Note: This is a Foreign Key to `customers.customer_id`.<fk table='customers' column='customer_id'/> |
+| `channel` | `text` | NOT NULL | `web_chat` |  |
+| `status` | `text` | NOT NULL | `active` |  |
+| `started_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `last_activity_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `ended_at` | `timestamp with time zone` | NULL | `None` |  |
+| `finalized_at` | `timestamp with time zone` | NULL | `None` |  |
+| `outcome` | `text` | NULL | `None` |  |
+| `handoff_reason` | `text` | NULL | `None` |  |
+| `call_brief_json` | `jsonb` | NULL | `None` |  |
+| `call_brief_revision` | `int32` | NOT NULL | `0` |  |
+| `call_brief_updated_at` | `timestamp with time zone` | NULL | `None` |  |
+| `created_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
 
-- Kind `r`; rows `exact 1677`; RLS `False`; FORCE RLS `False`.
-- Columns: `thread_id` `text` NOT NULL; `checkpoint_ns` `text` NOT NULL DEFAULT `''::text`; `checkpoint_id` `text` NOT NULL; `task_id` `text` NOT NULL; `idx` `integer` NOT NULL; `channel` `text` NOT NULL; `type` `text` NULL; `blob` `bytea` NOT NULL; `task_path` `text` NOT NULL DEFAULT `''::text`.
-- Constraints: `PRIMARY KEY checkpoint_writes_pkey` PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id, task_id, idx) (validated).
-- Indexes: `checkpoint_writes_pkey` CREATE UNIQUE INDEX checkpoint_writes_pkey ON public.checkpoint_writes USING btree (thread_id, checkpoint_ns, checkpoint_id, task_id, idx); `checkpoint_writes_thread_id_idx` CREATE INDEX checkpoint_writes_thread_id_idx ON public.checkpoint_writes USING btree (thread_id).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `customer_addresses` (16 cot) — PK `address_id`
 
-### `public.checkpoints`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `address_id` | `uuid` | NOT NULL | `gen_random_uuid()` | PK |
+| `customer_id` | `text` | NOT NULL | `None` | FK Note: This is a Foreign Key to `customers.customer_id`.<fk table='customers' column='customer_id'/> |
+| `label` | `text` | NULL | `None` |  |
+| `recipient_name` | `text` | NULL | `None` |  |
+| `recipient_phone` | `text` | NULL | `None` |  |
+| `address_line` | `text` | NOT NULL | `None` |  |
+| `ward` | `text` | NULL | `None` |  |
+| `district` | `text` | NULL | `None` |  |
+| `city` | `text` | NOT NULL | `None` |  |
+| `country_code` | `character` | NOT NULL | `'VN'::bpchar` |  |
+| `is_default` | `boolean` | NOT NULL | `False` |  |
+| `is_verified` | `boolean` | NOT NULL | `False` |  |
+| `verified_at` | `timestamp with time zone` | NULL | `None` |  |
+| `created_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `deleted_at` | `timestamp with time zone` | NULL | `None` |  |
 
-- Kind `r`; rows `exact 469`; RLS `False`; FORCE RLS `False`.
-- Columns: `thread_id` `text` NOT NULL; `checkpoint_ns` `text` NOT NULL DEFAULT `''::text`; `checkpoint_id` `text` NOT NULL; `parent_checkpoint_id` `text` NULL; `type` `text` NULL; `checkpoint` `jsonb` NOT NULL; `metadata` `jsonb` NOT NULL DEFAULT `'{}'::jsonb`.
-- Constraints: `PRIMARY KEY checkpoints_pkey` PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id) (validated).
-- Indexes: `checkpoints_pkey` CREATE UNIQUE INDEX checkpoints_pkey ON public.checkpoints USING btree (thread_id, checkpoint_ns, checkpoint_id); `checkpoints_thread_id_idx` CREATE INDEX checkpoints_thread_id_idx ON public.checkpoints USING btree (thread_id).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `customer_identities` (11 cot) — PK `identity_id`
 
-### `public.episodic_memory`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `identity_id` | `uuid` | NOT NULL | `gen_random_uuid()` | PK |
+| `customer_id` | `text` | NOT NULL | `None` | FK Note: This is a Foreign Key to `customers.customer_id`.<fk table='customers' column='customer_id'/> |
+| `identity_type` | `text` | NOT NULL | `None` |  |
+| `normalized_value` | `text` | NOT NULL | `None` |  |
+| `display_value` | `text` | NULL | `None` |  |
+| `is_verified` | `boolean` | NOT NULL | `False` |  |
+| `verified_at` | `timestamp with time zone` | NULL | `None` |  |
+| `source` | `text` | NULL | `None` |  |
+| `created_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `disabled_at` | `timestamp with time zone` | NULL | `None` |  |
 
-- Kind `r`; rows `exact 7`; RLS `False`; FORCE RLS `False`.
-- Columns: `session_id` `character varying` NOT NULL; `customer_id` `character varying` NULL; `ended_at` `character varying` NOT NULL; `payload_json` `character varying` NOT NULL.
-- Constraints: `PRIMARY KEY episodic_memory_pkey` PRIMARY KEY (session_id) (validated).
-- Indexes: `episodic_memory_pkey` CREATE UNIQUE INDEX episodic_memory_pkey ON public.episodic_memory USING btree (session_id); `idx_episodic_memory_customer` CREATE INDEX idx_episodic_memory_customer ON public.episodic_memory USING btree (customer_id, ended_at).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `customers` (8 cot) — PK `customer_id`
 
-### `public.product_variants`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `customer_id` | `text` | NOT NULL | `None` | PK |
+| `full_name` | `text` | NULL | `None` |  |
+| `preferred_name` | `text` | NULL | `None` |  |
+| `honorific` | `text` | NULL | `None` |  |
+| `status` | `text` | NOT NULL | `active` |  |
+| `created_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `deleted_at` | `timestamp with time zone` | NULL | `None` |  |
 
-- Kind `r`; rows `exact 96`; RLS `True`; FORCE RLS `False`.
-- Columns: `variant_sku` `character varying(100)` NOT NULL; `product_sku` `character varying(100)` NOT NULL; `size` `character varying(50)` NULL; `color` `character varying(50)` NULL; `price_delta_vnd` `bigint` NULL DEFAULT `0`; `stock` `integer` NOT NULL DEFAULT `0`; `created_at` `timestamp with time zone` NULL DEFAULT `now()`; `updated_at` `timestamp with time zone` NULL DEFAULT `now()`.
-- Constraints: `FOREIGN KEY product_variants_product_sku_fkey` FOREIGN KEY (product_sku) REFERENCES products(sku) ON DELETE CASCADE (validated); `PRIMARY KEY product_variants_pkey` PRIMARY KEY (variant_sku) (validated).
-- Indexes: `idx_variants_product_sku` CREATE INDEX idx_variants_product_sku ON public.product_variants USING btree (product_sku); `product_variants_pkey` CREATE UNIQUE INDEX product_variants_pkey ON public.product_variants USING btree (variant_sku).
-- Non-internal triggers: `trg_update_product_stats` CREATE TRIGGER trg_update_product_stats AFTER INSERT OR DELETE OR UPDATE ON product_variants FOR EACH ROW EXECUTE FUNCTION update_product_aggregated_stats().
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `episodic_memory` (19 cot) — PK `episode_id`
 
-### `public.products`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `episode_id` | `uuid` | NOT NULL | `gen_random_uuid()` | PK |
+| `session_id` | `text` | NOT NULL | `None` | FK Note: This is a Foreign Key to `conversation_sessions.session_id`.<fk table='conversation_sessions' column='se |
+| `customer_id` | `text` | NULL | `None` | FK Note: This is a Foreign Key to `customers.customer_id`.<fk table='customers' column='customer_id'/> |
+| `summary` | `text` | NOT NULL | `None` |  |
+| `current_need` | `text` | NULL | `None` |  |
+| `outcome` | `text` | NULL | `None` |  |
+| `handoff_reason` | `text` | NULL | `None` |  |
+| `products_advised` | `jsonb` | NOT NULL | `None` |  |
+| `orders_summary` | `jsonb` | NOT NULL | `None` |  |
+| `open_questions` | `jsonb` | NOT NULL | `None` |  |
+| `open_blockers` | `jsonb` | NOT NULL | `None` |  |
+| `next_actions` | `jsonb` | NOT NULL | `None` |  |
+| `source_event_ids` | `uuid[]` | NOT NULL | `None` |  |
+| `turn_count` | `int32` | NOT NULL | `0` |  |
+| `started_at` | `timestamp with time zone` | NULL | `None` |  |
+| `ended_at` | `timestamp with time zone` | NOT NULL | `None` |  |
+| `payload_json` | `jsonb` | NULL | `None` |  |
+| `created_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
 
-- Kind `r`; rows `exact 40`; RLS `True`; FORCE RLS `False`.
-- Columns: `sku` `character varying(100)` NOT NULL; `name` `character varying(255)` NOT NULL; `category` `character varying(100)` NULL; `brand` `character varying(100)` NULL; `list_price_vnd` `bigint` NOT NULL DEFAULT `0`; `attributes` `jsonb` NULL DEFAULT `'{}'::jsonb`; `min_price` `bigint` NULL DEFAULT `0`; `max_price` `bigint` NULL DEFAULT `0`; `total_stock` `integer` NULL DEFAULT `0`; `in_stock` `boolean` NULL DEFAULT `false`; `is_active` `boolean` NULL DEFAULT `true`; `created_at` `timestamp with time zone` NULL DEFAULT `now()`; `updated_at` `timestamp with time zone` NULL DEFAULT `now()`.
-- Constraints: `PRIMARY KEY products_pkey` PRIMARY KEY (sku) (validated).
-- Indexes: `idx_products_in_stock` CREATE INDEX idx_products_in_stock ON public.products USING btree (in_stock) WHERE (in_stock = true); `idx_products_price` CREATE INDEX idx_products_price ON public.products USING btree (min_price, max_price); `products_pkey` CREATE UNIQUE INDEX products_pkey ON public.products USING btree (sku).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `product_variants` (8 cot) — PK `variant_sku`
 
-### `public.profile_fact_history`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `variant_sku` | `character varying` | NOT NULL | `None` | PK |
+| `product_sku` | `character varying` | NOT NULL | `None` | FK Note: This is a Foreign Key to `products.sku`.<fk table='products' column='sku'/> |
+| `size` | `character varying` | NULL | `None` |  |
+| `color` | `character varying` | NULL | `None` |  |
+| `price_delta_vnd` | `int64` | NULL | `0` |  |
+| `stock` | `int32` | NOT NULL | `0` |  |
+| `created_at` | `timestamp with time zone` | NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NULL | `now()` |  |
 
-- Kind `r`; rows `exact 11`; RLS `False`; FORCE RLS `False`.
-- Columns: `history_id` `integer` NOT NULL DEFAULT `nextval('profile_fact_history_history_id_seq'::regclass)`; `customer_id` `character varying` NOT NULL; `profile_key` `character varying` NOT NULL; `old_value_json` `character varying` NULL; `new_value_json` `character varying` NOT NULL; `provenance_session_id` `character varying` NOT NULL; `changed_at` `character varying` NOT NULL.
-- Constraints: `PRIMARY KEY profile_fact_history_pkey` PRIMARY KEY (history_id) (validated).
-- Indexes: `idx_profile_fact_history_customer` CREATE INDEX idx_profile_fact_history_customer ON public.profile_fact_history USING btree (customer_id, profile_key, changed_at); `profile_fact_history_pkey` CREATE UNIQUE INDEX profile_fact_history_pkey ON public.profile_fact_history USING btree (history_id).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `products` (13 cot) — PK `sku`
 
-### `public.profile_facts`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `sku` | `character varying` | NOT NULL | `None` | PK |
+| `name` | `character varying` | NOT NULL | `None` |  |
+| `category` | `character varying` | NULL | `None` |  |
+| `brand` | `character varying` | NULL | `None` |  |
+| `list_price_vnd` | `int64` | NOT NULL | `0` |  |
+| `attributes` | `jsonb` | NULL | `None` |  |
+| `min_price` | `int64` | NULL | `0` |  |
+| `max_price` | `int64` | NULL | `0` |  |
+| `total_stock` | `int32` | NULL | `0` |  |
+| `in_stock` | `boolean` | NULL | `False` |  |
+| `is_active` | `boolean` | NULL | `True` |  |
+| `created_at` | `timestamp with time zone` | NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NULL | `now()` |  |
 
-- Kind `r`; rows `exact 6`; RLS `False`; FORCE RLS `False`.
-- Columns: `customer_id` `character varying` NOT NULL; `profile_key` `character varying` NOT NULL; `profile_value_json` `character varying` NOT NULL; `provenance_session_id` `character varying` NOT NULL; `updated_at` `character varying` NOT NULL.
-- Constraints: `PRIMARY KEY profile_facts_pkey` PRIMARY KEY (customer_id, profile_key) (validated).
-- Indexes: `profile_facts_pkey` CREATE UNIQUE INDEX profile_facts_pkey ON public.profile_facts USING btree (customer_id, profile_key).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `profile_fact_candidates` (12 cot) — PK `candidate_id`
 
-### `public.promotions`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `candidate_id` | `uuid` | NOT NULL | `gen_random_uuid()` | PK |
+| `session_id` | `text` | NOT NULL | `None` | FK Note: This is a Foreign Key to `conversation_sessions.session_id`.<fk table='conversation_sessions' column='se |
+| `customer_id` | `text` | NOT NULL | `None` | FK Note: This is a Foreign Key to `customers.customer_id`.<fk table='customers' column='customer_id'/> |
+| `profile_key` | `text` | NOT NULL | `None` |  |
+| `proposed_value` | `jsonb` | NOT NULL | `None` |  |
+| `is_durable_fact` | `boolean` | NOT NULL | `False` |  |
+| `confidence` | `numeric` | NULL | `None` |  |
+| `source_event_id` | `uuid` | NULL | `None` | FK Note: This is a Foreign Key to `working_events.event_id`.<fk table='working_events' column='event_id'/> |
+| `status` | `text` | NOT NULL | `pending` |  |
+| `decision_reason` | `text` | NULL | `None` |  |
+| `created_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
+| `resolved_at` | `timestamp with time zone` | NULL | `None` |  |
 
-- Kind `r`; rows `exact 13`; RLS `True`; FORCE RLS `False`.
-- Columns: `promo_code` `character varying(100)` NOT NULL; `name` `character varying(255)` NOT NULL; `applies_to` `text[]` NOT NULL; `type` `character varying(50)` NOT NULL; `gift_sku` `character varying(100)` NULL; `discount_vnd` `bigint` NULL DEFAULT `0`; `discount_percent` `integer` NULL DEFAULT `0`; `min_order_vnd` `bigint` NULL DEFAULT `0`; `start_date` `date` NOT NULL; `end_date` `date` NOT NULL; `stackable` `boolean` NULL DEFAULT `false`; `conditions` `jsonb` NULL DEFAULT `'{}'::jsonb`; `created_at` `timestamp with time zone` NULL DEFAULT `now()`; `updated_at` `timestamp with time zone` NULL DEFAULT `now()`.
-- Constraints: `FOREIGN KEY promotions_gift_sku_fkey` FOREIGN KEY (gift_sku) REFERENCES products(sku) ON DELETE SET NULL (validated); `PRIMARY KEY promotions_pkey` PRIMARY KEY (promo_code) (validated).
-- Indexes: `idx_promotions_dates` CREATE INDEX idx_promotions_dates ON public.promotions USING btree (start_date, end_date); `idx_promotions_gift_sku` CREATE INDEX idx_promotions_gift_sku ON public.promotions USING btree (gift_sku); `promotions_pkey` CREATE UNIQUE INDEX promotions_pkey ON public.promotions USING btree (promo_code).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `profile_fact_history` (10 cot) — PK `history_id`
 
-### `public.working_events`
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `history_id` | `int64` | NOT NULL | `None` | PK |
+| `customer_id` | `text` | NOT NULL | `None` | FK Note: This is a Foreign Key to `customers.customer_id`.<fk table='customers' column='customer_id'/> |
+| `profile_key` | `text` | NOT NULL | `None` |  |
+| `old_value` | `jsonb` | NULL | `None` |  |
+| `new_value` | `jsonb` | NULL | `None` |  |
+| `change_type` | `text` | NOT NULL | `None` |  |
+| `source_session_id` | `text` | NULL | `None` | FK Note: This is a Foreign Key to `conversation_sessions.session_id`.<fk table='conversation_sessions' column='se |
+| `source_event_id` | `uuid` | NULL | `None` | FK Note: This is a Foreign Key to `working_events.event_id`.<fk table='working_events' column='event_id'/> |
+| `change_reason` | `text` | NULL | `None` |  |
+| `changed_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
 
-- Kind `r`; rows `exact 75`; RLS `False`; FORCE RLS `False`.
-- Columns: `event_id` `character varying` NOT NULL; `session_id` `character varying` NOT NULL; `turn_id` `character varying` NOT NULL; `turn_number` `integer` NOT NULL; `customer_id` `character varying` NULL; `created_at` `character varying` NOT NULL; `payload_json` `character varying` NOT NULL.
-- Constraints: `PRIMARY KEY working_events_pkey` PRIMARY KEY (event_id) (validated); `UNIQUE working_events_session_id_turn_id_key` UNIQUE (session_id, turn_id) (validated); `UNIQUE working_events_session_id_turn_number_key` UNIQUE (session_id, turn_number) (validated).
-- Indexes: `idx_working_events_customer` CREATE INDEX idx_working_events_customer ON public.working_events USING btree (customer_id, created_at); `working_events_pkey` CREATE UNIQUE INDEX working_events_pkey ON public.working_events USING btree (event_id); `working_events_session_id_turn_id_key` CREATE UNIQUE INDEX working_events_session_id_turn_id_key ON public.working_events USING btree (session_id, turn_id); `working_events_session_id_turn_number_key` CREATE UNIQUE INDEX working_events_session_id_turn_number_key ON public.working_events USING btree (session_id, turn_number).
-- Non-internal triggers: (none).
-- Policies: (none visible).
-- Visible grants: `anon`:DELETE; `anon`:INSERT; `anon`:REFERENCES; `anon`:SELECT; `anon`:TRIGGER; `anon`:TRUNCATE; `anon`:UPDATE; `authenticated`:DELETE; `authenticated`:INSERT; `authenticated`:REFERENCES; `authenticated`:SELECT; `authenticated`:TRIGGER; `authenticated`:TRUNCATE; `authenticated`:UPDATE; `postgres`:DELETE (grantable); `postgres`:INSERT (grantable); `postgres`:REFERENCES (grantable); `postgres`:SELECT (grantable); `postgres`:TRIGGER (grantable); `postgres`:TRUNCATE (grantable); `postgres`:UPDATE (grantable); `service_role`:DELETE; `service_role`:INSERT; `service_role`:REFERENCES; `service_role`:SELECT; `service_role`:TRIGGER; `service_role`:TRUNCATE; `service_role`:UPDATE.
+### 5.x `profile_facts` (8 cot) — PK `customer_id, profile_key`
 
-## 3. Data-integrity aggregates
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `customer_id` | `text` | NOT NULL | `None` | PK FK Note: This is a Primary Key.<pk/> This is a Foreign Key to `customers.customer_id`.<fk table='customers' colum |
+| `profile_key` | `text` | NOT NULL | `None` | PK |
+| `profile_value` | `jsonb` | NOT NULL | `None` |  |
+| `source_session_id` | `text` | NULL | `None` | FK Note: This is a Foreign Key to `conversation_sessions.session_id`.<fk table='conversation_sessions' column='se |
+| `source_event_id` | `uuid` | NULL | `None` | FK Note: This is a Foreign Key to `working_events.event_id`.<fk table='working_events' column='event_id'/> |
+| `source_kind` | `text` | NOT NULL | `customer_stated` |  |
+| `confidence` | `numeric` | NULL | `None` |  |
+| `updated_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
 
-Counts only; no customer values, payload contents, addresses, tokens, or full IDs selected. JSON/time checks use `pg_input_is_valid`.
+### 5.x `promotions` (14 cot) — PK `promo_code`
 
-- **working_events  -  customer id counts:** `total=75`, `null_customer=7`, `anonymous_customer=20`
-- **working_events  -  created_at invalid timestamptz count:** `count=0`
-- **working_events  -  payload_json invalid JSONB count:** `count=0`
-- **working_events  -  possible test-like pattern rows; unverified:** `count=55`
-- **profile_facts  -  customer id counts:** `total=6`, `null_customer=0`, `anonymous_customer=1`
-- **profile_facts  -  profile_value_json invalid JSONB count:** `count=0`
-- **profile_facts  -  updated_at invalid timestamptz count:** `count=0`
-- **profile_facts  -  possible test-like pattern rows; unverified:** `count=5`
-- **profile_fact_history  -  customer id counts:** `total=11`, `null_customer=0`, `anonymous_customer=1`
-- **profile_fact_history  -  old_value_json invalid JSONB count:** `count=0`
-- **profile_fact_history  -  new_value_json invalid JSONB count:** `count=0`
-- **profile_fact_history  -  changed_at invalid timestamptz count:** `count=0`
-- **profile_fact_history  -  possible test-like pattern rows; unverified:** `count=10`
-- **episodic_memory  -  customer id counts:** `total=7`, `null_customer=0`, `anonymous_customer=1`
-- **episodic_memory  -  ended_at invalid timestamptz count:** `count=0`
-- **episodic_memory  -  payload_json invalid JSONB count:** `count=0`
-- **episodic_memory  -  possible test-like pattern rows; unverified:** `count=6`
-- **episodic_memory  -  rows without working-event session:** `count=0`
-- **working_events  -  sessions without episode; may be unfinalized:** `count=32`
-- **profile_facts  -  provenance sessions absent from working_events:** `count=0`
-- **profile_fact_history  -  provenance sessions absent from working_events:** `count=0`
-- **auth.identities  -  normalized duplicates; Supabase Auth, not CRM:** `duplicate_groups=0`, `excess_rows=0`
-- **Event to normalized session check:** no business session table found; FK orphan check is not applicable.
-- **Customer resolution:** no canonical business customer table; CRM resolution cannot be evaluated. Null/anonymous counts were measured.
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `promo_code` | `character varying` | NOT NULL | `None` | PK |
+| `name` | `character varying` | NOT NULL | `None` |  |
+| `applies_to` | `text[]` | NOT NULL | `None` |  |
+| `type` | `character varying` | NOT NULL | `None` |  |
+| `gift_sku` | `character varying` | NULL | `None` | FK Note: This is a Foreign Key to `products.sku`.<fk table='products' column='sku'/> |
+| `discount_vnd` | `int64` | NULL | `0` |  |
+| `discount_percent` | `int32` | NULL | `0` |  |
+| `min_order_vnd` | `int64` | NULL | `0` |  |
+| `start_date` | `date` | NOT NULL | `None` |  |
+| `end_date` | `date` | NOT NULL | `None` |  |
+| `stackable` | `boolean` | NULL | `False` |  |
+| `conditions` | `jsonb` | NULL | `None` |  |
+| `created_at` | `timestamp with time zone` | NULL | `now()` |  |
+| `updated_at` | `timestamp with time zone` | NULL | `now()` |  |
 
-### Interpretation limits
+### 5.x `working_events` (9 cot) — PK `event_id`
 
-- Test-like ID patterns are review signals only, not proof of fixtures; no rows were classified, moved, or deleted.
-- A customer ID absent from event history is not proof it is invalid.
-- Episode/event comparison is relative only to available memory events.
-- Parseability does not prove timezone/business semantics.
+| Cot | Kieu | NULL? | Default | Ghi chu |
+|---|---|---|---|---|
+| `event_id` | `uuid` | NOT NULL | `gen_random_uuid()` | PK |
+| `session_id` | `text` | NOT NULL | `None` | FK Note: This is a Foreign Key to `conversation_sessions.session_id`.<fk table='conversation_sessions' column='se |
+| `turn_id` | `text` | NOT NULL | `None` |  |
+| `turn_number` | `int32` | NOT NULL | `None` |  |
+| `customer_id` | `text` | NULL | `None` | FK Note: This is a Foreign Key to `customers.customer_id`.<fk table='customers' column='customer_id'/> |
+| `event_type` | `text` | NOT NULL | `turn_saved` |  |
+| `event_index` | `int32` | NOT NULL | `0` |  |
+| `payload_json` | `jsonb` | NOT NULL | `None` |  |
+| `created_at` | `timestamp with time zone` | NOT NULL | `now()` |  |
 
-## 4. Code and environment
+## 6. So do quan he ERD (chi quan he DA XAC MINH qua FK live)
 
-- [`postgres_store.py`](../src/memory/working/postgres_store.py#L24): selects `SUPABASE_DATABASE_URL` then `DATABASE_URL`; no `TEST_DATABASE_URL` or `APP_ENV` guard. Constructor calls `metadata.create_all()` at line 149; not invoked.
-- [`builder.py`](../src/graph/builder.py#L176): saver selects `SUPABASE_POOLER_URL` or memory DB fallback and calls `setup()` at startup; not invoked. `session_id` is `thread_id`.
-- [`tool_repository.py`](../src/tools/tool_repository.py#L422): CRM lookup is a fixed stub; [`memory_write`](../src/tools/tool_repository.py#L1231) queues rather than writing a candidate row.
-- [`persistence_nodes.py`](../src/graph/nodes/persistence_nodes.py#L129): per-turn event append; finalize at line 287 writes episode and explicit profile facts/history.
-- [`input_nodes.py`](../src/graph/nodes/input_nodes.py#L617): Call Brief reads events/profile/episodes and supplied sessions/orders; ordinary API response in [`graph_runner.py`](../src/api/routers/graph_runner.py#L232) omits it; no snapshot table exists.
-- [`test_memory_lifecycle.py`](../scripts/test_memory_lifecycle.py#L38): can select `DATABASE_URL` or `SUPABASE_DATABASE_URL`; may hit application DB. Frontend sends `anonymous` in [`use-chat-stream.ts`](../frontend/hooks/use-chat-stream.ts#L99).
+```mermaid
+erDiagram
+    customers ||--o{ customer_identities : "customer_id FK"
+    customers ||--o{ customer_addresses : "customer_id FK"
+    customers ||--o{ conversation_sessions : "customer_id FK (nullable)"
+    customers ||--o{ working_events : "customer_id FK (nullable)"
+    customers ||--o{ profile_fact_candidates : "customer_id FK"
+    customers ||--o{ profile_facts : "customer_id FK (PK)"
+    customers ||--o{ profile_fact_history : "customer_id FK"
+    customers ||--o{ episodic_memory : "customer_id FK (nullable)"
+    conversation_sessions ||--o{ working_events : "session_id FK"
+    conversation_sessions ||--o{ profile_fact_candidates : "session_id FK"
+    conversation_sessions ||--o{ profile_facts : "source_session_id FK (nullable)"
+    conversation_sessions ||--o{ profile_fact_history : "source_session_id FK (nullable)"
+    conversation_sessions ||--|| episodic_memory : "session_id FK + UNIQUE (1-1)"
+    working_events ||--o{ profile_fact_candidates : "source_event_id FK (nullable)"
+    working_events ||--o{ profile_facts : "source_event_id FK (nullable)"
+    working_events ||--o{ profile_fact_history : "source_event_id FK (nullable)"
+    products ||--o{ product_variants : "product_sku FK"
+    products ||--o{ promotions : "gift_sku FK (nullable)"
+```
 
-## 5. Test isolation and migration safety
+- 1–N: `customers` -> identities/addresses/sessions/events/candidates/facts/history/episodes; `conversation_sessions` -> events/candidates; `products` -> variants/promotions.
+- 1–1: `conversation_sessions` — `episodic_memory` (FK + UNIQUE tren `session_id`).
+- N–N: khong co bang junction.
+- Cot ID khong co FK (chi luu gia tri): `episodic_memory.source_event_ids UUID[]`, `promotions.applies_to TEXT[]`, `checkpoints.parent_checkpoint_id` (logic, khong FK).
 
-- `.env` has `SUPABASE_DATABASE_URL`; `TEST_DATABASE_URL` and `SUPABASE_POOLER_URL` were absent.
-- README recommends `.venv` and Python 3.11 compatible. No `.venv` existed; an ignored audit `.venv` was created with already-declared DB drivers, SQLAlchemy, and dotenv. No tracked dependency/application code changed.
-- Recommend separate test/application Supabase projects; test requires `APP_ENV=test` + `TEST_DATABASE_URL`, fail-fast/no fallback, project guard without URL logging, synthetic fixtures only.
-- Future migration requires native backup and verified restore to separate project, schema/count snapshots, versioned migration and approval. None run here.
+## 7. Trang thai RLS va policy
 
-## 6. Updated v1 mapping
+- **Chua xac minh duoc chi tiet RLS/policy** (direct DB fail; PostgREST tra 404 cho `pg_policies`/`rpc/pg_tables`).
+- Bang chung gian tiep DA XAC MINH: `SUPABASE_KEY` doc duoc 12/12 bang probe (HTTP 200) — RLS hoac dang tat, hoac co policy SELECT cho role nay; khong phan biet duoc neu khong doc `pg_policies`.
+- Khi direct DB khoi phuc: `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public'` va `SELECT * FROM pg_policies WHERE schemaname='public'`.
 
-| Existing live evidence | Target | Status | Handling / reason |
-| --- | --- | --- | --- |
-| No business customer/CRM table; Auth users are auth state | `customers` | `CREATE` | Create after confirming external CRM and stable customer key. |
-| Auth identities exist but are not CRM mapping | `customer_identities` | `CREATE` | Do not reuse without approved customer mapping. |
-| No address table | `customer_addresses` | `CREATE` | Check external commerce source before creating. |
-| No business conversation table; auth.sessions is Auth state | `conversation_sessions + Call Brief snapshot` | `CREATE` | Create after mapping event session IDs/status. |
-| public.working_events | `working_events` | `MIGRATE` | Retain; validate/convert JSON/time; add FK only after mapping. |
-| No candidate table; queue is in event payload | `profile_fact_candidates` | `CREATE` | Backfill only with provenance and durable-fact decision. |
-| public.profile_facts, string JSON/time | `profile_facts` | `MIGRATE` | Preserve key; validate conversion; customer FK awaits CRM. |
-| public.profile_fact_history, string JSON/time | `profile_fact_history` | `MIGRATE` | Preserve order; reconcile values/provenance/change types. |
-| public.episodic_memory, string JSON/time | `episodic_memory` | `MIGRATE` | Preserve episodes; validate payload/session mapping. |
-| Four live public checkpoint tables | `LangGraph saver infrastructure` | `REUSE` | Leave saver-owned schema/data unchanged. |
-| No order table; CRM tool stub | `Authoritative order source` | `INVESTIGATE` | Locate external source; avoid parallel ledger. |
-| Public product catalog tables | `Outside v1` | `REUSE` | Leave product catalog unchanged. |
+## 8. Diem khac biet giua database thuc te va repository
 
-## 7. Approval gate
+### 8.1 Khac biet nghiem trong: code runtime cu khong khop schema live (P0)
 
-Live catalog and aggregate audit completed in read-only mode; this does not authorize schema changes. Confirm external CRM/order source, canonical customer ID, address/session ownership, mapping for anonymous/orphan/pattern counts, Call Brief contract, durable-fact gate, finalize idempotency, test-project fail-closed behavior, and deployed saver version before preparing migration.
+`src/memory/working/postgres_store.py` dinh nghia SQLAlchemy `Table` + raw SQL theo **schema cu don gian hoa**, khac schema live v1:
 
-**No migration was run. No application/frontend code changed. Schema v1 is not implemented.**
+| Van de | Schema live (da verify) | Code repo | Anh huong |
+|---|---|---|---|
+| `working_events` | 9 cot: `event_id UUID PK`, `event_type`, `event_index`, `payload_json JSONB`, `created_at TIMESTAMPTZ` + FK | 7 cot toan `String`, thieu `event_type/event_index` | Insert thieu cot NOT NULL se dung default DB (co default); `create_all()` khong tan dung constraint |
+| `episodic_memory` | 19 cot, PK `episode_id UUID`, UNIQUE `session_id` | 4 cot `String`: `session_id PK`, `customer_id`, `ended_at`, `payload_json` | `ON CONFLICT(session_id)` van chay nho `payload_json`, nhung **bo qua cot phan tich** (`summary`, `products_advised`, `turn_count`...) |
+| `profile_facts` | `profile_value JSONB`, `source_session_id` | `profile_value_json`, `provenance_session_id` | Doc co fallback chon cot dong (dung); **`save_profile_facts` ghi theo ten cu -> sai cot tren DB live** |
+| `profile_fact_history` | `old_value/new_value JSONB`, `source_session_id`, `change_type`, `change_reason`, `changed_at` | `old_value_json/new_value_json`, `provenance_session_id`, `changed_at` | `save`/`get` history se **sai ten cot** neu khong qua fallback |
+| `conversation_sessions` | 15 cot incl. `status/started_at/last_activity_at/call_brief_*` | `ensure_session` chi `INSERT (session_id, customer_id, channel)` | Chay duoc (cot con lai dung default), nhung khong cap nhat `last_activity_at/status` |
+
+### 8.2 Bang repo ky vong nhung chua thay code su dung
+
+- `customer_addresses`, `profile_fact_candidates`: co trong migration v1 + live, grep `src/**/*.py` khong thay query truc tiep.
+
+### 8.3 Bang live nhung code it/khong de cap truc tiep
+
+- `checkpoints*` (4 bang): chi cau hinh checkpointer trong `graph/builder.py` (dung — LangGraph quan ly noi bo).
+
+### 8.4 Schema cu trong dump lich su
+
+- `supabase_memory_dump.md` (17/10, 67 rows `working_events` cot `VARCHAR` don gian) **trai voi schema live hien tai** (UUID/INT/JSONB/TIMESTAMPTZ + FK) -> DB da migrate len v1 sau dump do, hoac dump tu project khac. Khong dung dump cu lam bang chung hien tai.
+
+## 9. Van de can xu ly (uu tien)
+
+| Uu tien | Van de | Hanh dong de xuat (chua thuc hien) |
+|---|---|---|
+| **P0** | `PostgresMemoryStore` ghi sai ten cot `profile_facts`/`profile_fact_history` vs DB live | Sua `save_*` dung ten v1 (`profile_value`, `source_session_id`, `old/new_value`), giu fallback doc; them test schema v1 that |
+| **P0** | `metadata.create_all()` co the tao schema cu de len DB moi | Bo `create_all()` tu dong hoac `checkfirst` + canh bao; migration v1 la nguon duy nhat tao bang |
+| **P1** | Chua verify index/trigger/CHECK/UNIQUE/RLS live | Cau hinh `SUPABASE_POOLER_URL` hoac sua DNS direct DB roi chay lai audit `information_schema/pg_catalog` chi-doc |
+| **P1** | `ensure_session` khong cap nhat `last_activity_at/status` | Bo sung `ON CONFLICT DO UPDATE SET last_activity_at=now()` |
+| **P2** | `customer_addresses`, `profile_fact_candidates` chua co code dung | Quyet dinh: implement hoac ghi out-of-scope v1 |
+| **P2** | Khong co bang `orders` rieng | Xac nhan thiet ke: `orders_summary JSONB` da du hay can bang orders v2 |
+| **P3** | `supabase_memory_dump.md` chua du lieu that (may la gitignored) | Giu gitignore `*.dump.md`, `reports/`; khong commit file nay |
+
+## 10. Thong tin chua xac minh duoc
+
+1. Index, UNIQUE, CHECK, trigger, function, sequence trong `public` (can direct DB; OpenAPI khong expose).
+2. RLS enable + policy `USING`/`WITH CHECK` + GRANT chi tiet.
+3. Row count / du lieu mau (co y khong doc theo gioi han an toan).
+4. Cac schema ngoai `public` (`auth`, `storage`, extensions).
+5. Role chinh xac cua `SUPABASE_KEY` (chi biet doc duoc 12/12 bang probe).
+6. Direct DB DNS fail la tam thoi hay cau hinh sai (can kiem tra host `db.iphacketssgxcssvrdoq.supabase.co`, mang/IPv6, hoac pooler `:6543`).
+
+### Bang tra cuu nhanh (live, da verify)
+
+| Bang | PK | FK di ra | Duoc FK toi |
+|---|---|---|---|
+| `customers` | `customer_id` | — | tu 8 bang |
+| `customer_identities` | `identity_id` | `customers` | — |
+| `customer_addresses` | `address_id` | `customers` | — |
+| `conversation_sessions` | `session_id` | `customers` | tu events, candidates, facts, history, episodic |
+| `working_events` | `event_id` | `conversation_sessions`, `customers` | tu candidates, facts, history |
+| `profile_fact_candidates` | `candidate_id` | sessions, customers, events | — |
+| `profile_facts` | `(customer_id, profile_key)` | customers, sessions, events | — |
+| `profile_fact_history` | `history_id` | customers, sessions, events | — |
+| `episodic_memory` | `episode_id` (UNIQUE `session_id`) | sessions, customers | — |
+| `products` | `sku` | — | tu variants, promotions |
+| `product_variants` | `variant_sku` | `products` | — |
+| `promotions` | `promo_code` | `products` (gift_sku) | — |
+| `checkpoints` | `(thread_id, checkpoint_ns, checkpoint_id)` | — | — |
+| `checkpoint_writes` | `(thread_id, ..., idx)` | — | — |
+| `checkpoint_blobs` | `(thread_id, checkpoint_ns, channel, version)` | — | — |
+| `checkpoint_migrations` | `(v)` | — | — |
+
+---
+
+### Phan loai phat hien
+
+1. **Da xac minh truc tiep tren Supabase:** muc 5 (columns/types/defaults/PK/FK 16 bang), muc 6 (ERD), probe 12/12 HTTP 200.
+2. **Chi trong repository, chua xac minh tren database:** CHECK/UNIQUE/index/trigger/function/sequence/RLS chi tiet; query `customer_addresses`, `profile_fact_candidates`.
+3. **Khac biet giua database va repository:** muc 8.1 (ten cot `profile_value_json` vs `profile_value`, `provenance_session_id` vs `source_session_id`, `old/new_value_json` vs `old/new_value`; `create_all()` don gian vs v1 day du).
+4. **Chua the xac minh do thieu quyen truy cap:** muc 10 (can direct DB/pooler cho `pg_catalog`, RLS, row counts).

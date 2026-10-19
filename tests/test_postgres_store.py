@@ -26,8 +26,44 @@ def test_database_url_comes_from_supabase_or_standard_environment(monkeypatch):
 
 
 def test_profile_facts_are_upserted_and_read_as_json():
-    database_url = make_url("sqlite+pysqlite:///:memory:")
-    store = PostgresMemoryStore(str(database_url))
+    from sqlalchemy import create_engine, text
+
+    database_url = "sqlite+pysqlite:///:memory:"
+    store = PostgresMemoryStore.__new__(PostgresMemoryStore)
+    from sqlalchemy import MetaData
+
+    store.engine = create_engine(database_url)
+    store.metadata = MetaData()
+    with store.engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE conversation_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    customer_id TEXT,
+                    channel TEXT,
+                    last_activity_at TEXT
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE profile_facts (
+                    customer_id TEXT NOT NULL,
+                    profile_key TEXT NOT NULL,
+                    profile_value TEXT,
+                    source_session_id TEXT,
+                    source_event_id TEXT,
+                    source_kind TEXT DEFAULT 'customer_stated',
+                    confidence REAL,
+                    updated_at TEXT,
+                    PRIMARY KEY (customer_id, profile_key)
+                )
+                """
+            )
+        )
     try:
         store.save_profile_facts(
             "customer-1",

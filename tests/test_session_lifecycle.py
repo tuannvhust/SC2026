@@ -23,22 +23,12 @@ def _create_store(tmp_path):
                     customer_id TEXT,
                     channel TEXT NOT NULL DEFAULT 'web_chat',
                     status TEXT NOT NULL DEFAULT 'active',
+                    last_activity_at TEXT,
                     updated_at TEXT
                 )
                 """
             )
         )
-    bootstrap.dispose()
-
-    store = PostgresMemoryStore(database_url)
-
-    @event.listens_for(store.engine, "connect")
-    def enable_foreign_keys(connection, _record):
-        connection.execute("PRAGMA foreign_keys=ON")
-
-    store.engine.dispose()
-    with store.engine.begin() as connection:
-        connection.execute(text("DROP TABLE working_events"))
         connection.execute(
             text(
                 """
@@ -57,6 +47,18 @@ def _create_store(tmp_path):
                 """
             )
         )
+    bootstrap.dispose()
+
+    store = PostgresMemoryStore.__new__(PostgresMemoryStore)
+    from sqlalchemy import MetaData
+
+    store.engine = create_engine(database_url)
+    store.metadata = MetaData()
+
+    @event.listens_for(store.engine, "connect")
+    def enable_foreign_keys(connection, _record):
+        connection.execute("PRAGMA foreign_keys=ON")
+
     return store
 
 

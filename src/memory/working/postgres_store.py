@@ -9,13 +9,7 @@ from threading import RLock
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import (
-    Column,
-    Index,
-    Integer,
     MetaData,
-    String,
-    Table,
-    UniqueConstraint,
     create_engine,
     inspect,
     text,
@@ -109,7 +103,11 @@ def _normalized_database_url(database_url: str):
 
 
 class PostgresMemoryStore:
-    """Persist graph state and customer profile facts in SQL databases."""
+    """Persist graph state and customer profile facts in SQL databases.
+
+    Simplified schema: all DDL is owned by src/memory/migrations/*.sql.
+    This runtime never creates tables or indexes.
+    """
 
     def __init__(self, database_url: Optional[str] = None):
         configured_url = database_url or default_database_url()
@@ -126,76 +124,6 @@ class PostgresMemoryStore:
             connect_args=connect_args,
         )
         self.metadata = MetaData()
-        self.working_events = Table(
-            "working_events",
-            self.metadata,
-            Column("event_id", String, primary_key=True),
-            Column("session_id", String, nullable=False),
-            Column("turn_id", String, nullable=False),
-            Column("turn_number", Integer, nullable=False),
-            Column("customer_id", String),
-            Column("created_at", String, nullable=False),
-            Column("payload_json", String, nullable=False),
-            UniqueConstraint("session_id", "turn_id"),
-            UniqueConstraint("session_id", "turn_number"),
-        )
-        Index(
-            "idx_working_events_customer",
-            self.working_events.c.customer_id,
-            self.working_events.c.created_at,
-        )
-        self.episodic_memory = Table(
-            "episodic_memory",
-            self.metadata,
-            Column("session_id", String, primary_key=True),
-            Column("customer_id", String),
-            Column("ended_at", String, nullable=False),
-            Column("payload_json", String, nullable=False),
-        )
-        Index(
-            "idx_episodic_memory_customer",
-            self.episodic_memory.c.customer_id,
-            self.episodic_memory.c.ended_at,
-        )
-        self.profile_facts = Table(
-            "profile_facts",
-            self.metadata,
-            Column("customer_id", String, primary_key=True),
-            Column("profile_key", String, primary_key=True),
-            Column("profile_value_json", String, nullable=False),
-            Column("provenance_session_id", String, nullable=False),
-            Column("updated_at", String, nullable=False),
-        )
-        self.profile_fact_history = Table(
-            "profile_fact_history",
-            self.metadata,
-            Column("history_id", Integer, primary_key=True, autoincrement=True),
-            Column("customer_id", String, nullable=False),
-            Column("profile_key", String, nullable=False),
-            Column("old_value_json", String),
-            Column("new_value_json", String, nullable=False),
-            Column("provenance_session_id", String, nullable=False),
-            Column("changed_at", String, nullable=False),
-        )
-        Index(
-            "idx_profile_fact_history_customer",
-            self.profile_fact_history.c.customer_id,
-            self.profile_fact_history.c.profile_key,
-            self.profile_fact_history.c.changed_at,
-        )
-        self.metadata.create_all(self.engine)
-
-    def _ensure_profile_fact_history_table(self) -> None:
-        """Create history table on existing DBs (minimal migration)."""
-        self.profile_fact_history.create(self.engine, checkfirst=True)
-        with self.engine.begin() as connection:
-            connection.execute(
-                text(
-                    "CREATE INDEX IF NOT EXISTS "
-                    "idx_profile_fact_history_customer ON profile_fact_history "
-                    "(customer_id, profile_key, changed_at)"
-                )
-            )
 
     def append_turn(
         self,
@@ -317,6 +245,7 @@ class PostgresMemoryStore:
             raise ValueError(
                 "session_id is required to create a conversation session."
             )
+        now_fn = "now()" if self.engine.dialect.name != "sqlite" else "datetime('now')"
         with self.engine.begin() as connection:
             connection.execute(
                 text(
@@ -330,7 +259,10 @@ class PostgresMemoryStore:
                         customer_id = COALESCE(
                             conversation_sessions.customer_id,
                             excluded.customer_id
-                        )
+                        ),
+                        last_activity_at = """
+                    + now_fn
+                    + """
                     """
                 ),
                 {
@@ -708,36 +640,13 @@ class PostgresMemoryStore:
     def get_profile_facts_with_provenance(
         self, customer_id: str
     ) -> Dict[str, Dict[str, Any]]:
-        """Return committed profile facts with the source metadata available."""
-        columns = {
-            column["name"] for column in inspect(self.engine).get_columns("profile_facts")
-        }
-        value_column = (
-            "profile_value_json"
-            if "profile_value_json" in columns
-            else "profile_value"
-            if "profile_value" in columns
-            else None
-        )
-        source_column = (
-            "provenance_session_id"
-            if "provenance_session_id" in columns
-            else "source_session_id"
-            if "source_session_id" in columns
-            else None
-        )
-        if value_column is None or "profile_key" not in columns:
-            raise RuntimeError("profile_facts is missing required columns.")
-        selected = ["profile_key", value_column]
-        if source_column:
-            selected.append(source_column)
-        if "updated_at" in columns:
-            selected.append("updated_at")
+        """Return current profile facts with provenance (simplified schema)."""
         with self.engine.connect() as connection:
             rows = connection.execute(
                 text(
-                    f"""
-                    SELECT {", ".join(selected)}
+                    """
+                    SELECT profile_key, profile_value, source_session_id,
+                           source_event_id, source_kind, confidence, updated_at
                     FROM profile_facts
                     WHERE customer_id = :customer_id
                     """
@@ -747,9 +656,12 @@ class PostgresMemoryStore:
         facts = {}
         for row in rows:
             facts[row["profile_key"]] = {
-                "value": _decode_json(row[value_column]),
-                "source_session_id": row[source_column] if source_column else None,
-                "updated_at": row["updated_at"] if "updated_at" in row else None,
+                "value": _decode_json(row["profile_value"]),
+                "source_session_id": row["source_session_id"],
+                "source_event_id": str(row["source_event_id"]) if row["source_event_id"] else None,
+                "source_kind": row["source_kind"],
+                "confidence": float(row["confidence"]) if row["confidence"] is not None else None,
+                "updated_at": row["updated_at"],
             }
         return facts
 
@@ -827,134 +739,92 @@ class PostgresMemoryStore:
         facts: List[Dict[str, Any]],
         session_id: str,
         updated_at: str,
+        source_event_id: Optional[str] = None,
+        source_kind: str = "customer_stated",
+        confidence: Optional[float] = None,
     ) -> None:
-        self._ensure_profile_fact_history_table()
-        columns = {
-            column["name"] for column in inspect(self.engine).get_columns("profile_facts")
-        }
-        value_column = (
-            "profile_value_json"
-            if "profile_value_json" in columns
-            else "profile_value"
-        )
-        source_column = (
-            "provenance_session_id"
-            if "provenance_session_id" in columns
-            else "source_session_id"
-        )
-        history_columns = {
-            column["name"]
-            for column in inspect(self.engine).get_columns("profile_fact_history")
-        }
+        """UPSERT current profile facts (simplified schema, no history table)."""
+        is_sqlite = self.engine.dialect.name == "sqlite"
         with self.engine.begin() as connection:
             for fact in facts:
                 key = fact["key"]
-                new_value_json = json.dumps(
-                    fact["value"],
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                )
-                old_row = connection.execute(
-                    text(f"""
-                        SELECT {value_column} FROM profile_facts
-                        WHERE customer_id = :customer_id AND profile_key = :profile_key
-                    """),
-                    {"customer_id": customer_id, "profile_key": key},
-                ).mappings().first()
-                old_value_json = old_row[value_column] if old_row else None
-                fact_values = {
-                    "customer_id": customer_id,
-                    "profile_key": key,
-                    "value_json": new_value_json,
-                    "source_session_id": session_id,
-                    "updated_at": updated_at,
-                }
-                connection.execute(
-                    text(f"""
-                        INSERT INTO profile_facts (
-                            customer_id, profile_key, {value_column},
-                            {source_column}, updated_at
-                        ) VALUES (
-                            :customer_id, :profile_key, :value_json,
-                            :source_session_id, :updated_at
-                        )
-                        ON CONFLICT(customer_id, profile_key) DO UPDATE SET
-                            {value_column} = excluded.{value_column},
-                            {source_column} = excluded.{source_column},
-                            updated_at = excluded.updated_at
-                    """),
-                    fact_values,
-                )
-                if _decode_json(old_value_json) != _decode_json(new_value_json):
-                    if "old_value_json" in history_columns:
-                        history_names = (
-                            "customer_id, profile_key, old_value_json, "
-                            "new_value_json, provenance_session_id, changed_at"
-                        )
-                        history_values = (
-                            ":customer_id, :profile_key, :old_value, "
-                            ":new_value, :source_session_id, :changed_at"
-                        )
-                        history_params = {
-                            **fact_values,
-                            "old_value": old_value_json,
-                            "new_value": new_value_json,
-                            "provenance_session_id": session_id,
-                            "changed_at": updated_at,
-                        }
-                    else:
-                        history_names = (
-                            "customer_id, profile_key, old_value, new_value, "
-                            "change_type, source_session_id, changed_at"
-                        )
-                        history_values = (
-                            ":customer_id, :profile_key, :old_value, :new_value, "
-                            ":change_type, :source_session_id, :changed_at"
-                        )
-                        history_params = {
-                            **fact_values,
-                            "old_value": old_value_json,
-                            "new_value": new_value_json,
-                            "change_type": "created" if old_row is None else "updated",
-                            "changed_at": updated_at,
-                        }
+                new_value_json = _dumps_json(fact["value"])
+                if is_sqlite:
+                    # SQLite has no JSONB/UUID/TIMESTAMPTZ casts; store ISO text.
                     connection.execute(
                         text(
-                            f"INSERT INTO profile_fact_history ({history_names}) "
-                            f"VALUES ({history_values})"
+                            """
+                            INSERT INTO profile_facts (
+                                customer_id, profile_key, profile_value,
+                                source_session_id, source_event_id, source_kind,
+                                confidence, updated_at
+                            ) VALUES (
+                                :customer_id, :profile_key, :value_json,
+                                :source_session_id, :source_event_id,
+                                :source_kind, :confidence, :updated_at
+                            )
+                            ON CONFLICT(customer_id, profile_key) DO UPDATE SET
+                                profile_value = excluded.profile_value,
+                                source_session_id = excluded.source_session_id,
+                                source_event_id = excluded.source_event_id,
+                                source_kind = excluded.source_kind,
+                                confidence = excluded.confidence,
+                                updated_at = excluded.updated_at
+                            """
                         ),
-                        history_params,
+                        {
+                            "customer_id": customer_id,
+                            "profile_key": key,
+                            "value_json": new_value_json,
+                            "source_session_id": session_id,
+                            "source_event_id": source_event_id,
+                            "source_kind": fact.get("source_kind") or source_kind,
+                            "confidence": fact.get("confidence", confidence),
+                            "updated_at": updated_at,
+                        },
                     )
+                    continue
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO profile_facts (
+                            customer_id, profile_key, profile_value,
+                            source_session_id, source_event_id, source_kind,
+                            confidence, updated_at
+                        ) VALUES (
+                            :customer_id, :profile_key, CAST(:value_json AS JSONB),
+                            :source_session_id, CAST(:source_event_id AS UUID),
+                            :source_kind, :confidence, CAST(:updated_at AS TIMESTAMPTZ)
+                        )
+                        ON CONFLICT(customer_id, profile_key) DO UPDATE SET
+                            profile_value = excluded.profile_value,
+                            source_session_id = excluded.source_session_id,
+                            source_event_id = excluded.source_event_id,
+                            source_kind = excluded.source_kind,
+                            confidence = excluded.confidence,
+                            updated_at = excluded.updated_at
+                    """
+                    ),
+                    {
+                        "customer_id": customer_id,
+                        "profile_key": key,
+                        "value_json": new_value_json,
+                        "source_session_id": session_id,
+                        "source_event_id": source_event_id,
+                        "source_kind": fact.get("source_kind") or source_kind,
+                        "confidence": fact.get("confidence", confidence),
+                        "updated_at": updated_at,
+                    },
+                )
 
     def get_profile_fact_history(
         self, customer_id: str, profile_key: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        self._ensure_profile_fact_history_table()
-        query = (
-            "SELECT customer_id, profile_key, old_value_json, new_value_json, "
-            "provenance_session_id, changed_at FROM profile_fact_history "
-            "WHERE customer_id = :customer_id"
+        """Removed with simplified schema: only current profile_value is kept."""
+        raise RuntimeError(
+            "profile_fact_history was removed by the simplified schema; "
+            "use get_profile_facts_with_provenance() for the current value."
         )
-        params: Dict[str, Any] = {"customer_id": customer_id}
-        if profile_key:
-            query += " AND profile_key = :profile_key"
-            params["profile_key"] = profile_key
-        query += " ORDER BY changed_at"
-        with self.engine.connect() as connection:
-            rows = connection.execute(text(query), params).mappings().all()
-        return [
-            {
-                "customer_id": row["customer_id"],
-                "profile_key": row["profile_key"],
-                "old_value": json.loads(row["old_value_json"])
-                if row["old_value_json"] is not None
-                else None,
-                "new_value": json.loads(row["new_value_json"]),
-                "provenance_session_id": row["provenance_session_id"],
-                "changed_at": row["changed_at"],
-            }
-            for row in rows
-        ]
 
     def close(self) -> None:
         self.engine.dispose()

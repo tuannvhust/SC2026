@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import time
+import uuid
 from datetime import date, datetime, timedelta
 from threading import Lock
 from typing import Any, Dict, List, Literal, Optional
@@ -470,10 +471,70 @@ class CRMGetCustomerInput(BaseModel):
         default=None,
         description="Facebook ID",
     )
+    email: Optional[str] = Field(
+        default=None,
+        description="Customer email",
+    )
     on: Optional[str] = Field(
         default=None,
         description="Call date (YYYY-MM-DD)",
     )
+
+
+def _crm_lookup_error(message: str) -> Dict[str, Any]:
+    return {
+        "found": False,
+        "customer_id": None,
+        "name": None,
+        "honorific": None,
+        "phone": None,
+        "is_verified": False,
+        "ambiguous": False,
+        "error": message,
+    }
+
+
+def _resolve_crm_customers(
+    connection,
+    *,
+    phone: Optional[str] = None,
+    zalo_id: Optional[str] = None,
+    fb_id: Optional[str] = None,
+    email: Optional[str] = None,
+) -> List[Any]:
+    """Query flattened customers by any supplied identity, live rows only."""
+    clauses = [
+        "c.deleted_at IS NULL",
+        "c.status IN ('active', 'provisional')",
+    ]
+    params: Dict[str, Any] = {}
+    if phone:
+        clauses.append("c.phone = :phone")
+        params["phone"] = phone
+    if zalo_id:
+        clauses.append("c.zalo_id = :zalo_id")
+        params["zalo_id"] = zalo_id
+    if fb_id:
+        clauses.append("c.fb_id = :fb_id")
+        params["fb_id"] = fb_id
+    if email:
+        clauses.append("lower(c.email) = lower(:email)")
+        params["email"] = email
+    query = """
+        SELECT
+            c.customer_id,
+            c.full_name,
+            c.preferred_name,
+            c.honorific,
+            c.phone,
+            c.phone_verified,
+            c.zalo_id,
+            c.fb_id,
+            c.email,
+            c.status
+        FROM public.customers c
+        WHERE """ + " AND ".join(clauses)
+    return connection.execute(text(query), params).mappings().all()
 
 
 @tool("crm.get_customer", args_schema=CRMGetCustomerInput)
@@ -481,23 +542,16 @@ def crm_get_customer(
     phone: Optional[str] = None,
     zalo_id: Optional[str] = None,
     fb_id: Optional[str] = None,
+    email: Optional[str] = None,
     on: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Look up a real customer by phone (MVP) using Supabase PostgreSQL.
+    """Look up a customer directly in flattened public.customers.
 
-    Queries ``customer_identities`` joined with ``customers``:
-      - identity_type = 'phone' AND disabled_at IS NULL
-      - customers.deleted_at IS NULL AND status IN ('active', 'provisional')
-
-    Returns:
-        found: bool — whether exactly one active customer was resolved.
-        customer_id: Optional[str]
-        name: Optional[str] — from customers.full_name / preferred_name.
-        honorific: Optional[str]
-        phone: Optional[str] — normalized input phone.
-        is_verified: bool — identity.is_verified.
-        ambiguous: bool — True when multiple distinct customers match.
-        error: Optional[str] — database/system error (not a not-found case).
+    Simplified schema: phone/zalo/fb/email live in one customers row.
+    Phone is not unique (C034/C035 share one phone): multiple distinct
+    customer_id matches return ambiguous=true without auto-picking.
+    Database failures return error, never a silent not-found.
+    phone_verified only proves phone verification, not zalo/fb/email.
     """
     result: Dict[str, Any] = {
         "found": False,
@@ -510,75 +564,52 @@ def crm_get_customer(
         "error": None,
     }
 
-    # Only phone is supported in MVP. Ignore zalo_id/fb_id for lookup but keep
-    # them echoed in result so callers can see what was provided.
-    normalized_phone = _normalize_phone(phone)
-    result["phone"] = normalized_phone
-
-    if not normalized_phone or not _is_valid_phone(normalized_phone):
-        # Invalid input: do not query the database. Return not-found, not error.
-        result["error"] = None
+    normalized_phone = _normalize_phone(phone) if phone else None
+    clean_zalo = zalo_id.strip() if isinstance(zalo_id, str) and zalo_id.strip() else None
+    clean_fb = fb_id.strip() if isinstance(fb_id, str) and fb_id.strip() else None
+    clean_email = email.strip() if isinstance(email, str) and email.strip() else None
+    if phone and (not normalized_phone or not _is_valid_phone(normalized_phone)):
         return result
+    if not normalized_phone and not clean_zalo and not clean_fb and not clean_email:
+        return result
+    result["phone"] = normalized_phone
 
     try:
         engine = _get_crm_engine()
         with engine.connect() as connection:
-            rows = connection.execute(
-                text(
-                    """
-                    SELECT
-                        ci.customer_id,
-                        ci.normalized_value,
-                        ci.is_verified,
-                        c.full_name,
-                        c.preferred_name,
-                        c.honorific,
-                        c.status,
-                        c.deleted_at
-                    FROM public.customer_identities ci
-                    JOIN public.customers c
-                      ON c.customer_id = ci.customer_id
-                    WHERE ci.identity_type = 'phone'
-                      AND ci.normalized_value = :phone
-                      AND ci.disabled_at IS NULL
-                      AND c.deleted_at IS NULL
-                      AND c.status IN ('active', 'provisional')
-                    """
-                ),
-                {"phone": normalized_phone},
-            ).mappings().all()
+            rows = _resolve_crm_customers(
+                connection,
+                phone=normalized_phone,
+                zalo_id=clean_zalo,
+                fb_id=clean_fb,
+                email=clean_email,
+            )
     except Exception as error:  # noqa: BLE001 — system errors must surface, not mask as not-found
-        logger.error("CRM lookup failed for phone=%s: %s", normalized_phone, error, exc_info=True)
+        logger.error("CRM lookup failed: %s", error, exc_info=True)
         result["error"] = f"database_lookup_failed: {type(error).__name__}"
         return result
 
     if not rows:
-        # No active identity found. Not an error — genuinely not found.
         return result
 
-    # Deduplicate by customer_id to detect genuinely distinct customers.
     distinct_customers = {}
     for row in rows:
         distinct_customers[row["customer_id"]] = row
 
     if len(distinct_customers) > 1:
-        # Ambiguous: multiple distinct customers share the same phone identity.
-        # Do NOT auto-pick. Surface ambiguous so the node can ask for disambiguation.
         result["ambiguous"] = True
         result["found"] = False
-        first = next(iter(distinct_customers.values()))
         result["customer_id"] = None
         result["name"] = None
-        result["is_verified"] = bool(first["is_verified"])
         return result
 
-    # Exactly one customer matched.
     row = next(iter(distinct_customers.values()))
     result["found"] = True
     result["customer_id"] = row["customer_id"]
     result["name"] = _real_crm_name(row["full_name"], row["preferred_name"])
     result["honorific"] = row["honorific"]
-    result["is_verified"] = bool(row["is_verified"])
+    result["phone"] = row["phone"] or normalized_phone
+    result["is_verified"] = bool(row["phone_verified"]) if normalized_phone else False
     return result
 
 
@@ -1194,14 +1225,84 @@ def order_create(
     address: Optional[str] = None,
     on: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Create a new order."""
+    """Create an order row + one item row in a single transaction."""
 
-    return {
-        "order_id": "ORD-2026-999",
-        "status": "created",
-        "error": None,
-        "estimated_delivery": compute_estimated_delivery(on),
-    }
+    normalized_phone = _normalize_phone(customer_phone)
+    clean_sku = sku.strip() if isinstance(sku, str) else ""
+    quantity = int(qty or 0)
+    unit_price = int(price_vnd or 0)
+    if (
+        not normalized_phone
+        or not _is_valid_phone(normalized_phone)
+        or not clean_sku
+        or quantity <= 0
+        or unit_price < 0
+    ):
+        return {
+            "order_id": None,
+            "status": "invalid_input",
+            "error": "invalid customer phone, sku, quantity, or price",
+            "estimated_delivery": compute_estimated_delivery(on),
+        }
+    try:
+        engine = _get_crm_engine()
+        with engine.begin() as connection:
+            customers = _resolve_crm_customers(connection, phone=normalized_phone)
+            distinct = {row["customer_id"] for row in customers}
+            if len(distinct) != 1:
+                return {
+                    "order_id": None,
+                    "status": "ambiguous_customer" if len(distinct) > 1 else "customer_not_found",
+                    "error": None,
+                    "estimated_delivery": compute_estimated_delivery(on),
+                }
+            customer_id = next(iter(distinct))
+            order_date = _parse_iso_date(on) or date.today()
+            order_id = f"ORD-{order_date.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+            line_total = quantity * unit_price
+            connection.execute(
+                text(
+                    "INSERT INTO public.orders (order_id, customer_id, order_date, "
+                    "status, total_amount_vnd, currency, source_system) VALUES "
+                    "(:order_id, :customer_id, :order_date, 'created', "
+                    ":total_amount_vnd, 'VND', 'order_create_tool')"
+                ),
+                {
+                    "order_id": order_id,
+                    "customer_id": customer_id,
+                    "order_date": order_date.isoformat(),
+                    "total_amount_vnd": line_total,
+                },
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO public.order_items (order_id, line_number, sku, "
+                    "product_name_snapshot, quantity, unit_price_vnd, "
+                    "line_total_vnd) VALUES (:order_id, 1, :sku, :sku, "
+                    ":quantity, :unit_price_vnd, :line_total_vnd)"
+                ),
+                {
+                    "order_id": order_id,
+                    "sku": clean_sku,
+                    "quantity": quantity,
+                    "unit_price_vnd": unit_price,
+                    "line_total_vnd": line_total,
+                },
+            )
+        return {
+            "order_id": order_id,
+            "status": "created",
+            "error": None,
+            "estimated_delivery": compute_estimated_delivery(on),
+        }
+    except Exception as error:  # noqa: BLE001
+        logger.error("order.create failed: %s", error, exc_info=True)
+        return {
+            "order_id": None,
+            "status": "system_error",
+            "error": f"database_write_failed: {type(error).__name__}",
+            "estimated_delivery": compute_estimated_delivery(on),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -1237,13 +1338,56 @@ def order_update(
     reason: Optional[str] = None,
     on: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Update, exchange, or return an existing order."""
+    """Update an existing order status only after a real row update."""
 
-    return {
-        "order_id": order_id,
-        "status": "updated",
-        "fee_vnd": 0,
+    clean_order_id = order_id.strip() if isinstance(order_id, str) else ""
+    if not clean_order_id:
+        return {"order_id": order_id, "status": "invalid_input", "fee_vnd": 0}
+    status_map = {
+        "cancel": "cancelled",
+        "exchange": "exchange_requested",
+        "return_request": "return_requested",
     }
+    target_status = status_map.get(str(action))
+    if target_status is None:
+        return {"order_id": clean_order_id, "status": "invalid_input", "fee_vnd": 0}
+    try:
+        engine = _get_crm_engine()
+        with engine.begin() as connection:
+            updated = connection.execute(
+                text(
+                    "UPDATE public.orders SET status = :status, "
+                    "updated_at = now() WHERE order_id = :order_id"
+                ),
+                {"status": target_status, "order_id": clean_order_id},
+            ).rowcount
+            if not updated:
+                return {
+                    "order_id": clean_order_id,
+                    "status": "not_found",
+                    "fee_vnd": 0,
+                }
+            if action == "exchange" and new_variant_sku:
+                connection.execute(
+                    text(
+                        "UPDATE public.order_items SET sku = :sku, "
+                        "product_name_snapshot = :sku WHERE order_id = :order_id "
+                        "AND line_number = 1"
+                    ),
+                    {"sku": new_variant_sku.strip(), "order_id": clean_order_id},
+                )
+        return {
+            "order_id": clean_order_id,
+            "status": target_status,
+            "fee_vnd": 0,
+        }
+    except Exception as error:  # noqa: BLE001
+        logger.error("order.update failed: %s", error, exc_info=True)
+        return {
+            "order_id": clean_order_id,
+            "status": "system_error",
+            "fee_vnd": 0,
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -1271,11 +1415,76 @@ def order_status(
     customer_phone: Optional[str] = None,
     on: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Retrieve the status of customer orders."""
+    """Retrieve order status from orders + order_items (simplified schema).
 
-    return {
-        "orders": []
-    }
+    Lookup by order_id, or by an unambiguously resolved customer phone.
+    Ambiguous phones return no order rows to avoid leaking other orders.
+    """
+    try:
+        engine = _get_crm_engine()
+        with engine.connect() as connection:
+            if order_id:
+                order_rows = connection.execute(
+                    text(
+                        "SELECT order_id, customer_id, order_date, status, "
+                        "tracking_number, total_amount_vnd, currency "
+                        "FROM public.orders WHERE order_id = :order_id"
+                    ),
+                    {"order_id": order_id.strip()},
+                ).mappings().all()
+            elif customer_phone:
+                normalized = _normalize_phone(customer_phone)
+                if not normalized or not _is_valid_phone(normalized):
+                    return {"orders": [], "ambiguous": False, "error": None}
+                customers = _resolve_crm_customers(connection, phone=normalized)
+                distinct = {row["customer_id"] for row in customers}
+                if len(distinct) != 1:
+                    return {
+                        "orders": [],
+                        "ambiguous": len(distinct) > 1,
+                        "error": None,
+                    }
+                order_rows = connection.execute(
+                    text(
+                        "SELECT order_id, customer_id, order_date, status, "
+                        "tracking_number, total_amount_vnd, currency "
+                        "FROM public.orders WHERE customer_id = :customer_id "
+                        "ORDER BY order_date DESC"
+                    ),
+                    {"customer_id": next(iter(distinct))},
+                ).mappings().all()
+            else:
+                return {"orders": [], "ambiguous": False, "error": None}
+            orders = []
+            for row in order_rows:
+                items = connection.execute(
+                    text(
+                        "SELECT line_number, sku, product_name_snapshot, quantity, "
+                        "unit_price_vnd, line_total_vnd FROM public.order_items "
+                        "WHERE order_id = :order_id ORDER BY line_number"
+                    ),
+                    {"order_id": row["order_id"]},
+                ).mappings().all()
+                orders.append(
+                    {
+                        "order_id": row["order_id"],
+                        "customer_id": row["customer_id"],
+                        "order_date": str(row["order_date"]),
+                        "status": row["status"],
+                        "tracking_number": row["tracking_number"],
+                        "total_amount_vnd": row["total_amount_vnd"],
+                        "currency": row["currency"],
+                        "items": [dict(item) for item in items],
+                    }
+                )
+            return {"orders": orders, "ambiguous": False, "error": None}
+    except Exception as error:  # noqa: BLE001
+        logger.error("order.status failed: %s", error, exc_info=True)
+        return {
+            "orders": [],
+            "ambiguous": False,
+            "error": f"database_lookup_failed: {type(error).__name__}",
+        }
 
 
 # ---------------------------------------------------------------------------

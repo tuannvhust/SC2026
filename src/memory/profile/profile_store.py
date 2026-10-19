@@ -71,7 +71,12 @@ class ProfileStore:
                 raise ValueError("Each profile fact must have a non-empty string key.")
             if "value" not in fact:
                 raise ValueError("Each profile fact must include a value.")
-            facts_by_key[key.strip()] = {"key": key.strip(), "value": fact["value"]}
+            clean = {"key": key.strip(), "value": fact["value"]}
+            # Preserve provenance extras when callers supply them.
+            for extra in ("source_kind", "confidence", "source_event_id"):
+                if fact.get(extra) is not None:
+                    clean[extra] = fact[extra]
+            facts_by_key[key.strip()] = clean
         fact_list = list(facts_by_key.values())
         if not fact_list:
             return

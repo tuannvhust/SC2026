@@ -25,24 +25,16 @@ def _create_crm_engine():
         connection.execute(
             text(
                 """
-                CREATE TABLE public.customer_identities (
-                    customer_id TEXT NOT NULL,
-                    normalized_value TEXT NOT NULL,
-                    is_verified INTEGER NOT NULL,
-                    identity_type TEXT NOT NULL,
-                    disabled_at TEXT
-                )
-                """
-            )
-        )
-        connection.execute(
-            text(
-                """
                 CREATE TABLE public.customers (
                     customer_id TEXT PRIMARY KEY,
                     full_name TEXT,
                     preferred_name TEXT,
                     honorific TEXT,
+                    phone TEXT,
+                    phone_verified INTEGER NOT NULL DEFAULT 0,
+                    zalo_id TEXT,
+                    fb_id TEXT,
+                    email TEXT,
                     status TEXT NOT NULL,
                     deleted_at TEXT
                 )
@@ -58,6 +50,11 @@ def _insert_crm_customer(engine, customer_id, phone="0912345678", **values):
         "full_name": values.get("full_name", "Customer Name"),
         "preferred_name": values.get("preferred_name"),
         "honorific": values.get("honorific"),
+        "phone": phone,
+        "phone_verified": int(values.get("is_verified", True)),
+        "zalo_id": values.get("zalo_id"),
+        "fb_id": values.get("fb_id"),
+        "email": values.get("email"),
         "status": values.get("status", "active"),
         "deleted_at": values.get("deleted_at"),
     }
@@ -66,27 +63,12 @@ def _insert_crm_customer(engine, customer_id, phone="0912345678", **values):
             text(
                 """
                 INSERT INTO public.customers
-                    (customer_id, full_name, preferred_name, honorific, status, deleted_at)
+                    (customer_id, full_name, preferred_name, honorific, phone, phone_verified, zalo_id, fb_id, email, status, deleted_at)
                 VALUES
-                    (:customer_id, :full_name, :preferred_name, :honorific, :status, :deleted_at)
+                    (:customer_id, :full_name, :preferred_name, :honorific, :phone, :phone_verified, :zalo_id, :fb_id, :email, :status, :deleted_at)
                 """
             ),
             customer,
-        )
-        connection.execute(
-            text(
-                """
-                INSERT INTO public.customer_identities
-                    (customer_id, normalized_value, is_verified, identity_type, disabled_at)
-                VALUES
-                    (:customer_id, :phone, :is_verified, 'phone', NULL)
-                """
-            ),
-            {
-                "customer_id": customer_id,
-                "phone": phone,
-                "is_verified": int(values.get("is_verified", True)),
-            },
         )
 
 
@@ -183,6 +165,29 @@ class TestCRMGetCustomer:
 
         assert result["found"] is False
         assert result["error"] == "database_lookup_failed: RuntimeError"
+
+    def test_lookup_by_zalo_facebook_email(self, monkeypatch):
+        engine = _create_crm_engine()
+        _insert_crm_customer(engine, "CUST-Z", phone="0900000001", zalo_id="zalo_a", fb_id="fb.a", email="A@Example.com")
+        monkeypatch.setattr(tool_repository, "_get_crm_engine", lambda: engine)
+        try:
+            assert tool_repository.crm_get_customer.invoke({"zalo_id": "zalo_a"})["customer_id"] == "CUST-Z"
+            assert tool_repository.crm_get_customer.invoke({"fb_id": "fb.a"})["customer_id"] == "CUST-Z"
+            assert tool_repository.crm_get_customer.invoke({"email": "a@example.COM"})["customer_id"] == "CUST-Z"
+        finally:
+            engine.dispose()
+
+    def test_shared_phone_seed_case_is_ambiguous(self, monkeypatch):
+        engine = _create_crm_engine()
+        _insert_crm_customer(engine, "C034", phone="0958421083")
+        _insert_crm_customer(engine, "C035", phone="0958421083")
+        monkeypatch.setattr(tool_repository, "_get_crm_engine", lambda: engine)
+        try:
+            result = tool_repository.crm_get_customer.invoke({"phone": "0958421083"})
+        finally:
+            engine.dispose()
+        assert result["ambiguous"] is True
+        assert result["found"] is False
 
 
 class TestResolveIdentityNode:
@@ -374,27 +379,34 @@ class TestUpdateSessionCustomerId:
                     )
                 )
                 connection.execute(
-                    store.working_events.insert(),
-                    [
-                        {
-                            "event_id": "EVENT-1",
-                            "session_id": "SESSION-1",
-                            "turn_id": "TURN-1",
-                            "turn_number": 1,
-                            "customer_id": None,
-                            "created_at": "2026-10-18T00:00:00",
-                            "payload_json": json.dumps({"identity": {}, "keep": True}),
-                        },
-                        {
-                            "event_id": "EVENT-2",
-                            "session_id": "SESSION-2",
-                            "turn_id": "TURN-2",
-                            "turn_number": 1,
-                            "customer_id": None,
-                            "created_at": "2026-10-18T00:00:00",
-                            "payload_json": json.dumps({"identity": {}}),
-                        },
-                    ],
+                    text(
+                        """
+                        CREATE TABLE working_events (
+                            event_id TEXT PRIMARY KEY,
+                            session_id TEXT,
+                            turn_id TEXT,
+                            turn_number INTEGER,
+                            customer_id TEXT,
+                            created_at TEXT,
+                            payload_json TEXT
+                        )
+                        """
+                    )
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO working_events
+                            (event_id, session_id, turn_id, turn_number, customer_id, created_at, payload_json)
+                        VALUES
+                            ('EVENT-1', 'SESSION-1', 'TURN-1', 1, NULL, '2026-10-18T00:00:00', :payload1),
+                            ('EVENT-2', 'SESSION-2', 'TURN-2', 1, NULL, '2026-10-18T00:00:00', :payload2)
+                        """
+                    ),
+                    {
+                        "payload1": json.dumps({"identity": {}, "keep": True}),
+                        "payload2": json.dumps({"identity": {}}),
+                    },
                 )
                 connection.commit()
 
