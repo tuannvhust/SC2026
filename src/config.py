@@ -15,7 +15,6 @@ from src.services.vector_store import QdrantVectorStore
 
 load_dotenv(override=True)
 
-
 def _build_chat_llm(model_name: str, api_key: Optional[str]):
     if not api_key:
         return None
@@ -32,12 +31,18 @@ def _build_chat_llm(model_name: str, api_key: Optional[str]):
 def _build_groq_llm(model_name: str, api_key: Optional[str]):
     if not api_key:
         return None
-    return ChatGroq(model=model_name, groq_api_key=api_key, temperature=0.3, max_retries=2)
+    return ChatGroq(
+        model=model_name, groq_api_key=api_key, temperature=0.3, max_retries=2
+    )
 
 
 def with_groq_fallback(primary, fallback):
     """Attach the configured Groq model as a fallback or use Groq directly if configured as primary."""
-    use_groq_primary = os.getenv("USE_GROQ_PRIMARY", "false").lower() in ("true", "1", "yes")
+    use_groq_primary = os.getenv("USE_GROQ_PRIMARY", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
     if use_groq_primary and fallback is not None:
         return fallback.with_fallbacks([primary]) if primary is not None else fallback
     if primary is None:

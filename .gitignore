@@ -39,3 +39,14 @@ yarn-error.log*
 supabase_memory_dump.md
 reports/
 *.dump.md
+
+# Ignore generated files from the data_gen script
+data_gen/briefs
+data_gen/fact_packs
+data_gen/raw
+data_gen/scenarios*
+data_gen/transcripts*
+
+AGENTS.md
+harness_memory.db
+*.pdf

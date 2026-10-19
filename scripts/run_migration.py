@@ -72,13 +72,20 @@ def run_migration(rollback: bool = False):
     print(f"[MIGRATION] Target database: {describe_database_url(db_url)}")
 
     migration_dir = PROJECT_ROOT / "src" / "memory" / "migrations"
-    sequence = ["002_simplified_schema", "001_schema_v1"] if rollback else ["001_schema_v1", "002_simplified_schema"]
+    sequence = (
+        ["002_simplified_schema", "001_schema_v1"]
+        if rollback
+        else ["001_schema_v1", "002_simplified_schema"]
+    )
 
     from sqlalchemy import create_engine
+
     engine = create_engine(db_url)
 
     if rollback:
-        print("[MIGRATION] WARNING: rollback requested — additive 002 reverted first, then v1.")
+        print(
+            "[MIGRATION] WARNING: rollback requested — additive 002 reverted first, then v1."
+        )
     for name in sequence:
         suffix = "_rollback.sql" if rollback else ".sql"
         sql_file = migration_dir / f"{name}{suffix}"
@@ -95,7 +102,9 @@ def run_migration(rollback: bool = False):
     print(f"[MIGRATION] Current tables in public schema: {sorted(tables)}")
     if not rollback:
         print(f"[MIGRATION] Missing simplified tables: {missing or 'none'}")
-        print(f"[MIGRATION] Legacy tables still present (gated drops): {legacy or 'none'}")
+        print(
+            f"[MIGRATION] Legacy tables still present (gated drops): {legacy or 'none'}"
+        )
 
 
 if __name__ == "__main__":
