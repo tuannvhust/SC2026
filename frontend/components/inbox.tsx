@@ -45,7 +45,7 @@ export function Inbox() {
 		[interactions, channelFilter, statusFilter, q],
 	);
 	return (
-		<section className="overflow-hidden rounded-2xl border border-[#e7ebf1] bg-white">
+		<section className="overflow-hidden rounded-2xl border border-[#e7ebf1] bg-white max-h-[700px]">
 			<div className="flex items-center justify-between border-b px-4 py-4">
 				<div>
 					<h2 className="text-[15px] font-semibold">Interaction inbox</h2>

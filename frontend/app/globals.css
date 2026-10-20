@@ -50,6 +50,37 @@
 	::after {
 		border-color: var(--color-line);
 	}
+
+	button,
+	input,
+	textarea,
+	select {
+		font: inherit;
+	}
+
+	button:not(:disabled) {
+		cursor: pointer;
+		transition:
+			color 150ms ease,
+			background-color 150ms ease,
+			border-color 150ms ease,
+			box-shadow 150ms ease,
+			filter 150ms ease,
+			transform 100ms ease;
+	}
+
+	button:not(:disabled):hover {
+		filter: brightness(0.96);
+	}
+
+	button:not(:disabled):active {
+		transform: scale(0.98);
+	}
+
+	button:focus-visible {
+		outline: 2px solid var(--color-brand);
+		outline-offset: 2px;
+	}
 }
 
 html,
@@ -74,13 +105,6 @@ body {
 	line-height: 1.45;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-}
-
-button,
-input,
-textarea,
-select {
-	font: inherit;
 }
 
 ::-webkit-scrollbar {

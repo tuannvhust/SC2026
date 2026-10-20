@@ -34,9 +34,9 @@ export function WorkspaceView() {
 	];
 	return (
 		<div>
-			<div className="mb-5 flex items-start justify-between gap-4">
+			<div className="mb-5 flex items-center justify-between gap-4">
 				<div>
-					<div className="text-[11px] font-extrabold uppercase tracking-wider text-[#3859d7]">
+					<div className="text-[11px] font-extrabold uppercase tracking-wider text-[#3859d7] ">
 						Customer operations
 					</div>
 					<h1 className="mt-1 text-[25px] font-bold tracking-tight">
@@ -61,7 +61,7 @@ export function WorkspaceView() {
 							),
 						})
 					}
-					className="rounded-[10px] bg-[#3859d7] px-3 py-2.5 font-bold text-white"
+					className="rounded-[10px] bg-[#3859d7] px-3 py-2.5 font-650 text-white"
 				>
 					＋ New interaction
 				</button>

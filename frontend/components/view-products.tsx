@@ -2,6 +2,8 @@
 import { useMemo, useState } from "react";
 import { PRODUCTS, PROMOTIONS } from "@/lib/mock-products";
 import { useWorkspace } from "@/components/workspace-provider";
+import { DataSourceNotice, useReferenceData } from "@/lib/reference-data";
+import type { Product, Promotion } from "@/lib/mock-types";
 
 export const fmtVND = (n: number) =>
 	new Intl.NumberFormat("vi-VN").format(n) + "đ";
@@ -11,8 +13,10 @@ export function ProductsView() {
 	const [q, setQ] = useState("");
 	const [cat, setCat] = useState("All");
 	const [av, setAv] = useState("All");
-	const cats = useMemo(() => [...new Set(PRODUCTS.map((p) => p.category))], []);
-	const list = PRODUCTS.filter(
+	const data = useReferenceData<Product>("/api/reference/products", PRODUCTS);
+	const promos = useReferenceData<Promotion>("/api/reference/promotions", PROMOTIONS);
+	const cats = useMemo(() => [...new Set(data.items.map((p) => p.category))], [data.items]);
+	const list = (data.loading ? [] : data.items).filter(
 		(p) =>
 			(cat === "All" || p.category === cat) &&
 			(av === "All" || p.availability === av) &&
@@ -34,9 +38,10 @@ export function ProductsView() {
 					</p>
 				</div>
 				<span className="rounded-full bg-[#fff4dc] px-2.5 py-1.5 text-[11px] font-bold text-[#8d5a0b]">
-					CATALOG DEMO
+					{data.source === "backend" ? "LIVE CATALOG" : data.source === "repository" ? "REPOSITORY CATALOG" : "DEMO CATALOG"}
 				</span>
 			</div>
+			<DataSourceNotice source={data.source} loading={data.loading} backendError={data.backendError} empty={!list.length} />
 			<div className="mb-4 grid grid-cols-1 gap-2.5 rounded-[13px] border bg-white p-3 sm:grid-cols-[minmax(0,1fr)_200px_200px]">
 				<input
 					value={q}
@@ -65,7 +70,7 @@ export function ProductsView() {
 					<option>Out of stock</option>
 				</select>
 			</div>
-			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
+			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
 				{list.map((p) => (
 					<article
 						key={p.id}
@@ -109,7 +114,7 @@ export function ProductsView() {
 								type="button"
 								className="rounded-lg border px-2 py-1.5 text-xs font-semibold"
 								onClick={() => {
-									const linked = PROMOTIONS.filter((x) =>
+									const linked = promos.items.filter((x) =>
 										x.products.includes(p.sku),
 									);
 									w.openModal({

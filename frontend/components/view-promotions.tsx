@@ -3,14 +3,18 @@ import { useMemo, useState } from "react";
 import { PROMOTIONS, PRODUCTS } from "@/lib/mock-products";
 import { useWorkspace } from "@/components/workspace-provider";
 import { fmtVND } from "@/components/view-products";
+import { DataSourceNotice, useReferenceData } from "@/lib/reference-data";
+import type { Product, Promotion } from "@/lib/mock-types";
 
 export function PromotionsView() {
 	const w = useWorkspace();
 	const [q, setQ] = useState("");
 	const [st, setSt] = useState("All");
+	const data = useReferenceData<Promotion>("/api/reference/promotions", PROMOTIONS);
+	const products = useReferenceData<Product>("/api/reference/products", PRODUCTS);
 	const list = useMemo(
 		() =>
-			PROMOTIONS.filter(
+			(data.loading ? [] : data.items).filter(
 				(p) =>
 					(st === "All" || p.status === st) &&
 					[p.id, p.code, p.name, p.description]
@@ -18,7 +22,7 @@ export function PromotionsView() {
 						.toLowerCase()
 						.includes(q.toLowerCase()),
 			),
-		[q, st],
+		[q, st, data.items],
 	);
 	return (
 		<div>
@@ -33,9 +37,10 @@ export function PromotionsView() {
 					</p>
 				</div>
 				<span className="rounded-full bg-[#fff4dc] px-2.5 py-1.5 text-[11px] font-bold text-[#8d5a0b]">
-					PROMOTION DEMO
+					{data.source === "backend" ? "LIVE PROMOTIONS" : data.source === "repository" ? "REPOSITORY PROMOTIONS" : "DEMO PROMOTIONS"}
 				</span>
 			</div>
+			<DataSourceNotice source={data.source} loading={data.loading} backendError={data.backendError} empty={!list.length} />
 			<div className="mb-4 grid grid-cols-1 gap-2.5 rounded-[13px] border bg-white p-3 sm:grid-cols-[minmax(0,1fr)_200px_200px]">
 				<input
 					value={q}
@@ -57,7 +62,7 @@ export function PromotionsView() {
 					{list.length} offers
 				</div>
 			</div>
-			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
+			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
 				{list.map((p) => (
 					<article
 						key={p.id}
@@ -93,7 +98,7 @@ export function PromotionsView() {
 								type="button"
 								className="rounded-lg border px-2 py-1.5 text-xs font-semibold"
 								onClick={() => {
-									const linked = PRODUCTS.filter((x) =>
+									const linked = products.items.filter((x) =>
 										p.products.includes(x.sku),
 									);
 									w.openModal({

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import close_shared_connections, get_shared_connections
-from src.api.routers import health, chat, calls
+from src.api.routers import health, chat, calls, reference_data
 from src.graph.builder import close_graph_checkpointer, initialize_graph_checkpointer
 from src.memory.semantic_rag.orchestrator import clear_components, warmup_reranker
 from src.graph.nodes.persistence_nodes import close_working_memory_store
@@ -70,6 +70,7 @@ app.add_middleware(
 app.include_router(health.router, tags=["Health"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(calls.router, prefix="/api", tags=["Calls"])
+app.include_router(reference_data.router, prefix="/api", tags=["Reference data"])
 
 if __name__ == "__main__":
     uvicorn.run(

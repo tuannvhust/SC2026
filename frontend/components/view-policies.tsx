@@ -2,13 +2,16 @@
 import { useMemo, useState } from "react";
 import { POLICIES } from "@/lib/mock-policies";
 import { useWorkspace } from "@/components/workspace-provider";
+import { DataSourceNotice, useReferenceData } from "@/lib/reference-data";
+import type { Policy } from "@/lib/mock-types";
 
 export function PoliciesView() {
 	const w = useWorkspace();
 	const [q, setQ] = useState("");
 	const [cat, setCat] = useState("All");
-	const cats = useMemo(() => [...new Set(POLICIES.map((p) => p.category))], []);
-	const cur = POLICIES.filter(
+	const data = useReferenceData<Policy>("/api/reference/policies", POLICIES);
+	const cats = useMemo(() => [...new Set(data.items.map((p) => p.category))], [data.items]);
+	const cur = (data.loading ? [] : data.items).filter(
 		(p) =>
 			p.status === "Current" &&
 			(cat === "All" || p.category === cat) &&
@@ -17,7 +20,7 @@ export function PoliciesView() {
 				.toLowerCase()
 				.includes(q.toLowerCase()),
 	);
-	const arc = POLICIES.filter(
+	const arc = (data.loading ? [] : data.items).filter(
 		(p) =>
 			p.status === "Archived" &&
 			(cat === "All" || p.category === cat) &&
@@ -26,7 +29,7 @@ export function PoliciesView() {
 				.toLowerCase()
 				.includes(q.toLowerCase()),
 	);
-	const card = (p: (typeof POLICIES)[number], archived = false) => (
+	const card = (p: Policy, archived = false) => (
 		<article
 			key={p.id}
 			className="flex flex-col gap-2.5 rounded-[15px] border bg-white p-4"
@@ -107,7 +110,7 @@ export function PoliciesView() {
 					</p>
 				</div>
 				<span className="rounded-full bg-[#fff4dc] px-2.5 py-1.5 text-[11px] font-bold text-[#8d5a0b]">
-					POLICY DEMO
+					{data.source === "backend" ? "POLICY CORPUS" : data.source === "repository" ? "REPOSITORY POLICIES" : "POLICY DEMO"}
 				</span>
 			</div>
 			<div className="mb-5 grid grid-cols-1 gap-2.5 rounded-[13px] border bg-white p-3 sm:grid-cols-[minmax(0,1fr)_200px]">
@@ -128,13 +131,14 @@ export function PoliciesView() {
 					))}
 				</select>
 			</div>
+			<DataSourceNotice source={data.source} loading={data.loading} backendError={data.backendError} empty={!cur.length && !arc.length} />
 			<div className="mb-3 flex items-end justify-between">
 				<h2 className="text-[17px] font-bold">Current policies</h2>
 				<span className="rounded-md bg-[#e7f7ee] px-2 py-1 text-[10px] font-bold text-[#148052]">
 					{cur.length} current
 				</span>
 			</div>
-			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
+			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
 				{cur.map((p) => card(p))}
 			</div>
 			<div className="mb-3 mt-8 flex items-end justify-between border-t pt-6">
@@ -143,7 +147,7 @@ export function PoliciesView() {
 					{arc.length} archived
 				</span>
 			</div>
-			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
+			<div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
 				{arc.map((p) => card(p, true))}
 			</div>
 		</div>

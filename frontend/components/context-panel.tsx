@@ -42,7 +42,7 @@ export function ContextPanel() {
 						w.setCustomerSearch(x.customerId);
 						w.setView("customers");
 					}}
-					className="rounded-lg border px-2 py-1.5 text-xs font-semibold"
+					className="rounded-lg border px-2 py-1.5 text-[11px] font-semibold"
 				>
 					View profile ↗
 				</button>

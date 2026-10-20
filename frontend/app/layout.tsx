@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-	title: "SUDOTECH Sales AI — Trợ lý tư vấn bán hàng",
+	title: "SUDO CODE 2026 Sales AI - Trợ lý tư vấn bán hàng",
 	description:
 		"Trợ lý AI tư vấn sản phẩm, báo giá và chính sách bán hàng thông minh.",
 	icons: {
@@ -19,13 +19,3 @@ export default function RootLayout({
 		</html>
 	);
 }
-
-// export default function RootLayout({
-//   children,
-// }: Readonly<{ children: React.ReactNode }>) {
-//   return (
-//     <html lang="vi">
-//       <body className="antialiased">{children}</body>
-//     </html>
-//   );
-// }
