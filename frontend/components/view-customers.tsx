@@ -10,7 +10,7 @@ export function CustomersView() {
     [w.customers, q, w.customerSearch]);
   return (
     <div>
-      <div className="mb-4 flex items-start justify-between">
+      <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row">
         <div><div className="text-[11px] font-extrabold uppercase text-[#3859d7]">Customer directory</div>
         <h1 className="text-[25px] font-bold">Customers</h1>
         <p className="text-[13px] text-[#6b7788]">Profiles connected to demo interactions.</p></div>
@@ -20,7 +20,7 @@ export function CustomersView() {
         <input value={q} onChange={(e) => { setQ(e.target.value); w.setCustomerSearch(e.target.value); }}
           placeholder="Search customer name, ID, or contact…" className="w-full rounded-[9px] border bg-[#fbfcfe] p-2.5 outline-none" />
       </div>
-      <div className="grid grid-cols-3 gap-3.5 max-[850px]:grid-cols-1">
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 2xl:grid-cols-3">
         {list.map(([id, c]) => {
           const recs = w.interactions.filter((x) => x.customerId === id);
           return (

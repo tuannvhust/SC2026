@@ -1,4 +1,5 @@
 "use client";
+import { usePathname } from "next/navigation";
 import { useWorkspace } from "./workspace-provider";
 
 const TITLES = {
@@ -7,9 +8,11 @@ const TITLES = {
 } as const;
 
 export function Topbar() {
-  const { view } = useWorkspace();
+  const pathname = usePathname();
+  const section = pathname.split("/")[1] || "workspace";
+  const view = section in TITLES ? (section as keyof typeof TITLES) : "workspace";
   return (
-    <header className="flex h-[72px] items-center justify-between gap-5 border-b border-[#e7ebf1] bg-white px-7">
+    <header className="flex h-14 items-center justify-between gap-3 border-b border-[#e7ebf1] bg-white px-4 sm:h-[72px] sm:gap-5 sm:px-7">
       <div className="text-xs text-[#6b7788]">SC2026 <strong className="ml-2 text-sm text-[#182230]">/ {TITLES[view]}</strong></div>
       <div className="flex items-center gap-3">
         <span className="rounded-full border border-[#f4dfad] bg-[#fff4dc] px-2.5 py-1.5 text-[11px] font-bold text-[#8d5a0b]">● DEMO · MOCK DATA</span>

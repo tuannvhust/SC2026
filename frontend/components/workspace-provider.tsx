@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import type { Customer, Interaction, InteractionStatus } from "@/lib/mock-types";
 import { INITIAL_CUSTOMERS } from "@/lib/mock-customers";
 import { INITIAL_INTERACTIONS } from "@/lib/mock-interactions";
@@ -28,7 +29,15 @@ interface WorkspaceCtx {
 const Ctx = createContext<WorkspaceCtx | null>(null);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [view, setView] = useState<ViewKey>("workspace");
+	const pathname = usePathname();
+	const router = useRouter();
+	const routeView = pathname.split("/")[1] || "workspace";
+	const view: ViewKey = ["customers", "products", "promotions", "policies", "evaluation", "improvement"].includes(routeView)
+		? (routeView as ViewKey)
+		: "workspace";
+	const setView = useCallback((nextView: ViewKey) => {
+		router.push(nextView === "workspace" ? "/" : `/${nextView}`);
+	}, [router]);
   const [interactions, setInteractions] = useState(INITIAL_INTERACTIONS);
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
   const [activeId, setActiveId] = useState("IN-2048");
@@ -72,7 +81,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       contextTab, setContextTab, toast, showToast, modal, openModal, closeModal,
       updateStatus, sendAgentMessage, verifyCustomer, customerSearch, setCustomerSearch,
     }),
-    [view, interactions, customers, activeId, channelFilter, statusFilter, contextTab, toast, modal, customerSearch, showToast, openModal, closeModal, updateStatus, sendAgentMessage, verifyCustomer],
+		[view, setView, interactions, customers, activeId, channelFilter, statusFilter, contextTab, toast, modal, customerSearch, showToast, openModal, closeModal, updateStatus, sendAgentMessage, verifyCustomer],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
