@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useWorkspace } from "@/components/workspace-provider";
 import { INITIAL_CUSTOMERS } from "@/lib/mock-customers";
 import { DataSourceNotice, useReferenceData } from "@/lib/reference-data";
@@ -19,7 +20,7 @@ export function CustomersView() {
       <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row">
         <div><div className="text-[11px] font-extrabold uppercase text-[#3859d7]">Customer directory</div>
         <h1 className="text-[25px] font-bold">Customers</h1>
-        <p className="text-[13px] text-[#6b7788]">Profiles connected to demo interactions.</p></div>
+        <p className="text-[13px] text-[#6b7788]">Customer profiles from the connected directory.</p></div>
         <button type="button" onClick={() => w.setView("workspace")} className="rounded-[10px] border bg-white px-3 py-2 font-semibold">← Back to workspace</button>
       </div>
       <DataSourceNotice source={data.source} loading={data.loading} backendError={data.backendError} empty={!list.length} />
@@ -30,7 +31,6 @@ export function CustomersView() {
       <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
         {list.map((c) => {
           const id = c.id;
-          const recs = w.interactions.filter((x) => x.customerId === id);
           return (
             <div key={id} className="rounded-[15px] border bg-white p-4">
               <div className="mb-3 flex items-center gap-2.5">
@@ -40,14 +40,13 @@ export function CustomersView() {
               <p className="mb-3 text-[11px] text-[#6b7788]">{c.phone}<br />{c.email}</p>
               <div className="mb-3 flex gap-1.5">
                 <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${c.verified ? "bg-[#e7f7ee] text-[#148052]" : "bg-[#fff3dc] text-[#a56809]"}`}>{c.verified ? "Verified" : "Unverified"}</span>
-                <span className="rounded-md bg-[#f1f4f8] px-2 py-1 text-[10px] font-bold">{c.caseCount || recs.length} interactions</span>
+                <span className="rounded-md bg-[#f1f4f8] px-2 py-1 text-[10px] font-bold">{c.caseCount} interactions</span>
               </div>
               <div className="flex items-center justify-between border-t pt-3">
-                <small className="text-[#6b7788]">Latest: {recs[0]?.id ?? c.latestActivity ?? "—"}</small>
-                <button type="button" className="rounded-lg border px-2 py-1.5 text-xs font-semibold" onClick={() => {
-                  const r = w.interactions.find((x) => x.customerId === id);
-                  if (r) { w.setActiveId(r.id); w.setContextTab("journey"); w.setView("workspace"); }
-                }}>Open workspace ↗</button>
+                <small className="text-[#6b7788]">Latest: {c.latestActivity ?? "—"}</small>
+                <Link href={`/chat?customer_id=${encodeURIComponent(id)}`} className="rounded-lg border px-2 py-1.5 text-xs font-semibold">
+                  Start AI chat ↗
+                </Link>
               </div>
             </div>
           );

@@ -50,6 +50,7 @@ export function useChatStream() {
   // Null on first render so server and client produce identical HTML.
   // The real ID is created/restored after mount (client-only).
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [customerId, setCustomerId] = useState("");
   const sessionReady = sessionId !== null;
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("active");
   const [endResult, setEndResult] = useState<EndSessionResult | null>(null);
@@ -60,7 +61,13 @@ export function useChatStream() {
   // create exactly one ID. Never finalize or create extra sessions here.
   useEffect(() => {
     try {
-      const stored = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+      const params = new URLSearchParams(window.location.search);
+      const selectedCustomerId = params.get("customer_id")?.trim() ?? "";
+      setCustomerId(selectedCustomerId);
+      const storageKey = selectedCustomerId
+        ? `${SESSION_STORAGE_KEY}:${selectedCustomerId}`
+        : SESSION_STORAGE_KEY;
+      const stored = window.sessionStorage.getItem(storageKey);
       if (isValidSessionId(stored)) {
         setSessionId(stored);
         return;
@@ -71,7 +78,12 @@ export function useChatStream() {
     const nextId = newSessionId();
     setSessionId(nextId);
     try {
-      window.sessionStorage.setItem(SESSION_STORAGE_KEY, nextId);
+      const selectedCustomerId = new URLSearchParams(window.location.search)
+        .get("customer_id")?.trim() ?? "";
+      const storageKey = selectedCustomerId
+        ? `${SESSION_STORAGE_KEY}:${selectedCustomerId}`
+        : SESSION_STORAGE_KEY;
+      window.sessionStorage.setItem(storageKey, nextId);
     } catch {
       // Ignore storage errors; session still works in memory.
     }
@@ -110,7 +122,7 @@ export function useChatStream() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer_id: "",
+          customer_id: customerId,
           session_id: sessionId,
           message: userMsg,
           stream: true,
@@ -246,7 +258,7 @@ export function useChatStream() {
     } finally {
       setLoading(false);
     }
-  }, [sessionId, sessionStatus]);
+  }, [sessionId, sessionStatus, customerId]);
 
   const endSession = useCallback(async () => {
     if (!sessionId || sessionStatus === "ending" || sessionStatus === "ended") return null;
@@ -258,7 +270,7 @@ export function useChatStream() {
       const res = await fetch("/api/chat/end-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, customer_id: "anonymous" }),
+        body: JSON.stringify({ session_id: sessionId, customer_id: customerId || "anonymous" }),
         signal: controller.signal,
       });
 
@@ -296,7 +308,7 @@ export function useChatStream() {
     } finally {
       window.clearTimeout(timeout);
     }
-  }, [sessionId, sessionStatus]);
+  }, [sessionId, sessionStatus, customerId]);
 
   const startNewSession = useCallback(() => {
     abortRef.current?.abort();
@@ -308,13 +320,16 @@ export function useChatStream() {
     const nextId = newSessionId();
     setSessionId(nextId);
     try {
-      window.sessionStorage.setItem(SESSION_STORAGE_KEY, nextId);
+      const storageKey = customerId
+        ? `${SESSION_STORAGE_KEY}:${customerId}`
+        : SESSION_STORAGE_KEY;
+      window.sessionStorage.setItem(storageKey, nextId);
     } catch {
       // Ignore storage errors; session still works in memory.
     }
     setSessionStatus("active");
     setLoading(false);
-  }, []);
+  }, [customerId]);
 
   const clearChat = useCallback(() => {
     abortRef.current?.abort();
