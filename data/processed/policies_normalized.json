@@ -1,0 +1,56 @@
+[
+  {
+    "_id": "policy_return",
+    "policy_id": "return_policy",
+    "title": "Chính sách đổi trả sản phẩm",
+    "category": "doi_tra",
+    "details": {
+      "window_days": 7,
+      "conditions": "còn nguyên phụ kiện, hộp, chưa kích hoạt bảo hành điện tử",
+      "who_pays_shipping": "shop",
+      "defect_vs_change_mind": {
+        "defective_window_days": 30,
+        "change_mind_window_days": 7
+      }
+    },
+    "embedding_text": "Chính sách đổi trả sản phẩm của cửa hàng: Khách hàng được đổi trả trong vòng 7 ngày đối với trường hợp đổi ý (7 ngày), và trong vòng 30 ngày đối với trường hợp máy phát sinh lỗi kỹ thuật do nhà sản xuất. Điều kiện đổi trả: còn nguyên phụ kiện, hộp, chưa kích hoạt bảo hành điện tử. Phí vận chuyển đổi trả: Cửa hàng chịu toàn bộ chi phí vận chuyển (shop)."
+  },
+  {
+    "_id": "policy_shipping",
+    "policy_id": "shipping_policy",
+    "title": "Chính sách giao hàng và thanh toán COD",
+    "category": "giao_hang",
+    "details": {
+      "regions": [
+        {
+          "region": "HCMC",
+          "fee_vnd": 0,
+          "eta_days": 1
+        },
+        {
+          "region": "toàn quốc",
+          "fee_vnd": 30000,
+          "eta_days": 3
+        }
+      ],
+      "cod_supported": true,
+      "cod_max_value_vnd": 15000000
+    },
+    "embedding_text": "Chính sách giao hàng và thanh toán khi nhận hàng: Tại TP.HCM (HCMC), miễn phí giao hàng (0đ), thời gian nhận hàng dự kiến trong 1 ngày. Tại các tỉnh thành khác trên toàn quốc, phí giao hàng là 30.000đ, thời gian nhận hàng dự kiến 3 ngày. Cửa hàng có hỗ trợ hình thức thanh toán khi nhận hàng (ship COD: True), áp dụng cho đơn hàng có giá trị tối đa lên đến 15.000.000đ."
+  },
+  {
+    "_id": "policy_warranty",
+    "policy_id": "warranty_policy",
+    "title": "Chính sách bảo hành sản phẩm",
+    "category": "bao_hanh",
+    "details": {
+      "default_months_by_category": {
+        "dien_thoai": 12,
+        "laptop": 24,
+        "phu_kien_dien_tu": 6
+      },
+      "extended_warranty_available": true
+    },
+    "embedding_text": "Chính sách bảo hành sản phẩm chính hãng: Thời hạn bảo hành tiêu chuẩn theo từng ngành hàng: Điện thoại bảo hành 12 tháng, Laptop bảo hành 24 tháng, Phụ kiện điện tử bảo hành 6 tháng. Ngoài ra, cửa hàng có hỗ trợ cung cấp thêm các gói bảo hành mở rộng (bảo hành nâng cao) cho khách hàng có nhu cầu bảo vệ máy toàn diện."
+  }
+]
