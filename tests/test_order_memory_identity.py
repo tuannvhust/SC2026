@@ -89,7 +89,7 @@ def test_memory_write_provenance_then_commit_and_read_back(tmp_path, monkeypatch
 
     # 2) persist_turn records the memory.write call/result pair.
     messages = [
-        HumanMessage(content="TÃªn mÃ¬nh lÃ  An nhÃ©"),
+        HumanMessage(content="Tên mình là An nhé"),
         AIMessage(
             content="",
             tool_calls=[
@@ -143,7 +143,7 @@ def test_memory_write_provenance_then_commit_and_read_back(tmp_path, monkeypatch
     )
     persistence_nodes.persist_call_node(state)
 
-    # 4) Read back in a later turn/session â€” not just the queue message.
+    # 4) Read back in a later turn/session — not just the queue message.
     assert committed["session_id"] == "SESSION-1"
     assert committed["customer_id"] == "CUST-1029"
     read_back = ReadableProfileStore().get_profile_facts("CUST-1029")
@@ -191,9 +191,9 @@ def test_identity_survives_when_customer_info_rebuilt(monkeypatch):
     # customer_info intentionally empty (simulates rebuilt dict on Turn 4);
     # phone/name only available in the previous CallBrief.
     state = {
-        "messages": [HumanMessage(content="tÆ° váº¥n giÃºp em tiáº¿p Ä‘i")],
+        "messages": [HumanMessage(content="tư vấn giúp em tiếp đi")],
         "customer_id": None,
-        "customer_info": {"channel": "web_chat", "_input_text": "tÆ° váº¥n giÃºp em tiáº¿p Ä‘i"},
+        "customer_info": {"channel": "web_chat", "_input_text": "tư vấn giúp em tiếp đi"},
         "call_brief": {
             "customer_id": "CUST-1029",
             "customer_phone": "0912345678",

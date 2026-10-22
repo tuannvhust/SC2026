@@ -255,15 +255,24 @@ def _episode_from_events(events: List[Dict[str, Any]], state: AgentState) -> Dic
                 handoff = True
 
     outcome = state.get("session_outcome")
-    if not outcome:
+
+    valid_outcomes = {
+        "hen_goi_lai",
+        "chot_don",
+        "tu_choi",
+        "chuyen_may",
+        "khac",
+    }
+
+    if outcome not in valid_outcomes:
         if handoff:
-            outcome = "handed_off"
+            outcome = "chuyen_may"
         elif orders:
-            outcome = "order_created"
+            outcome = "chot_don"
         elif callbacks:
-            outcome = "callback_scheduled"
+            outcome = "hen_goi_lai"
         else:
-            outcome = "completed"
+            outcome = "khac"
 
     return {
         "current_need": call_brief.get("current_need"),

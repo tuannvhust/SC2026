@@ -5,9 +5,11 @@ import logging
 import re
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
+from jsonschema import Draft202012Validator, FormatChecker
 
 from pydantic import BaseModel, Field
 
@@ -19,6 +21,7 @@ from src.memory.working.postgres_store import get_postgres_memory_store
 from src.tools.tool_repository import (
     _is_valid_phone,
     _normalize_phone,
+    crm_create_customer_if_absent,
     crm_get_customer,
 )
 
@@ -29,13 +32,21 @@ logger = logging.getLogger(__name__)
 # Call Brief schema
 # ---------------------------------------------------------------------------
 
+CallBriefOutcome = Literal[
+    "hen_goi_lai",
+    "chot_don",
+    "tu_choi",
+    "chuyen_may",
+    "khac",
+]
+
+
 class LastSession(BaseModel):
     session_id: str
     date: str
     channel: str
     summary: str
-    outcome: str
-
+    outcome: CallBriefOutcome
 
 class CallBrief(BaseModel):
     customer_id: Optional[str] = None
@@ -83,25 +94,73 @@ class CallBrief(BaseModel):
 # ---------------------------------------------------------------------------
 
 TEENCODE_MAP = {
-    "sp": "sáº£n pháº©m",
-    "spm": "sáº£n pháº©m",
-    "k": "khÃ´ng",
-    "ko": "khÃ´ng",
-    "kh": "khÃ¡ch hÃ ng",
-    "mk": "mÃ¬nh",
-    "mik": "mÃ¬nh",
-    "dc": "Ä‘Æ°á»£c",
-    "Ä‘c": "Ä‘Æ°á»£c",
-    "vs": "vá»›i",
-    "bn": "bao nhiÃªu",
+    "sp": "sản phẩm",
+    "spm": "sản phẩm",
+    "k": "không",
+    "ko": "không",
+    "kh": "khách hàng",
+    "mk": "mình",
+    "mik": "mình",
+    "dc": "được",
+    "đc": "được",
+    "vs": "với",
+    "bn": "bao nhiêu",
     "ib": "inbox",
-    "roi": "rá»“i",
-    "r": "rá»“i",
-    "a": "áº¡",
+    "roi": "rồi",
+    "r": "rồi",
+    "a": "ạ",
     "e": "em",
-    "cj": "chá»‹",
+    "cj": "chị",
 }
 
+@lru_cache(maxsize=1)
+def _get_call_brief_validator() -> Draft202012Validator:
+    """Load and cache the canonical CallBrief JSON Schema."""
+    schema_path = (
+        Path(__file__).resolve().parents[3]
+        / "data"
+        / "schemas"
+        / "call_brief.schema.json"
+    )
+
+    with schema_path.open("r", encoding="utf-8") as file:
+        schema = json.load(file)
+
+    Draft202012Validator.check_schema(schema)
+
+    return Draft202012Validator(
+        schema,
+        format_checker=FormatChecker(),
+    )
+
+
+def _validate_call_brief_schema(
+    brief: Dict[str, Any],
+) -> None:
+    """Raise an actionable error if the generated brief violates its schema."""
+    validator = _get_call_brief_validator()
+
+    errors = sorted(
+        validator.iter_errors(brief),
+        key=lambda error: (
+            tuple(str(part) for part in error.absolute_path),
+            error.message,
+        ),
+    )
+
+    if not errors:
+        return
+
+    details = "; ".join(
+        f"{'/'.join(str(part) for part in error.absolute_path) or '<root>'}: "
+        f"{error.message}"
+        for error in errors[:10]
+    )
+
+    raise ValueError(
+        f"Generated CallBrief does not match "
+        f"data/schemas/call_brief.schema.json: {details}"
+    )
 
 def _get_last_message_text(state: AgentState) -> str:
     messages = state.get("messages", [])
@@ -153,8 +212,8 @@ def _normalize_money(text: str) -> str:
         amount = int(float(value) * 1_000)
         return f"{amount:,}".replace(",", ".")
 
-    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:tr|triá»‡u)\b", replace_million, text, flags=re.IGNORECASE)
-    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:k|nghÃ¬n)\b", replace_thousand, text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)\b", replace_million, text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:k|nghìn)\b", replace_thousand, text, flags=re.IGNORECASE)
 
     return text
 
@@ -189,7 +248,7 @@ def _extract_phone(text: str) -> Optional[str]:
 
 
 # Max times we ask for name+phone before falling back to guest mode.
-MAX_IDENTITY_ATTEMPTS = 2
+MAX_IDENTITY_ATTEMPTS = 3
 
 _IDENTITY_QUESTION = (
     "Dạ em chưa nhận diện được thông tin của mình ạ. "
@@ -324,6 +383,8 @@ def normalize_input_node(state: AgentState) -> Dict[str, Any]:
     customer_info = dict(state.get("customer_info") or {})
 
     customer_info["_input_text"] = normalized
+
+    customer_info["_call_brief_started_perf"] = time.perf_counter()
     return {"customer_info": customer_info}
 
 
@@ -360,13 +421,24 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
 
     # Fallback: phone/name may live in a previous brief if customer_info was
     # rebuilt (checkpointer path) — never lose verified identity across turns.
+        # Recover historical context, but prefer a name explicitly provided
+    # in the current message when the previous identity needs clarification.
     brief_fallback = dict(state.get("call_brief") or {})
-    if not context.get("name") and brief_fallback.get("customer_name"):
+    missing_fields = set(state.get("missing_identity_fields") or [])
+
+    extracted_name = _extract_name(raw_text or text)
+
+    if extracted_name and (
+        "name" in missing_fields
+        or not _real_name(context.get("name"))
+    ):
+        context["name"] = extracted_name
+
+    if (
+        not _real_name(context.get("name"))
+        and _real_name(brief_fallback.get("customer_name"))
+    ):
         context["name"] = brief_fallback["customer_name"]
-    if not context.get("name"):
-        extracted_name = _extract_name(raw_text or text)
-        if extracted_name:
-            context["name"] = extracted_name
 
     phone = (
         context.get("phone")
@@ -406,7 +478,12 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
 
     # ---- Call CRM repository (real query on Supabase) ----
     result = crm_get_customer.invoke(
-        {"phone": normalized_phone, "zalo_id": None, "fb_id": None}
+    {
+        "phone": normalized_phone,
+        "name": _real_name(context.get("name")),
+        "zalo_id": None,
+        "fb_id": None,
+    }
     )
 
     # System error (not not_found) — distinguish clearly.
@@ -427,40 +504,135 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
         }
 
     # Ambiguous / conflicting result — do not auto-pick a customer
-    if result.get("ambiguous"):
+        # Ambiguous / conflicting result — never assign a customer automatically.
+    if result.get("ambiguous") or result.get("identity_conflict"):
+        identity_status = (
+            "identity_conflict"
+            if result.get("identity_conflict")
+            else "ambiguous"
+        )
+
         return {
             "customer_id": None,
-            "customer_info": {**context, "phone": normalized_phone},
+            "customer_info": {
+                **context,
+                "phone": normalized_phone,
+            },
             "needs_identity": True,
-            "identity_status": "ambiguous",
-            "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
-            "missing_identity_fields": ["phone"],
+            "identity_status": identity_status,
+            "identity_attempts": (
+                int(state.get("identity_attempts") or 0) + 1
+            ),
+            "missing_identity_fields": ["name"],
             "pending_need": state.get("pending_need"),
         }
 
     # Determine customer_id from CRM result
     crm_customer_id = result["customer_id"] if result.get("found") else None
 
-    # ---- No matching identity found — customer not in CRM ----
+    # ---- Case G — CRM lookup returns not_found ----
     if not crm_customer_id:
-        # Check if caller has provided both valid phone and name
         has_provided_name = _real_name(context.get("name")) is not None
-        missing = []
         if not has_provided_name:
-            missing.append("name")
+            # Phone is valid but name is missing: ask only for the missing name
+            return {
+                "customer_id": None,
+                "customer_info": {**context, "phone": normalized_phone},
+                "needs_identity": True,
+                "identity_status": "not_found",
+                "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+                "missing_identity_fields": ["name"],
+                "pending_need": state.get("pending_need"),
+            }
 
-        # If customer already provided their phone and name, we do not need to ask again.
-        # They will proceed in guest mode with customer_id=None.
-        still_needs = bool(missing)
-        return {
-            "customer_id": None,
-            "customer_info": {**context, "phone": normalized_phone},
-            "needs_identity": still_needs,
-            "identity_status": "not_found",
-            "identity_attempts": int(state.get("identity_attempts") or 0) if not still_needs else int(state.get("identity_attempts") or 0) + 1,
-            "missing_identity_fields": missing,
-            "pending_need": state.get("pending_need"),
-        }
+        # Valid phone + real, non-generic customer name: register customer
+        channel = context.get("channel") or "web_chat"
+        reg_result = crm_create_customer_if_absent(
+            phone=normalized_phone,
+            name=context["name"],
+            honorific=context.get("honorific"),
+            source=f"application_chat_{channel}",
+        )
+
+        outcome = reg_result.get("outcome")
+        if outcome in {"created", "reused"}:
+            customer_id = reg_result["customer_id"]
+            session_id = state.get("session_id")
+            if customer_id and session_id:
+                try:
+                    get_postgres_memory_store().update_session_customer_id(
+                        session_id, customer_id
+                    )
+                except Exception as link_err:
+                    logger.error(
+                        "Failed to associate session %s with registered customer %s: %s",
+                        session_id, customer_id, link_err, exc_info=True
+                    )
+                    # Surface linking failure accurately while preserving registered identity
+                    return {
+                        "customer_id": customer_id,
+                        "customer_info": {
+                            **context,
+                            "customer_id": customer_id,
+                            "phone": normalized_phone,
+                            "name": reg_result.get("name") or context["name"],
+                            "honorific": reg_result.get("honorific") or context.get("honorific"),
+                        },
+                        "needs_identity": True,
+                        "identity_status": "system_error",
+                        "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+                        "missing_identity_fields": [],
+                        "pending_need": state.get("pending_need"),
+                    }
+
+            updated_context = {
+                **context,
+                "customer_id": customer_id,
+                "phone": normalized_phone,
+                "name": reg_result.get("name") or context["name"],
+                "honorific": reg_result.get("honorific") or context.get("honorific"),
+            }
+
+            pending_need = state.get("pending_need")
+            latest_text = _clean_whitespace(raw_text or text)
+            if latest_text and pending_need and latest_text not in pending_need:
+                stripped = re.sub(r"\b0\d{9}\b", "", latest_text).strip(" ,.;:-")
+                if stripped and stripped not in pending_need:
+                    pending_need = f"{pending_need} | {stripped[:500]}"[:1000]
+            elif latest_text and not pending_need:
+                pending_need = latest_text[:500]
+
+            return {
+                "customer_id": customer_id,
+                "customer_info": updated_context,
+                "needs_identity": False,
+                "identity_status": "resolved",
+                "identity_attempts": 0,
+                "missing_identity_fields": [],
+                "pending_need": pending_need,
+            }
+        elif outcome == "ambiguous":
+            return {
+                "customer_id": None,
+                "customer_info": {**context, "phone": normalized_phone},
+                "needs_identity": True,
+                "identity_status": "ambiguous",
+                "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+                "missing_identity_fields": ["name"],
+                "pending_need": state.get("pending_need"),
+            }
+        else:
+            # Registration failure (invalid_input or system_error)
+            status = "system_error" if outcome == "system_error" else "invalid_input"
+            return {
+                "customer_id": None,
+                "customer_info": {**context, "phone": normalized_phone},
+                "needs_identity": True,
+                "identity_status": status,
+                "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+                "missing_identity_fields": ["phone", "name"] if status == "invalid_input" else [],
+                "pending_need": state.get("pending_need"),
+            }
 
 
     # ---- Exactly one valid customer found ----
@@ -525,10 +697,11 @@ def request_identity_node(state: AgentState) -> Dict[str, Any]:
         if not has_name:
             missing.append("name")
     identity_status = state.get("identity_status")
-    if identity_status == "ambiguous":
+    if identity_status in {"ambiguous", "identity_conflict"}:
         question = (
-            "Dạ số điện thoại này đang được dùng chung cho nhiều khách hàng ạ. "
-            "Mình cho em xin chính xác họ tên của mình để em tra cứu đúng hồ sơ nhé ạ?"
+            "Dạ em chưa xác định được chính xác hồ sơ theo số điện thoại "
+            "này ạ. Mình xác nhận giúp em họ tên đầy đủ đã đăng ký với shop "
+            "để em tra cứu đúng thông tin nhé ạ?"
         )
     elif missing == ["name"]:
         question = (
@@ -564,20 +737,22 @@ def request_identity_node(state: AgentState) -> Dict[str, Any]:
 # Call Brief helpers
 # ---------------------------------------------------------------------------
 
-def _get_last_session(sessions: List[Dict[str, Any]]) -> Optional[LastSession]:
+def _get_last_session(sessions: List[Dict[str, Any]],) -> Optional[LastSession]:
     if not sessions:
         return None
 
-    latest = max(sessions, key=lambda item: item.get("date", ""))
+    latest = max(
+        sessions,
+        key=lambda item: str(item.get("date") or ""),
+    )
 
     return LastSession(
         session_id=str(latest.get("session_id", "")),
         date=str(latest.get("date", "")),
-        channel=str(latest.get("channel", "other")),
-        summary=str(latest.get("summary", "")),
-        outcome=str(latest.get("outcome", "khac")),
+        channel=str(latest.get("channel") or "other"),
+        summary=str(latest.get("summary") or ""),
+        outcome=str(latest.get("outcome") or "other")
     )
-
 
 def _build_must_not_ask(
     profile_facts: Dict[str, Any],
@@ -612,7 +787,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
     if not cleaned:
         return {}
     constraints: Dict[str, Any] = {}
-    area = re.search(r"(\d+(?:[.,]\d+)?)\s*(m2|mÂ²|m\^2|mÃ©t vuÃ´ng)", cleaned, re.IGNORECASE)
+    area = re.search(r"(\d+(?:[.,]\d+)?)\s*(m2|m²|m\^2|mét vuông)", cleaned, re.IGNORECASE)
     area_value: Optional[float] = None
     if area:
         try:
@@ -622,7 +797,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
             area_value = None
     budget = _normalize_money(cleaned)
     amounts = []
-    for match in re.finditer(r"(\d[\d.,]*)\s*(triá»‡u|tr|tá»·|ty|nghÃ¬n|nghin|k|Ä‘|vnd|Ä‘á»“ng)?", budget, re.IGNORECASE):
+    for match in re.finditer(r"(\d[\d.,]*)\s*(triệu|tr|tỷ|ty|nghìn|nghin|k|đ|vnd|đồng)?", budget, re.IGNORECASE):
         raw_value, unit = match.group(1), (match.group(2) or "").lower()
         try:
             number = float(raw_value.replace(".", "").replace(",", ""))
@@ -632,13 +807,13 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
         if not unit and area_value is not None and abs(number - area_value) < 0.001:
             continue
         multiplier = 1
-        if unit in ("tá»·", "ty"):
+        if unit in ("tỷ", "ty"):
             multiplier = 1_000_000_000
-        elif unit in ("triá»‡u", "tr"):
+        elif unit in ("triệu", "tr"):
             multiplier = 1_000_000
-        elif unit in ("nghÃ¬n", "nghin", "k"):
+        elif unit in ("nghìn", "nghin", "k"):
             multiplier = 1_000
-        elif unit in ("Ä‘", "vnd", "Ä‘á»“ng", ""):
+        elif unit in ("đ", "vnd", "đồng", ""):
             # Only accept bare numbers >= 100k as VND to avoid area/SKU noise.
             if number < 100_000:
                 continue
@@ -646,7 +821,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
     if amounts:
         constraints["budget_hint_vnd"] = max(amounts)
     lowered = cleaned.lower()
-    keywords = ["airpure", "mÃ¡y lá»c", "may loc", "mÃ¡y láº¡nh", "Ä‘iá»u hÃ²a", "dieu hoa"]
+    keywords = ["airpure", "máy lọc", "may loc", "máy lạnh", "điều hòa", "dieu hoa"]
     interested = sorted({key for key in keywords if key in lowered})
     if interested:
         constraints["interested_keywords"] = interested
@@ -657,7 +832,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
 
 
 def _map_sample_to_sku(sample_no: int) -> Optional[Dict[str, Any]]:
-    """Resolve 'máº«u sá»‘ N' to the Nth product in the project catalog (1-based)."""
+    """Resolve 'mẫu số N' to the Nth product in the project catalog (1-based)."""
     if not sample_no or sample_no < 1:
         return None
     try:
@@ -707,18 +882,18 @@ def _build_suggested_opening(
     products_advised: List[Dict[str, Any]],
     open_blockers: List[str],
 ) -> str:
-    title = honorific or "anh/chá»‹"
+    title = honorific or "anh/chị"
 
     if customer_name:
-        greeting = f"Dáº¡ chÃ o {title} {customer_name} áº¡."
+        greeting = f"Dạ chào {title} {customer_name} ạ."
     else:
-        greeting = f"Dáº¡ chÃ o {title} áº¡."
+        greeting = f"Dạ chào {title} ạ."
 
     if not last_session:
-        return f"{greeting} Em há»— trá»£ mÃ¬nh váº¥n Ä‘á» gÃ¬ hÃ´m nay áº¡?"
+        return f"{greeting} Em hỗ trợ mình vấn đề gì hôm nay ạ?"
 
     if not products_advised:
-        return f"{greeting} Em tiáº¿p tá»¥c há»— trá»£ mÃ¬nh tá»« láº§n trao Ä‘á»•i trÆ°á»›c nhÃ© áº¡?"
+        return f"{greeting} Em tiếp tục hỗ trợ mình từ lần trao đổi trước nhé ạ?"
 
     product = products_advised[-1]
     sku = product.get("sku")
@@ -727,13 +902,13 @@ def _build_suggested_opening(
         blocker = open_blockers[0]
 
         return (
-            f"{greeting} HÃ´m trÆ°á»›c bÃªn em cÃ³ tÆ° váº¥n máº«u "
-            f"{sku or 'sáº£n pháº©m mÃ¬nh quan tÃ¢m'}. MÃ¬nh cÃ²n bÄƒn khoÄƒn vá» {blocker} Ä‘Ãºng khÃ´ng áº¡?"
+            f"{greeting} Hôm trước bên em có tư vấn mẫu "
+            f"{sku or 'sản phẩm mình quan tâm'}. Mình còn băn khoăn về {blocker} đúng không ạ?"
         )
 
     return (
-        f"{greeting} HÃ´m trÆ°á»›c bÃªn em cÃ³ tÆ° váº¥n máº«u "
-        f"{sku or 'sáº£n pháº©m mÃ¬nh quan tÃ¢m'}. Em há»— trá»£ mÃ¬nh tiáº¿p nhÃ© áº¡?"
+        f"{greeting} Hôm trước bên em có tư vấn mẫu "
+        f"{sku or 'sản phẩm mình quan tâm'}. Em hỗ trợ mình tiếp nhé ạ?"
     )
 
 
@@ -747,12 +922,16 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     Inputs: ``customer_id``/``customer_info`` (identity), Postgres session
     events + recent episodes + profile facts (memory), and the current turn
     text (need/constraints). Output is stored at ``state["call_brief"]`` as a
-    compact dict â€” never a raw copy of ``state["messages"]``.
+    compact dict — never a raw copy of ``state["messages"]``.
     """
 
     started_at = time.perf_counter()
 
     customer_info = state.get("customer_info") or {}
+
+    started_at = customer_info.get("_call_brief_started_perf")
+    if not isinstance(started_at, (int, float)):
+        started_at = time.perf_counter()
 
     customer_id = state.get("customer_id")
     session_id = state.get("session_id")
@@ -1017,7 +1196,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
                 date=str(session["date"]),
                 channel=str(session.get("channel") or "other"),
                 summary=str(session.get("summary") or ""),
-                outcome=str(session.get("outcome") or "khac"),
+                outcome=str(session.get("outcome") or "other"),
             )
             for session in episode_sessions
         ],
@@ -1034,7 +1213,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         stale_warnings=stale_warnings,
         suggested_opening=suggested_opening,
         suggested_next_action=suggested_next_action,
-        generated_at=datetime.now().isoformat(),
+        generated_at=datetime.now(timezone.utc).isoformat(),
         latency_ms=latency_ms,
         precomputed_parts=[
             "customer_identity",
@@ -1050,6 +1229,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     )
 
     brief_dict = brief.model_dump(mode="json")
+    _validate_call_brief_schema(brief_dict)
     if session_id:
         if working_store is None:
             raise RuntimeError(
@@ -1060,7 +1240,8 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
             customer_id=customer_id,
             call_brief=brief_dict,
         )
-        brief_dict["call_brief_updated_at"] = datetime.now().isoformat()
+        brief_dict["call_brief_updated_at"] = (datetime.now(timezone.utc).isoformat())
+    _validate_call_brief_schema(brief_dict)
 
     if customer_id and resolved_name:
         identity_state = {

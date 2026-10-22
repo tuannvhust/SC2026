@@ -189,6 +189,81 @@ class TestCRMGetCustomer:
         assert result["ambiguous"] is True
         assert result["found"] is False
 
+    def test_shared_phone_resolves_with_matching_name(self, monkeypatch):
+        engine = _create_crm_engine()
+
+        _insert_crm_customer(
+            engine,
+            "C034",
+            phone="0958421083",
+            preferred_name="Loan",
+        )
+        _insert_crm_customer(
+            engine,
+            "C035",
+            phone="0958421083",
+            preferred_name="Dung",
+        )
+
+        monkeypatch.setattr(
+            tool_repository,
+            "_get_crm_engine",
+            lambda: engine,
+        )
+
+        try:
+            result = tool_repository.crm_get_customer.invoke(
+                {
+                    "phone": "0958421083",
+                    "name": "Loan",
+                }
+            )
+        finally:
+            engine.dispose()
+
+        assert result["found"] is True
+        assert result["customer_id"] == "C034"
+        assert result["name"] == "Loan"
+        assert result["ambiguous"] is False
+        assert result["identity_conflict"] is False
+
+    def test_shared_phone_with_wrong_name_stays_unresolved(
+        self, monkeypatch
+    ):
+        engine = _create_crm_engine()
+
+        _insert_crm_customer(
+            engine,
+            "C034",
+            phone="0958421083",
+            preferred_name="Loan",
+        )
+        _insert_crm_customer(
+            engine,
+            "C035",
+            phone="0958421083",
+            preferred_name="Dung",
+        )
+
+        monkeypatch.setattr(
+            tool_repository,
+            "_get_crm_engine",
+            lambda: engine,
+        )
+
+        try:
+            result = tool_repository.crm_get_customer.invoke(
+                {
+                    "phone": "0958421083",
+                    "name": "Mai",
+                }
+            )
+        finally:
+            engine.dispose()
+
+        assert result["found"] is False
+        assert result["customer_id"] is None
+        assert result["identity_conflict"] is True
 
 class TestResolveIdentityNode:
     @staticmethod

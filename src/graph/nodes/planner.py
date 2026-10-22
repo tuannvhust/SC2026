@@ -415,6 +415,36 @@ def plan_step_node(state: AgentState) -> Dict[str, Any]:
     needs_identity = state.get("needs_identity", False)
     identity_status = state.get("identity_status") or ""
 
+        # Final safety net: unresolved identity must not enter LLM planning.
+    if needs_identity and identity_status in {
+        "ambiguous",
+        "identity_conflict",
+    }:
+        return {
+            "messages": [
+                AIMessage(
+                    content=(
+                        "Dạ em chưa xác định được chính xác hồ sơ khách hàng "
+                        "ạ. Anh/Chị xác nhận giúp em họ tên đầy đủ đã đăng ký "
+                        "với shop để em hỗ trợ đúng thông tin nhé ạ."
+                    )
+                )
+            ]
+        }
+
+    if needs_identity and identity_status == "system_error":
+        return {
+            "messages": [
+                AIMessage(
+                    content=(
+                        "Dạ hiện hệ thống chưa tra cứu được hồ sơ khách hàng, "
+                        "nên em chưa thể xác nhận thông tin. Em xin phép "
+                        "nhờ bộ phận hỗ trợ kiểm tra thêm ạ."
+                    )
+                )
+            ]
+        }
+
     if needs_identity and identity_status != "resolved":
         # Guest-mode fallback (identity_attempts exhausted): log a warning and
         # allow the LLM to proceed but strip business-tool access.

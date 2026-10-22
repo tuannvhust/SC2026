@@ -41,20 +41,39 @@ def route_after_guardrail(
 
 def route_after_identity(
     state: AgentState,
-) -> Literal["request_identity", "build_call_brief"]:
-    """Pause to collect name+phone when CRM cannot resolve the caller.
+) -> Literal[
+    "request_identity",
+    "build_call_brief",
+    "handoff_to_human",
+]:
+    """Route identity states safely.
 
-    Falls back to guest mode after MAX_IDENTITY_ATTEMPTS so the session can
-    still continue to build_call_brief without a resolved customer_id.
+    Ambiguous/conflicting identity must never fall through to guest mode.
     """
     if state.get("customer_id"):
         return "build_call_brief"
+
     if not state.get("needs_identity", False):
         return "build_call_brief"
-    if int(state.get("identity_attempts") or 0) >= MAX_IDENTITY_ATTEMPTS:
-        return "build_call_brief"
-    return "request_identity"
 
+    identity_status = state.get("identity_status") or ""
+    attempts = int(state.get("identity_attempts") or 0)
+
+    # A CRM/database error is not proof that the customer does not exist.
+    if identity_status == "system_error":
+        return "handoff_to_human"
+
+    # Ask once more to clarify; if still unresolved, escalate to a person.
+    if identity_status in {"ambiguous", "identity_conflict"}:
+        if attempts < MAX_IDENTITY_ATTEMPTS:
+            return "request_identity"
+        return "handoff_to_human"
+
+    # Preserve the existing guest-mode fallback for other identity states.
+    if attempts >= MAX_IDENTITY_ATTEMPTS:
+        return "build_call_brief"
+
+    return "request_identity"
 
 def route_after_call_brief(
     state: AgentState,

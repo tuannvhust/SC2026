@@ -60,7 +60,7 @@ def test_agent_state_uses_messages_without_separate_tool_fields():
 def test_input_guardrail_preserves_api_turn_id():
     result = input_guardrail_node(
         {
-            "messages": [HumanMessage(content="Xin chÃƒÂ o")],
+            "messages": [HumanMessage(content="Xin chào")],
             "session_id": "SESSION-API",
             "turn_id": "TURN-API",
         }
@@ -88,7 +88,7 @@ def test_planner_routes_tool_calls_to_tool_node():
 
 
 def test_planner_routes_answer_and_clarification_to_output_guardrail():
-    for content in ("DÃ¡ÂºÂ¡, em cÃƒÂ³ thÃ¡Â»Æ’ hÃ¡Â»â€” trÃ¡Â»Â£.", "Anh/chÃ¡Â»â€¹ muÃ¡Â»â€˜n chÃ¡Â»Ân mÃƒÂ u nÃƒÂ o Ã¡ÂºÂ¡?"):
+    for content in ("Dạ, em có thể hỗ trợ.", "Anh/chị muốn chọn màu nào ạ?"):
         message = AIMessage(content=content)
         assert route_after_plan({"messages": [message]}) == "output_guardrail"
         assert output_guardrail_node({"messages": [message]}) == {
@@ -98,9 +98,9 @@ def test_planner_routes_answer_and_clarification_to_output_guardrail():
 
 
 def test_planner_retry_omits_rejected_trailing_ai_message(monkeypatch):
-    user_message = HumanMessage(content="GiÃƒÂ¡ sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m lÃƒÂ  bao nhiÃƒÂªu?")
-    rejected_answer = AIMessage(content="GiÃƒÂ¡ lÃƒÂ  1.000.000Ã„â€˜.")
-    response = AIMessage(content="Em sÃ¡ÂºÂ½ kiÃ¡Â»Æ’m tra giÃƒÂ¡ hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i Ã¡ÂºÂ¡.")
+    user_message = HumanMessage(content="Giá sản phẩm là bao nhiêu?")
+    rejected_answer = AIMessage(content="Giá là 1.000.000đ.")
+    response = AIMessage(content="Em sẽ kiểm tra giá hiện tại ạ.")
     invoke = Mock(return_value=response)
     monkeypatch.setattr(planner_node, "planner_llm", Mock(invoke=invoke))
 
@@ -184,7 +184,7 @@ def test_input_nodes_only_update_declared_agent_state_fields(monkeypatch):
     state.update(identity)
     brief = build_call_brief_node(state)
 
-    assert normalized["customer_info"]["_input_text"] == "sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m 2.000.000"
+    assert normalized["customer_info"]["_input_text"] == "sản phẩm 2.000.000"
     assert set(normalized) | set(identity) | set(brief) <= AgentState.__annotations__.keys()
 
 
@@ -227,7 +227,7 @@ def test_unknown_identity_asks_for_name_and_phone_then_resolves_next_turn(monkey
 
     monkeypatch.setattr(input_nodes, "crm_get_customer", type("FakeCrm", (), {"invoke": staticmethod(_fake_crm_invoke)})())
 
-    state = {"messages": [HumanMessage(content="tÃ†Â° vÃ¡ÂºÂ¥n giÃƒÂºp em")], "identity_attempts": 0}
+    state = {"messages": [HumanMessage(content="tư vấn giúp em")], "identity_attempts": 0}
     state.update(normalize_input_node(state))
     identity = resolve_identity_node(state)
     assert identity["customer_id"] is None
@@ -238,15 +238,15 @@ def test_unknown_identity_asks_for_name_and_phone_then_resolves_next_turn(monkey
     asked = request_identity_node(state)
     assert asked["identity_attempts"] == 1
     assert isinstance(asked["messages"][0], AIMessage)
-    assert "sÃ¡Â»â€˜ Ã„â€˜iÃ¡Â»â€¡n thoÃ¡ÂºÂ¡i" in asked["messages"][0].content
+    assert "số điện thoại" in asked["messages"][0].content
     # Combined ask must mention both name and phone in one question.
-    assert "tÃƒÂªn" in asked["messages"][0].content
+    assert "tên" in asked["messages"][0].content
     assert asked["missing_identity_fields"] == ["phone", "name"]
     assert asked["pending_need"]
     state.update(asked)
 
     # Customer replies with phone only: keep it, ask name without repeat.
-    state["messages"].append(HumanMessage(content="sÃ„â€˜t 0901234567"))
+    state["messages"].append(HumanMessage(content="sđt 0901234567"))
     state.update(normalize_input_node(state))
     partial = resolve_identity_node(state)
     assert partial["customer_info"]["phone"] == "0901234567"
@@ -254,11 +254,11 @@ def test_unknown_identity_asks_for_name_and_phone_then_resolves_next_turn(monkey
     assert partial["missing_identity_fields"] == ["name"]
     state.update(partial)
     followup = request_identity_node(state)
-    assert "khÃƒÂ´ng cÃ¡ÂºÂ§n gÃ¡Â»Â­i lÃ¡ÂºÂ¡i sÃ¡Â»â€˜" in followup["messages"][0].content
+    assert "không cần gửi lại số" in followup["messages"][0].content
     state.update(followup)
 
     # Customer replies with name + phone in the next turn.
-    state["messages"].append(HumanMessage(content="mÃƒÂ¬nh tÃƒÂªn Lan, sÃ„â€˜t 0901234567"))
+    state["messages"].append(HumanMessage(content="mình tên Lan, sđt 0901234567"))
     state.update(normalize_input_node(state))
     resolved = resolve_identity_node(state)
     assert resolved["customer_id"] == "CUST-1029"
@@ -372,13 +372,13 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
     profile_store = FakeProfileStore()
     monkeypatch.setattr(persistence_nodes, "get_profile_store", lambda: profile_store)
     messages = [
-        HumanMessage(content="TÃƒÂ´i muÃ¡Â»â€˜n tÃ†Â° vÃ¡ÂºÂ¥n mÃƒÂ¡y lÃ¡Â»Âc khÃƒÂ­."),
+        HumanMessage(content="Tôi muốn tư vấn máy lọc khí."),
         AIMessage(
             content="",
             tool_calls=[
                 {
                     "name": "catalog.search",
-                    "args": {"query": "mÃƒÂ¡y lÃ¡Â»Âc khÃƒÂ­"},
+                    "args": {"query": "máy lọc khí"},
                     "id": "catalog-1",
                     "type": "tool_call",
                 },
@@ -411,7 +411,7 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
             content='{"status": "queued_for_session_commit", "key": "preferred_category"}',
             tool_call_id="memory-1",
         ),
-        AIMessage(content="DÃ¡ÂºÂ¡, mÃ¡ÂºÂ«u AirPure X giÃƒÂ¡ 4.401.000Ã„â€˜ Ã¡ÂºÂ¡."),
+        AIMessage(content="Dạ, mẫu AirPure X giá 4.401.000đ ạ."),
     ]
     state = {
         "messages": messages,
@@ -421,7 +421,7 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
         "session_ended": True,
         "customer_info": {"phone": "0901234567", "channel": "web_chat"},
         "call_brief": {
-            "open_blockers": ["cÃƒÂ¢n nhÃ¡ÂºÂ¯c giÃƒÂ¡"],
+            "open_blockers": ["cân nhắc giá"],
             "open_questions": [],
         },
     }
@@ -439,7 +439,7 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
             "applied_promos": ["PROMO-10PCT"],
         }
     ]
-    assert episode["open_blockers"] == ["cÃƒÂ¢n nhÃ¡ÂºÂ¯c giÃƒÂ¡"]
+    assert episode["open_blockers"] == ["cân nhắc giá"]
     assert episode["profile_facts_written"] == ["preferred_category"]
     assert profile_store.updates == [
         (
@@ -464,7 +464,7 @@ def test_ongoing_turn_does_not_write_episode_or_profile(tmp_path, monkeypatch):
 
     monkeypatch.setattr(persistence_nodes, "get_profile_store", FakeProfileStore)
     state = {
-        "messages": [HumanMessage(content="TÃƒÂ´i thÃƒÂ­ch mÃƒÂ¡y lÃ¡Â»Âc khÃƒÂ­.")],
+        "messages": [HumanMessage(content="Tôi thích máy lọc khí.")],
         "session_id": "SESSION-ONGOING",
         "turn_id": "TURN-1",
         "customer_id": "CUST-3",
@@ -578,16 +578,16 @@ def test_memory_write_queues_profile_fact_until_session_commit():
 
 def test_output_guardrail_rejects_prices_that_disagree_with_quote():
     messages = [
-        HumanMessage(content="GiÃƒÂ¡ mÃ¡ÂºÂ«u nÃƒÂ y bao nhiÃƒÂªu?"),
+        HumanMessage(content="Giá mẫu này bao nhiêu?"),
         AIMessage(
-            content="DÃ¡ÂºÂ¡, giÃƒÂ¡ hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i lÃƒÂ  4.890.000Ã„â€˜ Ã¡ÂºÂ¡.",
+            content="Dạ, giá hiện tại là 4.890.000đ ạ.",
         ),
         ToolMessage(
             name="pricing.get_quote",
             content='{"final_price_vnd": 4401000, "applied_promos": ["PROMO-10PCT"]}',
             tool_call_id="quote-1",
         ),
-        AIMessage(content="DÃ¡ÂºÂ¡ giÃƒÂ¡ hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i lÃƒÂ  4.890.000Ã„â€˜ Ã¡ÂºÂ¡."),
+        AIMessage(content="Dạ giá hiện tại là 4.890.000đ ạ."),
     ]
 
     result = output_guardrail_node({"messages": messages})
@@ -602,13 +602,13 @@ def test_guardrail_checks_tool_results_only_from_current_customer_turn():
         content='{"final_price_vnd": 1000000}',
         tool_call_id="quote-old",
     )
-    customer_message = HumanMessage(content="GiÃƒÂ¡ hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i lÃƒÂ  bao nhiÃƒÂªu?")
+    customer_message = HumanMessage(content="Giá hiện tại là bao nhiêu?")
     current_quote = ToolMessage(
         name="pricing.get_quote",
         content='{"final_price_vnd": 4401000}',
         tool_call_id="quote-current",
     )
-    response = AIMessage(content="DÃ¡ÂºÂ¡ giÃƒÂ¡ lÃƒÂ  4.401.000Ã„â€˜ Ã¡ÂºÂ¡.")
+    response = AIMessage(content="Dạ giá là 4.401.000đ ạ.")
     messages = [previous_turn_tool, customer_message, current_quote, response]
 
     assert _get_current_tool_results(messages) == [current_quote]
@@ -617,14 +617,14 @@ def test_guardrail_checks_tool_results_only_from_current_customer_turn():
 
 def test_output_guardrail_ignores_user_budget_constraint():
     messages = [
-        HumanMessage(content="TÃƒÂ¬m mÃƒÂ¡y lÃ¡Â»Âc khÃƒÂ´ng khÃƒÂ­ dÃ†Â°Ã¡Â»â€ºi 10 triÃ¡Â»â€¡u"),
+        HumanMessage(content="Tìm máy lọc không khí dưới 10 triệu"),
         ToolMessage(
             name="pricing.get_quote",
             content='{"sku": "SKU-XM-4L", "final_price_vnd": 2990000}',
             tool_call_id="quote-1",
         ),
         AIMessage(
-            content="DÃ¡ÂºÂ¡ bÃƒÂªn em cÃƒÂ³ mÃƒÂ¡y lÃ¡Â»Âc dÃ†Â°Ã¡Â»â€ºi 10 triÃ¡Â»â€¡u phÃƒÂ¹ hÃ¡Â»Â£p vÃ¡Â»â€ºi anh/chÃ¡Â»â€¹: Xiaomi Smart 4 Lite giÃƒÂ¡ 2.990.000Ã„â€˜ Ã¡ÂºÂ¡."
+            content="Dạ bên em có máy lọc dưới 10 triệu phù hợp với anh/chị: Xiaomi Smart 4 Lite giá 2.990.000đ ạ."
         ),
     ]
 
@@ -634,14 +634,14 @@ def test_output_guardrail_ignores_user_budget_constraint():
 
 def test_output_guardrail_allows_discount_amount():
     messages = [
-        HumanMessage(content="MÃƒÂ¡y nÃƒÂ y cÃƒÂ³ giÃ¡ÂºÂ£m giÃƒÂ¡ khÃƒÂ´ng?"),
+        HumanMessage(content="Máy này có giảm giá không?"),
         ToolMessage(
             name="pricing.get_quote",
             content='{"sku": "SKU-AP-PRO", "list_price_vnd": 7990000, "final_price_vnd": 7690000, "discount_vnd": 300000}',
             tool_call_id="quote-1",
         ),
         AIMessage(
-            content="DÃ¡ÂºÂ¡ mÃƒÂ¡y AirPure Pro giÃƒÂ¡ gÃ¡Â»â€˜c 7.990.000Ã„â€˜, Ã„â€˜ang giÃ¡ÂºÂ£m 300.000Ã„â€˜ cÃƒÂ²n 7.690.000Ã„â€˜ Ã¡ÂºÂ¡."
+            content="Dạ máy AirPure Pro giá gốc 7.990.000đ, đang giảm 300.000đ còn 7.690.000đ ạ."
         ),
     ]
 
@@ -653,7 +653,7 @@ def test_output_guardrail_allows_discount_amount():
 
 def test_output_guardrail_checks_inventory_and_promotions():
     messages = [
-        HumanMessage(content="MÃ¡ÂºÂ«u nÃƒÂ y cÃƒÂ²n hÃƒÂ ng vÃƒÂ  cÃƒÂ³ khuyÃ¡ÂºÂ¿n mÃƒÂ£i khÃƒÂ´ng?"),
+        HumanMessage(content="Mẫu này còn hàng và có khuyến mãi không?"),
         ToolMessage(
             name="inventory.check",
             content='{"in_stock": false}',
@@ -665,7 +665,7 @@ def test_output_guardrail_checks_inventory_and_promotions():
             tool_call_id="quote-1",
         ),
         AIMessage(
-            content="SÃ¡ÂºÂ£n phÃ¡ÂºÂ©m cÃƒÂ²n hÃƒÂ ng, ÃƒÂ¡p dÃ¡Â»Â¥ng PROMO-OLD vÃƒÂ  Ã„â€˜Ã†Â°Ã¡Â»Â£c miÃ¡Â»â€¦n phÃƒÂ­ vÃ¡ÂºÂ­n chuyÃ¡Â»Æ’n."
+            content="Sản phẩm còn hàng, áp dụng PROMO-OLD và được miễn phí vận chuyển."
         ),
     ]
 
@@ -678,31 +678,31 @@ def test_output_guardrail_checks_inventory_and_promotions():
 
 def test_output_guardrail_rejects_hallucinated_gifts():
     messages = [
-        HumanMessage(content="MÃƒÂ¡y lÃ¡Â»Âc khÃƒÂ´ng khÃƒÂ­ nÃƒÂ y cÃƒÂ³ Ã†Â°u Ã„â€˜ÃƒÂ£i gÃƒÂ¬ khÃƒÂ´ng?"),
+        HumanMessage(content="Máy lọc không khí này có ưu đãi gì không?"),
         ToolMessage(
             name="pricing.get_quote",
             content='{"sku": "SKU-AP-Y", "final_price_vnd": 3500000, "applied_promos": [], "gifts": []}',
             tool_call_id="quote-1",
         ),
-        AIMessage(content="DÃ¡ÂºÂ¡ mÃƒÂ¡y cÃƒÂ³ giÃƒÂ¡ 3.500.000Ã„â€˜ vÃƒÂ  Ã„â€˜Ã†Â°Ã¡Â»Â£c tÃ¡ÂºÂ·ng kÃƒÂ¨m 1 bÃ¡Â»â„¢ lÃ¡Â»Âc Ã¡ÂºÂ¡."),
+        AIMessage(content="Dạ máy có giá 3.500.000đ và được tặng kèm 1 bộ lọc ạ."),
     ]
 
     result = output_guardrail_node({"messages": messages})
     assert result["output_valid"] is False
-    assert "DÃ¡Â»Â¯ liÃ¡Â»â€¡u quÃƒÂ  tÃ¡ÂºÂ·ng" in result["guardrail_feedback"]
+    assert "Dữ liệu quà tặng" in result["guardrail_feedback"]
     assert "SKU-AP-Y" in result["guardrail_feedback"]
 
 
 def test_output_guardrail_allows_explicit_gift_denial():
     messages = [
-        HumanMessage(content="MÃ¡ÂºÂ«u AirPure Pro cÃƒÂ³ quÃƒÂ  gÃƒÂ¬ khÃƒÂ´ng?"),
+        HumanMessage(content="Mẫu AirPure Pro có quà gì không?"),
         ToolMessage(
             name="pricing.get_quote",
             content='{"sku": "SKU-AP-PRO", "final_price_vnd": 7690000, "gifts": []}',
             tool_call_id="quote-1",
         ),
         AIMessage(
-            content="DÃ¡ÂºÂ¡ AirPure Pro giÃƒÂ¡ 7.690.000Ã„â€˜. QuÃƒÂ  tÃ¡ÂºÂ·ng kÃƒÂ¨m: MÃ¡ÂºÂ«u nÃƒÂ y hiÃ¡Â»â€¡n khÃƒÂ´ng cÃƒÂ³ quÃƒÂ  tÃ¡ÂºÂ·ng kÃƒÂ¨m Ã¡ÂºÂ¡."
+            content="Dạ AirPure Pro giá 7.690.000đ. Quà tặng kèm: Mẫu này hiện không có quà tặng kèm ạ."
         ),
     ]
 
@@ -712,7 +712,7 @@ def test_output_guardrail_allows_explicit_gift_denial():
 
 def test_output_guardrail_blocks_cross_sku_gift_borrowing():
     messages = [
-        HumanMessage(content="Hai mÃ¡ÂºÂ«u nÃƒÂ y quÃƒÂ  thÃ¡ÂºÂ¿ nÃƒÂ o?"),
+        HumanMessage(content="Hai mẫu này quà thế nào?"),
         ToolMessage(
             name="pricing.get_quote",
             content='{"sku": "SKU-A", "gifts": [{"promo_code": "G1", "sku": "GIFT-1"}]}',
@@ -723,7 +723,7 @@ def test_output_guardrail_blocks_cross_sku_gift_borrowing():
             content='{"sku": "SKU-B", "gifts": []}',
             tool_call_id="quote-b",
         ),
-        AIMessage(content="DÃ¡ÂºÂ¡ SKU-B Ã„â€˜Ã†Â°Ã¡Â»Â£c tÃ¡ÂºÂ·ng kÃƒÂ¨m 1 bÃ¡Â»â„¢ lÃ¡Â»Âc Ã¡ÂºÂ¡."),
+        AIMessage(content="Dạ SKU-B được tặng kèm 1 bộ lọc ạ."),
     ]
 
     result = output_guardrail_node({"messages": messages})
@@ -733,14 +733,14 @@ def test_output_guardrail_blocks_cross_sku_gift_borrowing():
 
 def test_output_guardrail_cleans_signature_artifacts():
     messages = [
-        HumanMessage(content="GiÃƒÂ¡ bao nhiÃƒÂªu?"),
+        HumanMessage(content="Giá bao nhiêu?"),
         ToolMessage(
             name="pricing.get_quote",
             content='{"final_price_vnd": 1000000}',
             tool_call_id="quote-1",
         ),
         AIMessage(
-            content="DÃ¡ÂºÂ¡ giÃƒÂ¡ lÃƒÂ  1.000.000Ã„â€˜ Ã¡ÂºÂ¡.\n```signature\nsig_abc123_encrypted_long_hash\n```\n[signature: meta]"
+            content="Dạ giá là 1.000.000đ ạ.\n```signature\nsig_abc123_encrypted_long_hash\n```\n[signature: meta]"
         ),
     ]
 
@@ -798,7 +798,7 @@ def test_handoff_submits_schema_valid_brief(monkeypatch):
                         "promo_code": "PROMO-10PCT",
                     }
                 ],
-                "open_blockers": ["chÃ¡Â»Â hÃ¡Â»Âi chÃ¡Â»â€œng"],
+                "open_blockers": ["chờ hỏi chồng"],
                 "open_questions": [],
                 "profile_facts": {},
             },
@@ -817,13 +817,13 @@ def test_handoff_submits_schema_valid_brief(monkeypatch):
 
 
 def test_planner_calls_catalog_search_on_shopping_inquiry(monkeypatch):
-    user_message = HumanMessage(content="TÃ†Â° vÃ¡ÂºÂ¥n giÃƒÂºp anh mÃƒÂ¡y lÃ¡Â»Âc khÃƒÂ´ng khÃƒÂ­ dÃ†Â°Ã¡Â»â€ºi 5 triÃ¡Â»â€¡u")
+    user_message = HumanMessage(content="Tư vấn giúp anh máy lọc không khí dưới 5 triệu")
     expected_response = AIMessage(
         content="",
         tool_calls=[
             {
                 "name": "catalog.search",
-                "args": {"query": "mÃƒÂ¡y lÃ¡Â»Âc khÃƒÂ´ng khÃƒÂ­", "max_price_vnd": 5_000_000},
+                "args": {"query": "máy lọc không khí", "max_price_vnd": 5_000_000},
                 "id": "call-catalog-1",
                 "type": "tool_call",
             }

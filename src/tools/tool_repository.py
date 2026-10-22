@@ -5,6 +5,7 @@ import os
 import re
 import time
 import uuid
+import zlib
 from datetime import date, datetime, timedelta
 from threading import Lock
 from typing import Any, Dict, List, Literal, Optional
@@ -457,11 +458,17 @@ Sentiment = Literal[
 # ---------------------------------------------------------------------------
 # CRM
 # ---------------------------------------------------------------------------
-
 class CRMGetCustomerInput(BaseModel):
     phone: Optional[str] = Field(
         default=None,
         description="Customer phone number",
+    )
+    name: Optional[str] = Field(
+        default=None,
+        description=(
+            "Customer name used as a secondary discriminator "
+            "when the phone number matches multiple CRM records."
+        ),
     )
     zalo_id: Optional[str] = Field(
         default=None,
@@ -479,7 +486,6 @@ class CRMGetCustomerInput(BaseModel):
         default=None,
         description="Call date (YYYY-MM-DD)",
     )
-
 
 def _crm_lookup_error(message: str) -> Dict[str, Any]:
     return {
@@ -540,18 +546,16 @@ def _resolve_crm_customers(
 @tool("crm.get_customer", args_schema=CRMGetCustomerInput)
 def crm_get_customer(
     phone: Optional[str] = None,
+    name: Optional[str] = None,
     zalo_id: Optional[str] = None,
     fb_id: Optional[str] = None,
     email: Optional[str] = None,
     on: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Look up a customer directly in flattened public.customers.
+    """Look up CRM customer records.
 
-    Simplified schema: phone/zalo/fb/email live in one customers row.
-    Phone is not unique (C034/C035 share one phone): multiple distinct
-    customer_id matches return ambiguous=true without auto-picking.
-    Database failures return error, never a silent not-found.
-    phone_verified only proves phone verification, not zalo/fb/email.
+    If a phone matches multiple customers, use the supplied name to
+    disambiguate. Never select a customer when the evidence is conflicting.
     """
     result: Dict[str, Any] = {
         "found": False,
@@ -561,22 +565,42 @@ def crm_get_customer(
         "phone": None,
         "is_verified": False,
         "ambiguous": False,
+        "identity_conflict": False,
         "error": None,
     }
 
     normalized_phone = _normalize_phone(phone) if phone else None
-    clean_zalo = zalo_id.strip() if isinstance(zalo_id, str) and zalo_id.strip() else None
-    clean_fb = fb_id.strip() if isinstance(fb_id, str) and fb_id.strip() else None
-    clean_email = email.strip() if isinstance(email, str) and email.strip() else None
-    if phone and (not normalized_phone or not _is_valid_phone(normalized_phone)):
+    clean_name = name.strip() if isinstance(name, str) and name.strip() else None
+    clean_zalo = (
+        zalo_id.strip()
+        if isinstance(zalo_id, str) and zalo_id.strip()
+        else None
+    )
+    clean_fb = (
+        fb_id.strip()
+        if isinstance(fb_id, str) and fb_id.strip()
+        else None
+    )
+    clean_email = (
+        email.strip()
+        if isinstance(email, str) and email.strip()
+        else None
+    )
+
+    if phone and (
+        not normalized_phone or not _is_valid_phone(normalized_phone)
+    ):
         return result
+
     if not normalized_phone and not clean_zalo and not clean_fb and not clean_email:
         return result
+
     result["phone"] = normalized_phone
 
     try:
         engine = _get_crm_engine()
         with engine.connect() as connection:
+            # First retrieve records matching the supplied identity fields.
             rows = _resolve_crm_customers(
                 connection,
                 phone=normalized_phone,
@@ -584,33 +608,76 @@ def crm_get_customer(
                 fb_id=clean_fb,
                 email=clean_email,
             )
-    except Exception as error:  # noqa: BLE001 — system errors must surface, not mask as not-found
+
+            # A name is a secondary discriminator for a supplied phone.
+            # Match it against full_name OR preferred_name, case-insensitively.
+            if normalized_phone and clean_name and rows:
+                requested_name = " ".join(clean_name.casefold().split())
+                matching_rows = []
+
+                for row in rows:
+                    candidate_names = (
+                        row["full_name"],
+                        row["preferred_name"],
+                    )
+                    normalized_names = {
+                        " ".join(str(value).casefold().split())
+                        for value in candidate_names
+                        if value and str(value).strip()
+                    }
+
+                    if requested_name in normalized_names:
+                        matching_rows.append(row)
+
+                if not matching_rows:
+                    # The phone exists, but the supplied name does not match.
+                    # Do not turn this into a false "new customer" result.
+                    distinct_ids = {
+                        row["customer_id"] for row in rows
+                    }
+                    result["identity_conflict"] = True
+                    result["ambiguous"] = len(distinct_ids) > 1
+                    return result
+
+                rows = matching_rows
+
+    except Exception as error:  # noqa: BLE001
         logger.error("CRM lookup failed: %s", error, exc_info=True)
-        result["error"] = f"database_lookup_failed: {type(error).__name__}"
+        result["error"] = (
+            f"database_lookup_failed: {type(error).__name__}"
+        )
         return result
 
     if not rows:
         return result
 
-    distinct_customers = {}
-    for row in rows:
-        distinct_customers[row["customer_id"]] = row
+    distinct_customers = {
+        row["customer_id"]: row
+        for row in rows
+    }
 
     if len(distinct_customers) > 1:
         result["ambiguous"] = True
-        result["found"] = False
-        result["customer_id"] = None
-        result["name"] = None
         return result
 
     row = next(iter(distinct_customers.values()))
+
     result["found"] = True
     result["customer_id"] = row["customer_id"]
-    result["name"] = _real_crm_name(row["full_name"], row["preferred_name"])
+    result["name"] = _real_crm_name(
+        row["full_name"],
+        row["preferred_name"],
+    )
     result["honorific"] = row["honorific"]
     result["phone"] = row["phone"] or normalized_phone
-    result["is_verified"] = bool(row["phone_verified"]) if normalized_phone else False
+    result["is_verified"] = (
+        bool(row["phone_verified"])
+        if normalized_phone
+        else False
+    )
+
     return result
+
 
 
 def _real_crm_name(full_name: Optional[str], preferred_name: Optional[str]) -> Optional[str]:
@@ -621,6 +688,206 @@ def _real_crm_name(full_name: Optional[str], preferred_name: Optional[str]) -> O
             if cleaned and cleaned.lower() not in {"khach hang", "khách hàng"}:
                 return cleaned
     return None
+
+
+_REGISTRATION_MUTEX = Lock()
+
+
+def _generate_customer_id() -> str:
+    """Generate a unique opaque customer_id compatible with text primary key."""
+    return f"CUST_{uuid.uuid4().hex[:8].upper()}"
+
+
+def crm_create_customer_if_absent(
+    *,
+    phone: str,
+    name: str,
+    honorific: Optional[str] = None,
+    source: str = "application_chat",
+) -> Dict[str, Any]:
+    """Deterministically create a new customer in public.customers if absent.
+
+    Rules:
+    1. Normalize and validate phone at persistence boundary.
+    2. Validate name and reject blank or generic placeholder names.
+    3. Open a database transaction with concurrency serialization.
+    4. Recheck CRM records under lock.
+    5. If existing customer found, reuse.
+    6. If multiple customers match phone, return ambiguous.
+    7. Insert only when recheck confirms no match exists.
+    8. Return structured result with explicit outcome:
+       - 'created': newly registered customer
+       - 'reused': existing customer record found on recheck
+       - 'ambiguous': multiple customer records match
+       - 'invalid_input': phone or name invalid
+       - 'system_error': database failure
+    """
+    normalized_phone = _normalize_phone(phone) if phone else None
+    if not normalized_phone or not _is_valid_phone(normalized_phone):
+        return {
+            "outcome": "invalid_input",
+            "found": False,
+            "created": False,
+            "customer_id": None,
+            "name": None,
+            "honorific": None,
+            "phone": None,
+            "ambiguous": False,
+            "error": "invalid_phone",
+        }
+
+    clean_name = name.strip() if isinstance(name, str) else ""
+    if not clean_name or clean_name.lower() in {"khách hàng", "khach hang"}:
+        return {
+            "outcome": "invalid_input",
+            "found": False,
+            "created": False,
+            "customer_id": None,
+            "name": None,
+            "honorific": None,
+            "phone": normalized_phone,
+            "ambiguous": False,
+            "error": "invalid_name",
+        }
+
+    clean_honorific = honorific.strip() if isinstance(honorific, str) and honorific.strip() else None
+
+    # Derive preferred_name (typically the given name / last token if multiple words)
+    name_tokens = clean_name.split()
+    preferred_name = name_tokens[-1] if len(name_tokens) > 1 else clean_name
+
+    engine = _get_crm_engine()
+    now_fn = "now()" if engine.dialect.name != "sqlite" else "datetime('now')"
+
+    # Serialize in-process to protect SQLite and fast concurrent threads
+    with _REGISTRATION_MUTEX:
+        try:
+            with engine.begin() as connection:
+                # PostgreSQL advisory xact lock for distributed concurrency serialization
+                if engine.dialect.name == "postgresql":
+                    lock_id = zlib.crc32(normalized_phone.encode("utf-8"))
+                    connection.execute(
+                        text("SELECT pg_advisory_xact_lock(:lock_id)"),
+                        {"lock_id": lock_id},
+                    )
+
+                # Recheck existing CRM records under lock
+                rows = _resolve_crm_customers(connection, phone=normalized_phone)
+
+                if rows:
+                    distinct_customers = {
+                        row["customer_id"]: row for row in rows
+                    }
+                    if len(distinct_customers) > 1:
+                        # Shared phone with multiple distinct customer IDs -> ambiguous
+                        return {
+                            "outcome": "ambiguous",
+                            "found": False,
+                            "created": False,
+                            "customer_id": None,
+                            "name": None,
+                            "honorific": None,
+                            "phone": normalized_phone,
+                            "ambiguous": True,
+                            "error": "ambiguous_shared_phone",
+                        }
+
+                    # Exactly one existing customer -> reuse
+                    existing_row = next(iter(distinct_customers.values()))
+                    existing_id = existing_row["customer_id"]
+                    existing_name = _real_crm_name(
+                        existing_row.get("full_name"),
+                        existing_row.get("preferred_name"),
+                    ) or clean_name
+                    existing_honorific = existing_row.get("honorific") or clean_honorific
+                    return {
+                        "outcome": "reused",
+                        "found": True,
+                        "created": False,
+                        "customer_id": existing_id,
+                        "name": existing_name,
+                        "honorific": existing_honorific,
+                        "phone": existing_row.get("phone") or normalized_phone,
+                        "ambiguous": False,
+                        "error": None,
+                    }
+
+                # No match found -> create new customer with collision retry
+                customer_id = None
+                for _ in range(5):
+                    candidate_id = _generate_customer_id()
+                    id_check = connection.execute(
+                        text("SELECT 1 FROM public.customers WHERE customer_id = :cid"),
+                        {"cid": candidate_id},
+                    ).first()
+                    if not id_check:
+                        customer_id = candidate_id
+                        break
+
+                if not customer_id:
+                    raise RuntimeError("Failed to generate unique customer_id after 5 attempts.")
+
+                insert_query = f"""
+                    INSERT INTO public.customers (
+                        customer_id,
+                        full_name,
+                        preferred_name,
+                        honorific,
+                        phone,
+                        phone_verified,
+                        status,
+                        source,
+                        created_at,
+                        updated_at
+                    ) VALUES (
+                        :customer_id,
+                        :full_name,
+                        :preferred_name,
+                        :honorific,
+                        :phone,
+                        FALSE,
+                        'provisional',
+                        :source,
+                        {now_fn},
+                        {now_fn}
+                    )
+                """
+                connection.execute(
+                    text(insert_query),
+                    {
+                        "customer_id": customer_id,
+                        "full_name": clean_name,
+                        "preferred_name": preferred_name,
+                        "honorific": clean_honorific,
+                        "phone": normalized_phone,
+                        "source": source,
+                    },
+                )
+
+                return {
+                    "outcome": "created",
+                    "found": True,
+                    "created": True,
+                    "customer_id": customer_id,
+                    "name": clean_name,
+                    "honorific": clean_honorific,
+                    "phone": normalized_phone,
+                    "ambiguous": False,
+                    "error": None,
+                }
+        except Exception as error:  # noqa: BLE001
+            logger.error("CRM customer registration failed: %s", error, exc_info=True)
+            return {
+                "outcome": "system_error",
+                "found": False,
+                "created": False,
+                "customer_id": None,
+                "name": None,
+                "honorific": None,
+                "phone": normalized_phone,
+                "ambiguous": False,
+                "error": f"registration_failed: {type(error).__name__}",
+            }
 
 
 # ---------------------------------------------------------------------------
