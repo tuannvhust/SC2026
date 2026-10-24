@@ -24,8 +24,13 @@ import re
 import sys
 import time
 import uuid
+from pathlib import Path
 from datetime import datetime
+from threading import Lock
 from typing import Any, Dict, Optional
+
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from pydantic import BaseModel, Field
 
 LOGGER = logging.getLogger("src.graph.trace")
 if not LOGGER.handlers:
@@ -42,6 +47,190 @@ _SECRET_RE = re.compile(
     r"(?i)\b(api[_-]?key|apikey|token|secret|password|authorization)\b\s*[:=]\s*\S+"
 )
 _ERROR_CODE_RE = re.compile(r"['\"]error_code['\"]?\s*[:=]\s*['\"]?([\w-]+)")
+_EVAL_TRACE_LOCK = Lock()
+
+
+class _TraceQuestion(BaseModel):
+    slot: str
+    type: str = Field(pattern=r"^(open|confirm)$")
+    text: str
+
+
+class _TraceClaim(BaseModel):
+    field: str
+    value: Any
+    text: Optional[str] = None
+
+
+class _TraceToolCall(BaseModel):
+    name: str
+    args: Dict[str, Any]
+    result: Any = None
+
+
+class _TraceLatency(BaseModel):
+    ttft_ms: int = Field(ge=0)
+    total_ms: int = Field(ge=0)
+    ttfa_ms: Optional[int] = Field(default=None, ge=0)
+
+
+class _EvalTraceLine(BaseModel):
+    run_id: str
+    config: str = Field(pattern=r"^(baseline_no_memory|full)$")
+    scenario_id: str
+    call: str = Field(pattern=r"^call_[123]$")
+    turn: int = Field(ge=1)
+    customer_text: str
+    agent_text: str
+    questions: list[_TraceQuestion]
+    claims: list[_TraceClaim]
+    tool_calls: list[_TraceToolCall]
+    latency: _TraceLatency
+    facts_used: list[str] = Field(default_factory=list)
+    call_brief_latency_ms: Optional[int] = Field(default=None, ge=0)
+    memory_writes: list[Dict[str, Any]] = Field(default_factory=list)
+    customer_input_mode: Optional[str] = Field(
+        default=None, pattern=r"^(clean|asr_transcript|chat_teencode)$"
+    )
+
+
+def append_eval_trace_line(record: Dict[str, Any], path: str | Path) -> None:
+    """Validate one BTC trace row and append it as UTF-8 JSONL atomically.
+
+    This is intentionally called only by evaluation callers that provide real
+    run/scenario metadata and a measured TTFT; API traffic has neither.
+    """
+    validated = _EvalTraceLine.model_validate(record)
+    serialized = validated.model_dump_json(exclude_none=True)
+    with _EVAL_TRACE_LOCK:
+        with Path(path).open("a", encoding="utf-8", newline="\n") as trace_file:
+            trace_file.write(serialized + "\n")
+
+
+def build_eval_trace_record(
+    *, state: Dict[str, Any], run_id: str, total_ms: int, context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Create a schema-shaped row from one completed graph turn.
+
+    The caller must provide scenario/config/call/turn and measured TTFT. Claims
+    and questions are deliberately extracted only from the emitted assistant
+    text; richer team extractors can replace these fields in the eval harness.
+    """
+    messages = state.get("messages") or []
+    last_user_index = next(
+        (i for i in range(len(messages) - 1, -1, -1) if isinstance(messages[i], HumanMessage)),
+        None,
+    )
+    turn_messages = messages[last_user_index:] if last_user_index is not None else []
+    customer_message = messages[last_user_index] if last_user_index is not None else None
+    customer_text = _message_content(customer_message)
+    assistant_text = next(
+        (
+            _message_content(message)
+            for message in reversed(turn_messages)
+            if isinstance(message, AIMessage) and _message_content(message).strip()
+        ),
+        "",
+    )
+
+    questions = []
+    for question in re.findall(r"[^?？]*[?？]", assistant_text):
+        question = question.strip()
+        if question:
+            is_confirm = bool(
+                re.search(r"đúng không|phải không|vẫn .* chứ|đã .* chưa", question, re.I)
+            )
+            questions.append(
+                {"slot": "unspecified", "type": "confirm" if is_confirm else "open", "text": question}
+            )
+
+    claims = []
+    for match in re.finditer(
+        r"(?<!\d)(\d{1,3}(?:[., ]\d{3})+|\d+)\s*(?:đ|vnđ|vnd|đồng)",
+        assistant_text,
+        re.I,
+    ):
+        amount = int(re.sub(r"\D", "", match.group(1)))
+        claims.append({"field": "price_vnd", "value": amount, "text": match.group(0)})
+
+    tool_calls = []
+    result_by_id = {
+        message.tool_call_id: message
+        for message in turn_messages
+        if isinstance(message, ToolMessage)
+    }
+    for message in turn_messages:
+        if not isinstance(message, AIMessage):
+            continue
+        for call in message.tool_calls or []:
+            call_id = call.get("id")
+            result = result_by_id.get(call_id) if isinstance(call_id, str) else None
+            tool_calls.append(
+                {
+                    "name": call.get("name") or "unknown",
+                    "args": _trace_safe(call.get("args") or {}),
+                    "result": _trace_safe(_message_content(result)) if result else None,
+                }
+            )
+    tool_calls.extend(_trace_safe(state.get("trace_tool_calls") or []))
+
+    facts_used = []
+    profile_facts = (state.get("call_brief") or {}).get("profile_facts") or {}
+    for key, fact in profile_facts.items() if isinstance(profile_facts, dict) else []:
+        value = fact.get("value") if isinstance(fact, dict) else fact
+        if value is not None and str(value).strip() and str(value).casefold() in assistant_text.casefold():
+            facts_used.append(str(key))
+
+    record = {
+        "run_id": run_id,
+        "config": context["config"],
+        "scenario_id": context["scenario_id"],
+        "call": context["call"],
+        "turn": context["turn"],
+        "customer_text": _mask_trace_text(customer_text),
+        "agent_text": _mask_trace_text(assistant_text),
+        "questions": [
+            {**item, "text": _mask_trace_text(item["text"])} for item in questions
+        ],
+        "claims": claims,
+        "tool_calls": tool_calls,
+        "latency": {"ttft_ms": context["ttft_ms"], "total_ms": total_ms},
+        "facts_used": facts_used,
+        "call_brief_latency_ms": context.get("call_brief_latency_ms"),
+        "memory_writes": _trace_safe(state.get("memory_writes") or []),
+    }
+    if context.get("customer_input_mode") is not None:
+        record["customer_input_mode"] = context["customer_input_mode"]
+    return _EvalTraceLine.model_validate(record).model_dump(exclude_none=True)
+
+
+def _message_content(message: Any) -> str:
+    content = getattr(message, "content", "") if message is not None else ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(
+            str(part["text"]) for part in content
+            if isinstance(part, dict) and isinstance(part.get("text"), str)
+        )
+    return str(content or "")
+
+
+def _mask_trace_text(value: str) -> str:
+    value = _PHONE_RE.sub("[đã ẩn SĐT]", value)
+    return re.sub(r"(?<!\d)\d{9,14}(?!\d)", "[đã ẩn thông tin nhạy cảm]", value)
+
+
+def _trace_safe(value: Any, key: str = "") -> Any:
+    if isinstance(value, dict):
+        return {str(k): _trace_safe(v, str(k).lower()) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_trace_safe(item, key) for item in value]
+    if isinstance(value, str):
+        if any(term in key for term in ("phone", "sdt", "citizen", "cccd", "account", "stk")):
+            return "[đã ẩn]"
+        return _mask_trace_text(value)
+    return value
 
 
 def sanitize(text: Any, limit: int = 200) -> str:

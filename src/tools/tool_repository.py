@@ -13,8 +13,9 @@ from urllib.parse import urlsplit
 import httpx
 from dotenv import load_dotenv
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import create_engine, text
+
 try:
     from supabase import Client, ClientOptions, create_client
 except ImportError:
@@ -92,7 +93,9 @@ def _get_crm_engine():
 
 def _create_supabase_client(url: str, key: str) -> Any:
     if create_client is None or ClientOptions is None:
-        raise RuntimeError("supabase package is not installed. Run `pip install supabase`.")
+        raise RuntimeError(
+            "supabase package is not installed. Run `pip install supabase`."
+        )
     options = ClientOptions(
         postgrest_client_timeout=httpx.Timeout(
             SUPABASE_POSTGREST_TIMEOUT_SECONDS,
@@ -123,14 +126,20 @@ def _execute_supabase_query(query: Any) -> Any:
                     reason=f"transport failure after retries ({kind})"
                 )
                 raise
-            delay = SUPABASE_RETRY_DELAY_SECONDS * (2 ** attempt)
+            delay = SUPABASE_RETRY_DELAY_SECONDS * (2**attempt)
             time.sleep(delay)
         except httpx.HTTPStatusError as error:
-            status = error.response.status_code if error.response is not None else "unknown"
+            status = (
+                error.response.status_code if error.response is not None else "unknown"
+            )
             logger.error(
                 "Supabase HTTP error status=%s url=%s",
                 status,
-                getattr(error.request, "url", "unknown") if error.request else "unknown",
+                (
+                    getattr(error.request, "url", "unknown")
+                    if error.request
+                    else "unknown"
+                ),
             )
             raise
 
@@ -141,7 +150,9 @@ def reset_supabase_client(reason: str = "") -> None:
     with _supabase_lock:
         old, supabase = supabase, None
     if old is not None:
-        logger.warning("Supabase client reset (%s); next read reconnects.", reason or "stale pool")
+        logger.warning(
+            "Supabase client reset (%s); next read reconnects.", reason or "stale pool"
+        )
         close = getattr(old, "close", None)
         if callable(close):
             try:
@@ -153,7 +164,9 @@ def reset_supabase_client(reason: str = "") -> None:
 def _get_supabase() -> Any:
     global supabase
     if create_client is None:
-        raise RuntimeError("supabase package is not installed. Run `pip install supabase`.")
+        raise RuntimeError(
+            "supabase package is not installed. Run `pip install supabase`."
+        )
     if supabase is None:
         with _supabase_lock:
             if supabase is None:
@@ -185,7 +198,11 @@ def _get_supabase_project_url() -> str:
     return ""
 
 
-if create_client and _get_supabase_project_url() and os.getenv("SUPABASE_KEY", "").strip():
+if (
+    create_client
+    and _get_supabase_project_url()
+    and os.getenv("SUPABASE_KEY", "").strip()
+):
     supabase = _create_supabase_client(
         _get_supabase_project_url(),
         os.environ["SUPABASE_KEY"].strip(),
@@ -225,7 +242,9 @@ def _get_all_promotions(client: Any) -> List[Dict[str, Any]]:
     """Batch promotions once per TTL instead of one full scan per SKU quote."""
     now = time.monotonic()
     cached_rows = _promotions_cache.get("rows")
-    if cached_rows is not None and now < float(_promotions_cache.get("expires_at", 0.0)):
+    if cached_rows is not None and now < float(
+        _promotions_cache.get("expires_at", 0.0)
+    ):
         return [dict(row) for row in cached_rows]
     query = client.table("promotions").select("*")
     rows = _rows(_execute_supabase_query(query))
@@ -248,18 +267,12 @@ def filter_catalog_candidates(
 ) -> List[Dict[str, Any]]:
     """Apply realtime price and stock constraints to static Qdrant candidates."""
     if not candidates or (
-        min_price_vnd is None
-        and max_price_vnd is None
-        and not in_stock_only
+        min_price_vnd is None and max_price_vnd is None and not in_stock_only
     ):
         return candidates
 
     candidate_skus = list(
-        dict.fromkeys(
-            str(item["sku"])
-            for item in candidates
-            if item.get("sku")
-        )
+        dict.fromkeys(str(item["sku"]) for item in candidates if item.get("sku"))
     )
     if not candidate_skus:
         return []
@@ -267,9 +280,7 @@ def filter_catalog_candidates(
     client = _get_supabase()
     products = _rows(
         _execute_supabase_query(
-            client.table("products")
-            .select("*")
-            .in_("sku", candidate_skus)
+            client.table("products").select("*").in_("sku", candidate_skus)
         )
     )
     variants = _rows(
@@ -280,9 +291,7 @@ def filter_catalog_candidates(
         )
     )
     products_by_sku = {
-        str(product.get("sku")): product
-        for product in products
-        if product.get("sku")
+        str(product.get("sku")): product for product in products if product.get("sku")
     }
     variants_by_sku: Dict[str, List[Dict[str, Any]]] = {}
     for variant in variants:
@@ -330,9 +339,7 @@ def filter_catalog_candidates(
         enriched["total_stock"] = sum(stock for _, stock in options)
         enriched["in_stock"] = enriched["total_stock"] > 0
         if min_price_vnd is not None or max_price_vnd is not None:
-            enriched["matching_price_vnd"] = min(
-                price for price, _ in matching_options
-            )
+            enriched["matching_price_vnd"] = min(price for price, _ in matching_options)
         filtered.append(enriched)
     return filtered
 
@@ -366,7 +373,9 @@ def _address_region(address: Optional[str]) -> Optional[str]:
     if not address:
         return None
     normalized = address.casefold()
-    if any(word in normalized for word in ("miền nam", "tp.hcm", "hồ chí minh", "cần thơ")):
+    if any(
+        word in normalized for word in ("miền nam", "tp.hcm", "hồ chí minh", "cần thơ")
+    ):
         return "nam"
     if any(word in normalized for word in ("miền bắc", "hà nội", "hải phòng")):
         return "bac"
@@ -457,6 +466,7 @@ Sentiment = Literal[
 # ---------------------------------------------------------------------------
 # CRM
 # ---------------------------------------------------------------------------
+
 
 class CRMGetCustomerInput(BaseModel):
     phone: Optional[str] = Field(
@@ -565,7 +575,9 @@ def crm_get_customer(
     }
 
     normalized_phone = _normalize_phone(phone) if phone else None
-    clean_zalo = zalo_id.strip() if isinstance(zalo_id, str) and zalo_id.strip() else None
+    clean_zalo = (
+        zalo_id.strip() if isinstance(zalo_id, str) and zalo_id.strip() else None
+    )
     clean_fb = fb_id.strip() if isinstance(fb_id, str) and fb_id.strip() else None
     clean_email = email.strip() if isinstance(email, str) and email.strip() else None
     if phone and (not normalized_phone or not _is_valid_phone(normalized_phone)):
@@ -584,7 +596,9 @@ def crm_get_customer(
                 fb_id=clean_fb,
                 email=clean_email,
             )
-    except Exception as error:  # noqa: BLE001 — system errors must surface, not mask as not-found
+    except (
+        Exception
+    ) as error:  # noqa: BLE001 — system errors must surface, not mask as not-found
         logger.error("CRM lookup failed: %s", error, exc_info=True)
         result["error"] = f"database_lookup_failed: {type(error).__name__}"
         return result
@@ -613,7 +627,9 @@ def crm_get_customer(
     return result
 
 
-def _real_crm_name(full_name: Optional[str], preferred_name: Optional[str]) -> Optional[str]:
+def _real_crm_name(
+    full_name: Optional[str], preferred_name: Optional[str]
+) -> Optional[str]:
     """Return a non-generic CRM name, preferring preferred_name."""
     for candidate in (preferred_name, full_name):
         if candidate and isinstance(candidate, str):
@@ -626,6 +642,7 @@ def _real_crm_name(full_name: Optional[str], preferred_name: Optional[str]) -> O
 # ---------------------------------------------------------------------------
 # Catalog
 # ---------------------------------------------------------------------------
+
 
 class CatalogSearchInput(BaseModel):
     query: Optional[str] = Field(
@@ -680,7 +697,8 @@ def catalog_search(
             if exact and all(item.get("sku") != sku for item in candidates):
                 candidates.insert(0, exact)
             candidates = [
-                item for item in candidates
+                item
+                for item in candidates
                 if item.get("sku") == sku
                 or any(
                     variant.get("variant_sku") == sku
@@ -690,9 +708,7 @@ def catalog_search(
             ]
         ranked = reranker.rerank(str(search_query), candidates, top_n=len(candidates))
         candidate_skus = list(
-            dict.fromkeys(
-                str(item["sku"]) for item in ranked if item.get("sku")
-            )
+            dict.fromkeys(str(item["sku"]) for item in ranked if item.get("sku"))
         )
         if not candidate_skus:
             return {"items": []}
@@ -700,9 +716,7 @@ def catalog_search(
         client = _get_supabase()
         products = _rows(
             _execute_supabase_query(
-                client.table("products")
-                .select("*")
-                .in_("sku", candidate_skus)
+                client.table("products").select("*").in_("sku", candidate_skus)
             )
         )
         variants = _rows(
@@ -726,7 +740,9 @@ def catalog_search(
             if not product:
                 continue
             current_variants = variants_by_sku.get(product_sku, [])
-            product_attributes = product.get("attributes") or candidate.get("attributes") or {}
+            product_attributes = (
+                product.get("attributes") or candidate.get("attributes") or {}
+            )
             if not isinstance(product_attributes, dict):
                 product_attributes = {}
             if category and product.get("category") != category:
@@ -759,7 +775,9 @@ def catalog_search(
 
             total_stock = sum(int(item.get("stock") or 0) for item in current_variants)
             if not current_variants:
-                total_stock = int(product.get("stock", product.get("total_stock", 0)) or 0)
+                total_stock = int(
+                    product.get("stock", product.get("total_stock", 0)) or 0
+                )
             hydrated.append(
                 {
                     "sku": product_sku,
@@ -775,6 +793,7 @@ def catalog_search(
             )
         formatted_items = format_catalog_results(hydrated)
         from src.graph.tool_observer import log_catalog_search_detail
+
         log_catalog_search_detail(
             query=str(search_query),
             sku=sku,
@@ -794,6 +813,7 @@ def catalog_search(
     except (httpx.TransportError, httpx.HTTPStatusError) as exc:
         logger.warning("catalog.search Supabase connectivity failure: %s", exc)
         from src.graph.tool_observer import log_catalog_search_detail
+
         log_catalog_search_detail(
             query=str(query or sku or category or ""),
             sku=sku,
@@ -818,6 +838,7 @@ def catalog_search(
     except Exception as exc:
         logger.exception("catalog.search failed")
         from src.graph.tool_observer import log_catalog_search_detail
+
         log_catalog_search_detail(
             query=str(query or sku or category or ""),
             sku=sku,
@@ -833,8 +854,11 @@ def catalog_search(
             status="error",
             error=str(exc),
         )
-        return {"items": [], "status": "error", "error": f"catalog search unavailable ({type(exc).__name__})."}
-
+        return {
+            "items": [],
+            "status": "error",
+            "error": f"catalog search unavailable ({type(exc).__name__}).",
+        }
 
 
 def format_catalog_results(raw_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -860,6 +884,7 @@ def format_catalog_results(raw_items: List[Dict[str, Any]]) -> List[Dict[str, An
 # ---------------------------------------------------------------------------
 # Inventory
 # ---------------------------------------------------------------------------
+
 
 class InventoryCheckInput(BaseModel):
     sku: str = Field(
@@ -892,10 +917,7 @@ def inventory_check(
         else:
             product_rows = _rows(
                 _execute_supabase_query(
-                    client.table("products")
-                    .select("*")
-                    .eq("sku", sku)
-                    .limit(1)
+                    client.table("products").select("*").eq("sku", sku).limit(1)
                 )
             )
             if not product_rows:
@@ -912,7 +934,9 @@ def inventory_check(
             "successor_sku": item.get("successor_sku"),
         }
     except (httpx.TransportError, httpx.HTTPStatusError) as exc:
-        logger.warning("inventory.check Supabase connectivity failure for %s: %s", sku, exc)
+        logger.warning(
+            "inventory.check Supabase connectivity failure for %s: %s", sku, exc
+        )
         return {
             "sku": sku,
             "status": "error",
@@ -931,6 +955,7 @@ def inventory_check(
 # ---------------------------------------------------------------------------
 # Pricing
 # ---------------------------------------------------------------------------
+
 
 class PricingGetQuoteInput(BaseModel):
     sku: str = Field(
@@ -986,10 +1011,7 @@ def pricing_get_quote(
         )
         products = _rows(
             _execute_supabase_query(
-                client.table("products")
-                .select("*")
-                .eq("sku", product_sku)
-                .limit(1)
+                client.table("products").select("*").eq("sku", product_sku).limit(1)
             )
         )
         if not products:
@@ -1010,8 +1032,7 @@ def pricing_get_quote(
                 )
             )
         basket_prices = [
-            int(item.get("list_price_vnd") or 0)
-            for item in basket_products
+            int(item.get("list_price_vnd") or 0) for item in basket_products
         ]
         basket_qty = quantity + len(basket_skus or [])
 
@@ -1036,7 +1057,9 @@ def pricing_get_quote(
                 start_date = date.fromisoformat(str(start_value)[:10])
                 end_date = date.fromisoformat(str(end_value)[:10])
             except (TypeError, ValueError):
-                raise RuntimeError(f"Promotion {code or '<unknown>'} has invalid dates.")
+                raise RuntimeError(
+                    f"Promotion {code or '<unknown>'} has invalid dates."
+                )
             if quote_date < start_date or quote_date > end_date:
                 expired_promos.append(code)
                 continue
@@ -1052,15 +1075,8 @@ def pricing_get_quote(
             if reason:
                 ineligible_promos.append({"promo_code": code, "reason": reason})
                 continue
-            if (
-                promo.get("type") == "percent_second_item"
-                and (
-                    basket_qty < 2
-                    or (
-                        basket_prices
-                        and list_price > min(basket_prices)
-                    )
-                )
+            if promo.get("type") == "percent_second_item" and (
+                basket_qty < 2 or (basket_prices and list_price > min(basket_prices))
             ):
                 ineligible_promos.append(
                     {"promo_code": code, "reason": "cheaper_second_item_not_in_quote"}
@@ -1070,11 +1086,13 @@ def pricing_get_quote(
 
         # Gift promotions stack by default unless explicitly restricted
         stackable_promos = [
-            promo for promo in applicable_now
+            promo
+            for promo in applicable_now
             if promo.get("stackable") or promo.get("type") == "gift"
         ]
         exclusive_promos = [
-            promo for promo in applicable_now
+            promo
+            for promo in applicable_now
             if not promo.get("stackable") and promo.get("type") != "gift"
         ]
 
@@ -1091,9 +1109,7 @@ def pricing_get_quote(
             return 0
 
         best_exclusive = (
-            max(exclusive_promos, key=discount_amount)
-            if exclusive_promos
-            else None
+            max(exclusive_promos, key=discount_amount) if exclusive_promos else None
         )
         applied = list(stackable_promos)
         if best_exclusive:
@@ -1126,7 +1142,9 @@ def pricing_get_quote(
             "freeship": any(promo.get("type") == "freeship" for promo in applied),
         }
     except (httpx.TransportError, httpx.HTTPStatusError) as exc:
-        logger.warning("pricing.get_quote Supabase connectivity failure for %s: %s", sku, exc)
+        logger.warning(
+            "pricing.get_quote Supabase connectivity failure for %s: %s", sku, exc
+        )
         return {
             "sku": sku,
             "status": "error",
@@ -1149,10 +1167,10 @@ def pricing_get_quote(
 # Vietnamese public holidays (fixed-date; Tet varies by lunar calendar and is
 # intentionally not hard-coded here).
 _VN_FIXED_HOLIDAYS = {
-    (1, 1),    # Tết Dương lịch
-    (4, 30),   # Ngày Giải phóng miền Nam
-    (5, 1),    # Quốc tế Lao động
-    (9, 2),    # Quốc khánh
+    (1, 1),  # Tết Dương lịch
+    (4, 30),  # Ngày Giải phóng miền Nam
+    (5, 1),  # Quốc tế Lao động
+    (9, 2),  # Quốc khánh
 }
 _DELIVERY_LEAD_DAYS = 1  # giao hàng từ ngày kế tiếp (trừ CN + ngày nghỉ)
 
@@ -1174,9 +1192,10 @@ def compute_estimated_delivery(on: Optional[str]) -> str:
     order_date = _parse_iso_date(on) or date.today()
     delivery = order_date + timedelta(days=_DELIVERY_LEAD_DAYS)
     for _ in range(30):  # safety bound
-        if delivery.weekday() != 6 and (
-            delivery.month, delivery.day
-        ) not in _VN_FIXED_HOLIDAYS:
+        if (
+            delivery.weekday() != 6
+            and (delivery.month, delivery.day) not in _VN_FIXED_HOLIDAYS
+        ):
             break
         delivery += timedelta(days=1)
     else:  # pragma: no cover - defensive
@@ -1252,13 +1271,19 @@ def order_create(
             if len(distinct) != 1:
                 return {
                     "order_id": None,
-                    "status": "ambiguous_customer" if len(distinct) > 1 else "customer_not_found",
+                    "status": (
+                        "ambiguous_customer"
+                        if len(distinct) > 1
+                        else "customer_not_found"
+                    ),
                     "error": None,
                     "estimated_delivery": compute_estimated_delivery(on),
                 }
             customer_id = next(iter(distinct))
             order_date = _parse_iso_date(on) or date.today()
-            order_id = f"ORD-{order_date.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+            order_id = (
+                f"ORD-{order_date.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+            )
             line_total = quantity * unit_price
             connection.execute(
                 text(
@@ -1308,6 +1333,7 @@ def order_create(
 # ---------------------------------------------------------------------------
 # Order update
 # ---------------------------------------------------------------------------
+
 
 class OrderUpdateInput(BaseModel):
     order_id: str = Field(
@@ -1394,6 +1420,7 @@ def order_update(
 # Order status (M2)
 # ---------------------------------------------------------------------------
 
+
 class OrderStatusInput(BaseModel):
     order_id: Optional[str] = Field(
         default=None,
@@ -1424,14 +1451,18 @@ def order_status(
         engine = _get_crm_engine()
         with engine.connect() as connection:
             if order_id:
-                order_rows = connection.execute(
-                    text(
-                        "SELECT order_id, customer_id, order_date, status, "
-                        "tracking_number, total_amount_vnd, currency "
-                        "FROM public.orders WHERE order_id = :order_id"
-                    ),
-                    {"order_id": order_id.strip()},
-                ).mappings().all()
+                order_rows = (
+                    connection.execute(
+                        text(
+                            "SELECT order_id, customer_id, order_date, status, "
+                            "tracking_number, total_amount_vnd, currency "
+                            "FROM public.orders WHERE order_id = :order_id"
+                        ),
+                        {"order_id": order_id.strip()},
+                    )
+                    .mappings()
+                    .all()
+                )
             elif customer_phone:
                 normalized = _normalize_phone(customer_phone)
                 if not normalized or not _is_valid_phone(normalized):
@@ -1444,27 +1475,35 @@ def order_status(
                         "ambiguous": len(distinct) > 1,
                         "error": None,
                     }
-                order_rows = connection.execute(
-                    text(
-                        "SELECT order_id, customer_id, order_date, status, "
-                        "tracking_number, total_amount_vnd, currency "
-                        "FROM public.orders WHERE customer_id = :customer_id "
-                        "ORDER BY order_date DESC"
-                    ),
-                    {"customer_id": next(iter(distinct))},
-                ).mappings().all()
+                order_rows = (
+                    connection.execute(
+                        text(
+                            "SELECT order_id, customer_id, order_date, status, "
+                            "tracking_number, total_amount_vnd, currency "
+                            "FROM public.orders WHERE customer_id = :customer_id "
+                            "ORDER BY order_date DESC"
+                        ),
+                        {"customer_id": next(iter(distinct))},
+                    )
+                    .mappings()
+                    .all()
+                )
             else:
                 return {"orders": [], "ambiguous": False, "error": None}
             orders = []
             for row in order_rows:
-                items = connection.execute(
-                    text(
-                        "SELECT line_number, sku, product_name_snapshot, quantity, "
-                        "unit_price_vnd, line_total_vnd FROM public.order_items "
-                        "WHERE order_id = :order_id ORDER BY line_number"
-                    ),
-                    {"order_id": row["order_id"]},
-                ).mappings().all()
+                items = (
+                    connection.execute(
+                        text(
+                            "SELECT line_number, sku, product_name_snapshot, quantity, "
+                            "unit_price_vnd, line_total_vnd FROM public.order_items "
+                            "WHERE order_id = :order_id ORDER BY line_number"
+                        ),
+                        {"order_id": row["order_id"]},
+                    )
+                    .mappings()
+                    .all()
+                )
                 orders.append(
                     {
                         "order_id": row["order_id"],
@@ -1490,6 +1529,7 @@ def order_status(
 # ---------------------------------------------------------------------------
 # Callback
 # ---------------------------------------------------------------------------
+
 
 class ScheduleCallbackInput(BaseModel):
     customer_phone: str = Field(
@@ -1527,6 +1567,7 @@ def schedule_callback(
 # Handoff
 # ---------------------------------------------------------------------------
 
+
 class HandoffBrief(BaseModel):
     customer_phone: str = Field(
         pattern=r"^0[0-9]{9}$",
@@ -1534,10 +1575,10 @@ class HandoffBrief(BaseModel):
     customer_name: Optional[str]
     customer_id: Optional[str] = None
 
-    channel: Optional[Channel] = None
+    channel: Channel = "other"
 
     escalation_reason: EscalationReason
-    escalation_reason_detail: Optional[str] = None
+    escalation_reason_detail: str = ""
 
     conversation_summary: str = Field(
         min_length=20,
@@ -1567,7 +1608,7 @@ class HandoffBrief(BaseModel):
         default_factory=list,
     )
 
-    generated_at: str
+    generated_at: AwareDatetime
 
 
 class HandoffTransferInput(BaseModel):
@@ -1594,6 +1635,7 @@ def handoff_transfer(
 # ---------------------------------------------------------------------------
 # Memory
 # ---------------------------------------------------------------------------
+
 
 class MemoryReadInput(BaseModel):
     key: str = Field(
@@ -1657,22 +1699,25 @@ def memory_write(
 
 from src.graph.tool_observer import observe_tools
 
-M1_TOOLS = observe_tools([
-    crm_get_customer,
-    catalog_search,
-    inventory_check,
-    pricing_get_quote,
-    order_create,
-    order_update,
-    schedule_callback,
-    handoff_transfer,
-    memory_read,
-    memory_write,
-])
+M1_TOOLS = observe_tools(
+    [
+        crm_get_customer,
+        catalog_search,
+        inventory_check,
+        pricing_get_quote,
+        order_create,
+        order_update,
+        schedule_callback,
+        handoff_transfer,
+        memory_read,
+        memory_write,
+    ]
+)
 
-M2_TOOLS = observe_tools([
-    order_status,
-])
+M2_TOOLS = observe_tools(
+    [
+        order_status,
+    ]
+)
 
 ALL_TOOLS = M1_TOOLS + M2_TOOLS
-

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+from datetime import date
 from typing import Optional, Dict, Any
 from src.api.routers.graph_runner import (
     finalize_session,
@@ -20,6 +21,7 @@ class CallTurnRequest(BaseModel):
     channel: Optional[str] = "hotline"
     metadata: Optional[Dict[str, Any]] = None
     session_ended: bool = False
+    call_date: Optional[date] = None
 
 
 class CallEndSessionRequest(BaseModel):
@@ -59,6 +61,7 @@ def process_call_turn(request: CallTurnRequest):
         turn_id=str(request.turn_id) if request.turn_id is not None else None,
         message=request.text,
         channel=request.channel or "hotline",
+        call_date=request.call_date,
         customer_info=request.metadata,
         session_ended=request.session_ended,
     )

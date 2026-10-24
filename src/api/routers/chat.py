@@ -1,6 +1,7 @@
 import json
 import logging
 import uuid
+from datetime import date
 from queue import Queue
 from threading import Thread
 from fastapi import APIRouter
@@ -27,6 +28,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     turn_id: Optional[str] = None
     session_ended: bool = False
+    call_date: Optional[date] = None
 
 
 class ChatEndSessionRequest(BaseModel):
@@ -79,6 +81,7 @@ def handle_chat(request: ChatRequest):
             turn_id=turn_id,
             message=request.message,
             channel=request.channel or "web_chat",
+            call_date=request.call_date,
             customer_info=request.metadata,
             session_ended=request.session_ended,
             on_call_brief=on_call_brief,

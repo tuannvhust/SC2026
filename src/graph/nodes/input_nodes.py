@@ -5,11 +5,12 @@ import logging
 import re
 import time
 import uuid
-from datetime import datetime
+from datetime import date, datetime, time as datetime_time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 
 from langchain_core.messages import AIMessage
 
@@ -29,12 +30,34 @@ logger = logging.getLogger(__name__)
 # Call Brief schema
 # ---------------------------------------------------------------------------
 
+SessionOutcome = Literal[
+    "hen_goi_lai",
+    "chot_don",
+    "tu_choi",
+    "chuyen_may",
+    "khac",
+]
+
+
 class LastSession(BaseModel):
     session_id: str
     date: str
     channel: str
     summary: str
-    outcome: str
+    outcome: SessionOutcome
+
+
+def _normalize_session_outcome(value: Any) -> SessionOutcome:
+    """Map persisted/legacy outcomes to the CallBrief schema enum."""
+    if value in ("hen_goi_lai", "hen_lai"):
+        return "hen_goi_lai"
+    if value == "chot_don":
+        return "chot_don"
+    if value == "tu_choi":
+        return "tu_choi"
+    if value == "chuyen_may":
+        return "chuyen_may"
+    return "khac"
 
 
 class CallBrief(BaseModel):
@@ -48,7 +71,7 @@ class CallBrief(BaseModel):
     is_returning: bool
     n_previous_sessions: int
 
-    last_session: Optional[LastSession] = None
+    last_session: Optional[LastSession]
     recent_sessions: List[LastSession] = Field(default_factory=list)
 
     # Original request that triggered identity collection (Turn 1 need).
@@ -70,7 +93,7 @@ class CallBrief(BaseModel):
     suggested_opening: str
     suggested_next_action: str
 
-    generated_at: str
+    generated_at: AwareDatetime
     latency_ms: int
 
     precomputed_parts: List[str] = Field(default_factory=list)
@@ -83,23 +106,23 @@ class CallBrief(BaseModel):
 # ---------------------------------------------------------------------------
 
 TEENCODE_MAP = {
-    "sp": "sáº£n pháº©m",
-    "spm": "sáº£n pháº©m",
-    "k": "khÃ´ng",
-    "ko": "khÃ´ng",
-    "kh": "khÃ¡ch hÃ ng",
-    "mk": "mÃ¬nh",
-    "mik": "mÃ¬nh",
-    "dc": "Ä‘Æ°á»£c",
-    "Ä‘c": "Ä‘Æ°á»£c",
-    "vs": "vá»›i",
-    "bn": "bao nhiÃªu",
+    "sp": "sản phẩm",
+    "spm": "sản phẩm",
+    "k": "không",
+    "ko": "không",
+    "kh": "khách hàng",
+    "mk": "mình",
+    "mik": "mình",
+    "dc": "được",
+    "đc": "được",
+    "vs": "với",
+    "bn": "bao nhiêu",
     "ib": "inbox",
-    "roi": "rá»“i",
-    "r": "rá»“i",
-    "a": "áº¡",
+    "roi": "rồi",
+    "r": "rồi",
+    "a": "anh",
     "e": "em",
-    "cj": "chá»‹",
+    "cj": "chị",
 }
 
 
@@ -153,8 +176,18 @@ def _normalize_money(text: str) -> str:
         amount = int(float(value) * 1_000)
         return f"{amount:,}".replace(",", ".")
 
-    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:tr|triá»‡u)\b", replace_million, text, flags=re.IGNORECASE)
-    text = re.sub(r"\b(\d+(?:[.,]\d+)?)\s*(?:k|nghÃ¬n)\b", replace_thousand, text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"\b(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)\b",
+        replace_million,
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(
+        r"\b(\d+(?:[.,]\d+)?)\s*(?:k|nghìn)\b",
+        replace_thousand,
+        text,
+        flags=re.IGNORECASE,
+    )
 
     return text
 
@@ -227,8 +260,22 @@ def _clean_name_candidate(candidate: str) -> Optional[str]:
         return None
     tokens = name.split()
     stopwords = {
-        "ạ", "nhé", "nha", "dạ", "vâng", "ừ", "ok", "oke",
-        "số", "điện", "thoại", "sdt", "phone", "tên", "la", "là",
+        "ạ",
+        "nhé",
+        "nha",
+        "dạ",
+        "vâng",
+        "ừ",
+        "ok",
+        "oke",
+        "số",
+        "điện",
+        "thoại",
+        "sdt",
+        "phone",
+        "tên",
+        "la",
+        "là",
     }
     valid_tokens = [tok for tok in tokens if tok.lower() not in stopwords]
     if not valid_tokens or len(valid_tokens) > 4:
@@ -246,7 +293,7 @@ def _extract_name(text: str) -> Optional[str]:
     m = phone_p.search(cleaned)
     text_without_phone = cleaned
     if m:
-        text_without_phone = cleaned[:m.start()] + " " + cleaned[m.end():]
+        text_without_phone = cleaned[: m.start()] + " " + cleaned[m.end() :]
 
     for pattern in _NAME_PATTERNS:
         match = re.search(pattern, text_without_phone, flags=re.IGNORECASE)
@@ -266,17 +313,28 @@ def _extract_name(text: str) -> Optional[str]:
     candidate = _clean_name_candidate(stripped)
     if candidate:
         # Extra guard: avoid common phrases like "tư vấn giúp mình", "xem máy lọc"
-        not_names = {"tư vấn", "tu van", "xem", "mua", "hoi", "hỏi", "giá", "gia", "máy lọc", "may loc"}
+        not_names = {
+            "tư vấn",
+            "tu van",
+            "xem",
+            "mua",
+            "hoi",
+            "hỏi",
+            "giá",
+            "gia",
+            "máy lọc",
+            "may loc",
+        }
         if not any(nn in candidate.lower() for nn in not_names):
             return candidate
 
     return None
 
 
-
 # ---------------------------------------------------------------------------
 # Input nodes
 # ---------------------------------------------------------------------------
+
 
 def input_guardrail_node(state: AgentState) -> Dict[str, Any]:
     """Validate the incoming customer message."""
@@ -457,19 +515,20 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
             "customer_info": {**context, "phone": normalized_phone},
             "needs_identity": still_needs,
             "identity_status": "not_found",
-            "identity_attempts": int(state.get("identity_attempts") or 0) if not still_needs else int(state.get("identity_attempts") or 0) + 1,
+            "identity_attempts": (
+                int(state.get("identity_attempts") or 0)
+                if not still_needs
+                else int(state.get("identity_attempts") or 0) + 1
+            ),
             "missing_identity_fields": missing,
             "pending_need": state.get("pending_need"),
         }
-
 
     # ---- Exactly one valid customer found ----
     customer_id = crm_customer_id
     session_id = state.get("session_id")
     if customer_id and session_id:
-        get_postgres_memory_store().update_session_customer_id(
-            session_id, customer_id
-        )
+        get_postgres_memory_store().update_session_customer_id(session_id, customer_id)
 
     customer_info = {**context, **result}
     customer_info["phone"] = normalized_phone
@@ -500,10 +559,14 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
         "customer_info": customer_info,
         "needs_identity": needs_identity,
         "identity_status": "resolved" if not needs_identity else "needs_input",
-        "identity_attempts": 0 if not needs_identity else int(state.get("identity_attempts") or 0) + 1,
+        "identity_attempts": (
+            0 if not needs_identity else int(state.get("identity_attempts") or 0) + 1
+        ),
         "missing_identity_fields": missing_fields,
         "pending_need": pending_need,
     }
+
+
 def request_identity_node(state: AgentState) -> Dict[str, Any]:
     """Pause the turn and ask for the missing name/phone slots.
 
@@ -516,9 +579,7 @@ def request_identity_node(state: AgentState) -> Dict[str, Any]:
     customer_info = dict(state.get("customer_info") or {})
     missing = list(state.get("missing_identity_fields") or [])
     if not missing:
-        has_phone = bool(
-            re.fullmatch(r"0\d{9}", str(customer_info.get("phone") or ""))
-        )
+        has_phone = bool(re.fullmatch(r"0\d{9}", str(customer_info.get("phone") or "")))
         has_name = _real_name(customer_info.get("name")) is not None
         if not has_phone:
             missing.append("phone")
@@ -543,7 +604,6 @@ def request_identity_node(state: AgentState) -> Dict[str, Any]:
     else:
         question = _IDENTITY_QUESTION
 
-
     pending_need = state.get("pending_need") or _clean_whitespace(
         customer_info.get("_input_text", "") or ""
     )
@@ -564,6 +624,7 @@ def request_identity_node(state: AgentState) -> Dict[str, Any]:
 # Call Brief helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_last_session(sessions: List[Dict[str, Any]]) -> Optional[LastSession]:
     if not sessions:
         return None
@@ -575,7 +636,7 @@ def _get_last_session(sessions: List[Dict[str, Any]]) -> Optional[LastSession]:
         date=str(latest.get("date", "")),
         channel=str(latest.get("channel", "other")),
         summary=str(latest.get("summary", "")),
-        outcome=str(latest.get("outcome", "khac")),
+        outcome=_normalize_session_outcome(latest.get("outcome")),
     )
 
 
@@ -612,7 +673,9 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
     if not cleaned:
         return {}
     constraints: Dict[str, Any] = {}
-    area = re.search(r"(\d+(?:[.,]\d+)?)\s*(m2|mÂ²|m\^2|mÃ©t vuÃ´ng)", cleaned, re.IGNORECASE)
+    area = re.search(
+        r"(\d+(?:[.,]\d+)?)\s*(m2|m²|m\^2|mét vuông)", cleaned, re.IGNORECASE
+    )
     area_value: Optional[float] = None
     if area:
         try:
@@ -622,7 +685,11 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
             area_value = None
     budget = _normalize_money(cleaned)
     amounts = []
-    for match in re.finditer(r"(\d[\d.,]*)\s*(triá»‡u|tr|tá»·|ty|nghÃ¬n|nghin|k|Ä‘|vnd|Ä‘á»“ng)?", budget, re.IGNORECASE):
+    for match in re.finditer(
+        r"(\d[\d.,]*)\s*(triệu|tr|tỷ|ty|nghìn|nghin|k|đ|vnd|đồng)?",
+        budget,
+        re.IGNORECASE,
+    ):
         raw_value, unit = match.group(1), (match.group(2) or "").lower()
         try:
             number = float(raw_value.replace(".", "").replace(",", ""))
@@ -632,13 +699,13 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
         if not unit and area_value is not None and abs(number - area_value) < 0.001:
             continue
         multiplier = 1
-        if unit in ("tá»·", "ty"):
+        if unit in ("tỷ", "ty"):
             multiplier = 1_000_000_000
-        elif unit in ("triá»‡u", "tr"):
+        elif unit in ("triệu", "tr"):
             multiplier = 1_000_000
-        elif unit in ("nghÃ¬n", "nghin", "k"):
+        elif unit in ("nghìn", "nghin", "k"):
             multiplier = 1_000
-        elif unit in ("Ä‘", "vnd", "Ä‘á»“ng", ""):
+        elif unit in ("đ", "vnd", "đồng", ""):
             # Only accept bare numbers >= 100k as VND to avoid area/SKU noise.
             if number < 100_000:
                 continue
@@ -646,7 +713,14 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
     if amounts:
         constraints["budget_hint_vnd"] = max(amounts)
     lowered = cleaned.lower()
-    keywords = ["airpure", "mÃ¡y lá»c", "may loc", "mÃ¡y láº¡nh", "Ä‘iá»u hÃ²a", "dieu hoa"]
+    keywords = [
+        "airpure",
+        "máy lọc",
+        "may loc",
+        "máy lạnh",
+        "điều hòa",
+        "dieu hoa",
+    ]
     interested = sorted({key for key in keywords if key in lowered})
     if interested:
         constraints["interested_keywords"] = interested
@@ -657,7 +731,7 @@ def _extract_constraints(text: str) -> Dict[str, Any]:
 
 
 def _map_sample_to_sku(sample_no: int) -> Optional[Dict[str, Any]]:
-    """Resolve 'máº«u sá»‘ N' to the Nth product in the project catalog (1-based)."""
+    """Resolve 'mẫu số N' to the Nth product in the project catalog (1-based)."""
     if not sample_no or sample_no < 1:
         return None
     try:
@@ -683,18 +757,37 @@ def _summarize_current_tools(messages: List[Any]) -> List[Dict[str, Any]]:
         if not isinstance(message, _ToolMessage):
             continue
         try:
-            payload = json.loads(message.content) if isinstance(message.content, str) else {}
+            payload = (
+                json.loads(message.content) if isinstance(message.content, str) else {}
+            )
         except (ValueError, TypeError):
             payload = {}
         if not isinstance(payload, dict):
             payload = {"value": str(payload)[:300]}
-        item: Dict[str, Any] = {"tool": message.name, "tool_call_id": message.tool_call_id}
-        for key in ("sku", "final_price_vnd", "in_stock", "status", "ticket_id", "callback_id"):
+        item: Dict[str, Any] = {
+            "tool": message.name,
+            "tool_call_id": message.tool_call_id,
+        }
+        for key in (
+            "sku",
+            "final_price_vnd",
+            "in_stock",
+            "status",
+            "ticket_id",
+            "callback_id",
+        ):
             if payload.get(key) is not None:
                 item[key] = payload[key]
         if isinstance(payload.get("items"), list) and payload["items"]:
-            first = payload["items"][0] if isinstance(payload["items"][0], dict) else {}
-            item["top_item"] = {k: first.get(k) for k in ("sku", "name") if first.get(k)}
+            first_item = payload["items"][0]
+            if isinstance(first_item, dict):
+                top_item = {
+                    key: value
+                    for key in ("sku", "name")
+                    if isinstance((value := first_item.get(key)), str) and value
+                }
+                if top_item:
+                    item["top_item"] = top_item
             item["n_items"] = len(payload["items"])
         summary.append(item)
     return summary[-8:]
@@ -707,18 +800,18 @@ def _build_suggested_opening(
     products_advised: List[Dict[str, Any]],
     open_blockers: List[str],
 ) -> str:
-    title = honorific or "anh/chá»‹"
+    title = honorific or "anh/chị"
 
     if customer_name:
-        greeting = f"Dáº¡ chÃ o {title} {customer_name} áº¡."
+        greeting = f"Dạ chào {title} {customer_name} ạ."
     else:
-        greeting = f"Dáº¡ chÃ o {title} áº¡."
+        greeting = f"Dạ chào {title} ạ."
 
     if not last_session:
-        return f"{greeting} Em há»— trá»£ mÃ¬nh váº¥n Ä‘á» gÃ¬ hÃ´m nay áº¡?"
+        return f"{greeting} Em hỗ trợ mình vấn đề gì hôm nay ạ?"
 
     if not products_advised:
-        return f"{greeting} Em tiáº¿p tá»¥c há»— trá»£ mÃ¬nh tá»« láº§n trao Ä‘á»•i trÆ°á»›c nhÃ© áº¡?"
+        return f"{greeting} Em tiếp tục hỗ trợ mình từ lần trao đổi trước nhé ạ?"
 
     product = products_advised[-1]
     sku = product.get("sku")
@@ -727,13 +820,13 @@ def _build_suggested_opening(
         blocker = open_blockers[0]
 
         return (
-            f"{greeting} HÃ´m trÆ°á»›c bÃªn em cÃ³ tÆ° váº¥n máº«u "
-            f"{sku or 'sáº£n pháº©m mÃ¬nh quan tÃ¢m'}. MÃ¬nh cÃ²n bÄƒn khoÄƒn vá» {blocker} Ä‘Ãºng khÃ´ng áº¡?"
+            f"{greeting} Hôm trước bên em có tư vấn mẫu "
+            f"{sku or 'sản phẩm mình quan tâm'}. Mình còn băn khoăn về {blocker} đúng không ạ?"
         )
 
     return (
-        f"{greeting} HÃ´m trÆ°á»›c bÃªn em cÃ³ tÆ° váº¥n máº«u "
-        f"{sku or 'sáº£n pháº©m mÃ¬nh quan tÃ¢m'}. Em há»— trá»£ mÃ¬nh tiáº¿p nhÃ© áº¡?"
+        f"{greeting} Hôm trước bên em có tư vấn mẫu "
+        f"{sku or 'sản phẩm mình quan tâm'}. Em hỗ trợ mình tiếp nhé ạ?"
     )
 
 
@@ -741,13 +834,14 @@ def _build_suggested_opening(
 # Call Brief node
 # ---------------------------------------------------------------------------
 
+
 def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     """Build the structured CallBrief for the planner.
 
     Inputs: ``customer_id``/``customer_info`` (identity), Postgres session
     events + recent episodes + profile facts (memory), and the current turn
     text (need/constraints). Output is stored at ``state["call_brief"]`` as a
-    compact dict â€” never a raw copy of ``state["messages"]``.
+    compact dict — never a raw copy of ``state["messages"]``.
     """
 
     started_at = time.perf_counter()
@@ -825,8 +919,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
             else {}
         )
         profile_facts = {
-            key: fact["value"]
-            for key, fact in profile_facts_with_provenance.items()
+            key: fact["value"] for key, fact in profile_facts_with_provenance.items()
         }
     except Exception as error:
         logger.warning(
@@ -859,7 +952,9 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     def _as_text_list(value):
         if not isinstance(value, list):
             return []
-        return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+        return [
+            item.strip() for item in value if isinstance(item, str) and item.strip()
+        ]
 
     episode_sessions = [
         {
@@ -898,18 +993,14 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     products_advised = [
         product
         for episode in reversed(episodes)
-        for product in _historical_product_summaries(
-            episode.get("products_advised")
-        )
+        for product in _historical_product_summaries(episode.get("products_advised"))
     ]
     latest_episode = episodes[0] if episodes else {}
     open_blockers = _as_text_list(
-        latest_open_brief.get("open_blockers")
-        or latest_episode.get("open_blockers")
+        latest_open_brief.get("open_blockers") or latest_episode.get("open_blockers")
     )
     open_questions = _as_text_list(
-        latest_open_brief.get("open_questions")
-        or latest_episode.get("open_questions")
+        latest_open_brief.get("open_questions") or latest_episode.get("open_questions")
     )
     if latest_open_brief.get("products_advised"):
         products_advised.extend(
@@ -951,14 +1042,20 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
     elif next_actions:
         suggested_next_action = next_actions[0]
     elif products_advised:
-        suggested_next_action = "Continue the previous discussion without repeating known information."
+        suggested_next_action = (
+            "Continue the previous discussion without repeating known information."
+        )
     else:
         suggested_next_action = "Understand the customer's current need."
 
     latency_ms = int((time.perf_counter() - started_at) * 1000)
 
     # Verified name priority: profile facts > trusted CRM name > guest-parsed.
-    profile_name = _real_name(profile_facts.get("name")) if isinstance(profile_facts, dict) else None
+    profile_name = (
+        _real_name(profile_facts.get("name"))
+        if isinstance(profile_facts, dict)
+        else None
+    )
     resolved_name = (
         profile_name
         or _real_name(customer_info.get("name"))
@@ -996,7 +1093,9 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
             }
             for key, fact in profile_facts_with_provenance.items()
         },
-        "episodes": [episode["session_id"] for episode in episodes if episode.get("session_id")],
+        "episodes": [
+            episode["session_id"] for episode in episodes if episode.get("session_id")
+        ],
         "working_events": [
             event["event_id"] for event in open_session_events if event.get("event_id")
         ],
@@ -1017,7 +1116,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
                 date=str(session["date"]),
                 channel=str(session.get("channel") or "other"),
                 summary=str(session.get("summary") or ""),
-                outcome=str(session.get("outcome") or "khac"),
+                outcome=_normalize_session_outcome(session.get("outcome")),
             )
             for session in episode_sessions
         ],
@@ -1034,7 +1133,11 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
         stale_warnings=stale_warnings,
         suggested_opening=suggested_opening,
         suggested_next_action=suggested_next_action,
-        generated_at=datetime.now().isoformat(),
+        generated_at=datetime.combine(
+            date.fromisoformat(state.get("call_date") or "2026-10-15"),
+            datetime_time.min,
+            tzinfo=ZoneInfo("Asia/Ho_Chi_Minh"),
+        ),
         latency_ms=latency_ms,
         precomputed_parts=[
             "customer_identity",

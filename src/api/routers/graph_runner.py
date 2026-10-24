@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
-from typing import Any, Callable, Dict, Optional
+from datetime import date
+from typing import Any, Callable, Dict, Optional, cast
 
 from langchain_core.messages import HumanMessage, messages_from_dict
 
 from src.graph.builder import graph
-from src.graph.trace import GraphTrace, new_run_id
+from src.graph.state import AgentState
+from src.graph.trace import (
+    GraphTrace,
+    append_eval_trace_line,
+    build_eval_trace_record,
+    new_run_id,
+)
 from src.memory.working.postgres_store import get_postgres_memory_store
 
 logger = logging.getLogger(__name__)
@@ -65,10 +73,14 @@ def invoke_customer_turn(
     turn_id: Optional[str],
     message: str,
     channel: str,
+    call_date: Optional[date] = None,
     customer_info: Optional[Dict[str, Any]] = None,
     session_ended: bool = False,
     on_call_brief: Optional[Callable[[Dict[str, Any]], None]] = None,
+    eval_trace_context: Optional[Dict[str, Any]] = None,
+    eval_trace_path: Optional[str] = None,
 ) -> Dict[str, Any]:
+    turn_started_at = time.perf_counter()
     active_session_id = session_id or str(uuid.uuid4())
     requested_customer_id = (
         customer_id if customer_id and customer_id != "anonymous" else None
@@ -132,6 +144,7 @@ def invoke_customer_turn(
         "missing_identity_fields": _restored.get("missing_identity_fields", []),
         "pending_need": _restored.get("pending_need"),
         "session_id": active_session_id,
+        "call_date": (call_date or date(2026, 10, 15)).isoformat(),
         "turn_id": turn_id or str(uuid.uuid4()),
         "session_ended": session_ended,
     }
@@ -160,9 +173,9 @@ def invoke_customer_turn(
             stream_config,
             stream_mode=["values", "debug"],
         ):
-            if mode == "values":
-                final_state = payload
-                current_brief = payload.get("call_brief")
+            if mode == "values" and isinstance(payload, dict):
+                final_state = cast(Dict[str, Any], payload)
+                current_brief = final_state.get("call_brief")
                 if (
                     on_call_brief
                     and isinstance(current_brief, dict)
@@ -179,6 +192,15 @@ def invoke_customer_turn(
     if final_state is None:
         # Parity with the previous invoke() behaviour on an empty stream.
         final_state = initial_state
+    if eval_trace_context is not None and eval_trace_path:
+        total_ms = int((time.perf_counter() - turn_started_at) * 1000)
+        row = build_eval_trace_record(
+            state=final_state,
+            run_id=run_id,
+            total_ms=total_ms,
+            context=eval_trace_context,
+        )
+        append_eval_trace_line(row, eval_trace_path)
     return final_state
 
 
@@ -232,7 +254,7 @@ def finalize_session(
     )
     trace.run_start(mode="finalize", thread=active_session_id)
 
-    state: Dict[str, Any] = {
+    state: AgentState = {
         "messages": [],
         "session_id": active_session_id,
         "customer_id": restored_customer_id,

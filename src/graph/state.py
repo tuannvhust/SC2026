@@ -24,6 +24,8 @@ class AgentState(TypedDict, total=False):
     identity_status: Optional[str]
 
     # Session continuity
+    # Business date supplied by the caller/scenario (ISO YYYY-MM-DD).
+    call_date: str
     call_brief: Optional[Dict[str, Any]]
     session_id: str
     session_started_at: str
@@ -31,7 +33,6 @@ class AgentState(TypedDict, total=False):
     session_outcome: Optional[str]
     turn_id: str
     turn_number: int
-
     # Safety
     input_valid: bool
     output_valid: bool
@@ -40,4 +41,7 @@ class AgentState(TypedDict, total=False):
     # Control flow
     is_handoff: bool
     handoff_reason: Optional[str]
+    handoff_brief: Optional[Dict[str, Any]]
+    # Tool invocation performed directly by the handoff node, outside ToolNode.
+    trace_tool_calls: List[Dict[str, Any]]
     retry_count: int

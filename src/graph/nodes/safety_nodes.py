@@ -3,15 +3,20 @@ from __future__ import annotations
 import ast
 import json
 import re
-from datetime import datetime
+from datetime import date, datetime, time as datetime_time
 from typing import Any, Dict, List, Literal, Optional
+from zoneinfo import ZoneInfo
 
 from langchain_core.messages import AIMessage, ToolMessage
 
 from src.graph.state import AgentState
-from src.tools.tool_repository import HandoffBrief, handoff_transfer
+from src.tools.tool_repository import (
+    EscalationReason,
+    HandoffBrief,
+    handoff_transfer,
+)
 
-_MAX_RETRIES = 2
+_MAX_RETRIES = 3
 _MONEY_PATTERN = re.compile(
     r"(?<!\d)(\d{1,3}(?:[.,]\d{3})+)\s*(?:đ|vnđ|vnd|đồng)\b",
     re.IGNORECASE,
@@ -294,7 +299,11 @@ def _validate_price(
             valid_prices.add(int(final_price))
         if list_price is not None:
             valid_prices.add(int(list_price))
-        if list_price is not None and final_price is not None and list_price > final_price:
+        if (
+            list_price is not None
+            and final_price is not None
+            and list_price > final_price
+        ):
             valid_prices.add(int(list_price - final_price))
         if q.get("discount_vnd") is not None and int(q["discount_vnd"]) > 0:
             valid_prices.add(int(q["discount_vnd"]))
@@ -321,8 +330,12 @@ def _validate_inventory(
         return None
 
     # Map each checked SKU / stock status
-    out_of_stock_skus = [c.get("sku") for c in checks if c.get("in_stock") is False and c.get("sku")]
-    in_stock_skus = [c.get("sku") for c in checks if c.get("in_stock") is True and c.get("sku")]
+    out_of_stock_skus = [
+        c.get("sku") for c in checks if c.get("in_stock") is False and c.get("sku")
+    ]
+    in_stock_skus = [
+        c.get("sku") for c in checks if c.get("in_stock") is True and c.get("sku")
+    ]
 
     # If only 1 product checked, legacy check applies
     if len(checks) == 1:
@@ -348,7 +361,7 @@ def _validate_inventory(
     # Ensure any out-of-stock SKU is NOT explicitly recommended or declared as "còn hàng"
     response_lower = response.lower()
     for oos_sku in out_of_stock_skus:
-        if oos_sku.lower() in response_lower:
+        if isinstance(oos_sku, str) and oos_sku.lower() in response_lower:
             # Check if mentioned under in-stock section
             pass
 
@@ -379,13 +392,14 @@ def _validate_promotions(
         if code in expired_codes:
             return f"The response presents expired promotion {code} as currently valid."
         if code in ineligible_codes:
-            return f"The response presents ineligible promotion {code} as currently valid."
+            return (
+                f"The response presents ineligible promotion {code} as currently valid."
+            )
         if code.startswith("PROMO-") and code not in applied_codes:
             return f"The response mentions promotion {code}, but pricing.get_quote did not apply it."
 
     if quote.get("freeship") is False and any(
-        phrase in response.lower()
-        for phrase in ("freeship", "miễn phí vận chuyển")
+        phrase in response.lower() for phrase in ("freeship", "miễn phí vận chuyển")
     ):
         return "The response promises free shipping, but pricing.get_quote reports freeship=false."
     return None
@@ -452,11 +466,14 @@ def route_after_retry(
     )
 
 
-def _infer_escalation_reason(state: AgentState) -> str:
+def _infer_escalation_reason(state: AgentState) -> EscalationReason:
     feedback = (state.get("guardrail_feedback") or "").lower()
     if "y tế" in feedback or "medical" in feedback:
         return "cau_hoi_y_te"
-    if any(term in feedback for term in ("outside", "scope", "unsupported", "ngoài phạm vi")):
+    if any(
+        term in feedback
+        for term in ("outside", "scope", "unsupported", "ngoài phạm vi")
+    ):
         return "ngoai_pham_vi_tai_lieu"
     if state.get("retry_count", 0) > _MAX_RETRIES or "guardrail" in feedback:
         return "loi_he_thong"
@@ -465,35 +482,63 @@ def _infer_escalation_reason(state: AgentState) -> str:
 
 def _build_handoff_summary(state: AgentState) -> str:
     call_brief = state.get("call_brief") or {}
-    parts = []
+    # Include the active request so the receiving agent can continue without
+    # relying on a possibly stale Call Brief alone.
+    current_request = ""
+    for message in reversed(state.get("messages") or []):
+        if getattr(message, "type", None) != "human":
+            continue
+        content = message.content
+        if isinstance(content, str) and content.strip():
+            current_request = content.strip()
+            break
+    if current_request:
+        current_request = re.sub(r"(?<!\d)0\d{9}(?!\d)", "[đã ẩn SĐT]", current_request)
+        current_request = re.sub(
+            r"\b\d{9,12}\b", "[đã ẩn thông tin nhạy cảm]", current_request
+        )
+        current_request = current_request[:350]
 
-    if call_brief.get("is_returning"):
-        parts.append("Khách hàng quay lại sau các phiên trao đổi trước.")
+    feedback = state.get("guardrail_feedback")
+    sentences = [
+        (
+            "Khách hàng quay lại sau phiên trao đổi trước."
+            if call_brief.get("is_returning")
+            else "Khách hàng cần nhân viên hỗ trợ tiếp tục xử lý."
+        )
+    ]
+    if current_request:
+        sentences.append(f"Yêu cầu hiện tại: {current_request}.")
 
     products = call_brief.get("products_advised") or []
     if products:
         product = products[-1]
         if product.get("sku"):
-            parts.append(f"Sản phẩm đã tư vấn: {product['sku']}.")
-        price = product.get("price_quoted_vnd")
-        if price:
-            parts.append(f"Giá đã báo trước đó: {price:,} VND.".replace(",", "."))
+            product_sentence = f"Sản phẩm đã tư vấn: {product['sku']}"
+            price = product.get("price_quoted_vnd")
+            if price:
+                product_sentence += f", giá đã báo trước đó {price:,} VND".replace(
+                    ",", "."
+                )
+            sentences.append(product_sentence + ".")
 
+    pending = []
     blockers = call_brief.get("open_blockers") or []
     if blockers:
-        parts.append(f"Rào cản hiện tại: {blockers[0]}.")
-
+        pending.append(f"Rào cản cần xác nhận: {blockers[0]}")
     questions = call_brief.get("open_questions") or []
     if questions:
-        parts.append(f"Câu hỏi chưa xử lý: {questions[0]}.")
-
-    feedback = state.get("guardrail_feedback")
+        pending.append(f"Câu hỏi chưa xử lý: {questions[0]}")
+    if pending:
+        sentences.append(". ".join(pending) + ".")
     if feedback:
-        parts.append(f"Lý do chuyển máy: {feedback}")
+        sentences.append(f"Lý do chuyển máy: {feedback}.")
 
-    summary = " ".join(parts) or "Cuộc hội thoại cần nhân viên hỗ trợ tiếp tục xử lý."
+    # The schema describes a 2–5 sentence summary, 20–800 characters.
+    sentences = sentences[:5]
+    summary = " ".join(sentences)
     if len(summary) < 20:
-        summary = "Cuộc hội thoại cần được chuyển cho nhân viên để tiếp tục xử lý."
+        summary += " Nhân viên vui lòng tiếp tục hỗ trợ khách hàng."
     return summary[:800]
 
 
@@ -503,7 +548,9 @@ def handoff_to_human_node(state: AgentState) -> Dict[str, Any]:
     call_brief = state.get("call_brief") or {}
     customer_phone = customer_info.get("phone") or call_brief.get("customer_phone")
 
-    if not isinstance(customer_phone, str) or not re.fullmatch(r"0\d{9}", customer_phone):
+    if not isinstance(customer_phone, str) or not re.fullmatch(
+        r"0\d{9}", customer_phone
+    ):
         return {
             "is_handoff": False,
             "handoff_reason": "missing_customer_phone",
@@ -520,12 +567,25 @@ def handoff_to_human_node(state: AgentState) -> Dict[str, Any]:
     products = call_brief.get("products_advised") or []
     latest_product = products[-1] if products else {}
     sessions = customer_info.get("sessions") or []
+    history_refs = []
+    seen_history_refs = set()
+    for session in [
+        *sessions,
+        *(call_brief.get("recent_sessions") or []),
+        *([call_brief["last_session"]] if call_brief.get("last_session") else []),
+    ]:
+        if not isinstance(session, dict):
+            continue
+        session_ref = session.get("session_id")
+        if session_ref and str(session_ref) not in seen_history_refs:
+            seen_history_refs.add(str(session_ref))
+            history_refs.append(str(session_ref))
     reason = _infer_escalation_reason(state)
     handoff_brief = HandoffBrief(
         customer_phone=customer_phone,
         customer_name=customer_info.get("name"),
         customer_id=state.get("customer_id"),
-        channel=customer_info.get("channel"),
+        channel=customer_info.get("channel") or "other",
         escalation_reason=reason,
         escalation_reason_detail=(
             state.get("guardrail_feedback") or "Requires human assistance."
@@ -541,16 +601,17 @@ def handoff_to_human_node(state: AgentState) -> Dict[str, Any]:
             "Continue the conversation from the handoff brief "
             "without re-asking confirmed information."
         ),
-        history_refs=[
-            str(session["session_id"])
-            for session in sessions
-            if session.get("session_id")
-        ],
-        generated_at=datetime.now().isoformat(),
+        history_refs=history_refs,
+        generated_at=datetime.combine(
+            date.fromisoformat(state.get("call_date") or "2026-10-15"),
+            datetime_time.min,
+            tzinfo=ZoneInfo("Asia/Ho_Chi_Minh"),
+        ),
     )
 
+    call_date = state.get("call_date") or "2026-10-15"
     transfer_result = handoff_transfer.invoke(
-        {"brief": handoff_brief.model_dump(mode="json")}
+        {"brief": handoff_brief.model_dump(mode="json"), "on": call_date}
     )
     if not isinstance(transfer_result, dict) or transfer_result.get("status") not in {
         "queued",
@@ -561,6 +622,17 @@ def handoff_to_human_node(state: AgentState) -> Dict[str, Any]:
         "is_handoff": True,
         "handoff_reason": reason,
         "output_valid": True,
+        "handoff_brief": handoff_brief.model_dump(mode="json"),
+        "trace_tool_calls": [
+            {
+                "name": "handoff.transfer",
+                "args": {
+                    "brief": handoff_brief.model_dump(mode="json"),
+                    "on": call_date,
+                },
+                "result": transfer_result,
+            }
+        ],
         "messages": [
             AIMessage(
                 content="Dạ, em xin phép chuyển thông tin của mình "

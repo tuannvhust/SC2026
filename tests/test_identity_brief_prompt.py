@@ -87,7 +87,7 @@ def _patch_stores(monkeypatch, profile_facts=None):
 
 def test_1_customer_gives_name_and_phone_upfront(monkeypatch):
     _patch_stores(monkeypatch)
-    state = {"messages": [HumanMessage(content="mÃ¬nh tÃªn Lan, sÄ‘t 0901234567")]}
+    state = {"messages": [HumanMessage(content="mình tên Lan, sđt 0901234567")]}
     state.update(normalize_input_node(state))
     resolved = resolve_identity_node(state)
     assert resolved["needs_identity"] is False
@@ -96,7 +96,7 @@ def test_1_customer_gives_name_and_phone_upfront(monkeypatch):
 
 def test_2_phone_first_then_name(monkeypatch):
     _patch_stores(monkeypatch)
-    state = {"messages": [HumanMessage(content="sÄ‘t 0901234567")]}
+    state = {"messages": [HumanMessage(content="sđt 0901234567")]}
     state.update(normalize_input_node(state))
     partial = resolve_identity_node(state)
     assert partial["needs_identity"] is True
@@ -108,7 +108,7 @@ def test_2_phone_first_then_name(monkeypatch):
 def test_3_existing_crm_profile_name_is_trusted(monkeypatch):
     _patch_stores(monkeypatch, profile_facts={"name": "Hoa"})
     state = {
-        "messages": [HumanMessage(content="mÃ¬nh tÃªn Lan, sÄ‘t 0901234567")],
+        "messages": [HumanMessage(content="mình tên Lan, sđt 0901234567")],
         "customer_id": "CUST-1029",
         "customer_info": {"phone": "0901234567", "name": "Hoa"},
     }
@@ -120,26 +120,26 @@ def test_3_existing_crm_profile_name_is_trusted(monkeypatch):
 
 def test_4_turn1_need_survives_identity_turn(monkeypatch):
     _patch_stores(monkeypatch)
-    state = {"messages": [HumanMessage(content="cáº§n mÃ¡y lá»c khÃ´ng khÃ­ phÃ²ng 20m2")]}
+    state = {"messages": [HumanMessage(content="cần máy lọc không khí phòng 20m2")]}
     state.update(normalize_input_node(state))
     first = resolve_identity_node(state)
     assert first["pending_need"]
     state.update(first)
     state.update(request_identity_node(state))
-    state["messages"].append(HumanMessage(content="mÃ¬nh tÃªn Lan, sÄ‘t 0901234567"))
+    state["messages"].append(HumanMessage(content="mình tên Lan, sđt 0901234567"))
     state.update(normalize_input_node(state))
     resolved = resolve_identity_node(state)
     brief = build_call_brief_node({**state, **resolved})
-    assert "mÃ¡y lá»c" in (brief["call_brief"]["current_need"] or "")
+    assert "máy lọc" in (brief["call_brief"]["current_need"] or "")
 
 
 def test_5_call_brief_has_expected_fields(monkeypatch):
     _patch_stores(monkeypatch)
     state = {
-        "messages": [HumanMessage(content="mÃ¬nh tÃªn Lan, sÄ‘t 0901234567")],
+        "messages": [HumanMessage(content="mình tên Lan, sđt 0901234567")],
         "customer_id": "CUST-1029",
         "customer_info": {"phone": "0901234567", "name": "Lan"},
-        "pending_need": "cáº§n mÃ¡y lá»c khÃ´ng khÃ­",
+        "pending_need": "cần máy lọc không khí",
     }
     brief = build_call_brief_node(state)["call_brief"]
     for field in (
@@ -184,7 +184,7 @@ def test_6_planner_skips_stale_tool_json(monkeypatch):
             HumanMessage(content="turn cÅ©"),
             stale_call,
             stale,
-            HumanMessage(content="AirPure Y giÃ¡ sao?"),
+            HumanMessage(content="AirPure Y giá sao?"),
             current_call,
             current_result,
         ],
@@ -263,7 +263,7 @@ def test_6b_multi_tool_chain_kept_intact_without_old_json(monkeypatch):
             HumanMessage(content="turn cÅ©"),
             old_tool_call,
             old_result,
-            HumanMessage(content="so sÃ¡nh 3 máº«u mÃ¡y lá»c"),
+            HumanMessage(content="so sánh 3 mẫu máy lọc"),
             chain_call,
             *results,
         ],
@@ -319,11 +319,11 @@ def test_7_valid_price_inventory_pass_guardrail():
     )
     state = {
         "messages": [
-            HumanMessage(content="GiÃ¡ bao nhiÃªu?"),
+            HumanMessage(content="Giá bao nhiêu?"),
             calls,
             quote,
             stock,
-            AIMessage(content="Dáº¡ giÃ¡ hiá»‡n táº¡i lÃ  4.401.000Ä‘, cÃ²n hÃ ng áº¡."),
+            AIMessage(content="Dạ giá hiện tại là 4.401.000đ, còn hàng ạ."),
         ]
     }
     assert output_guardrail_node(state)["output_valid"] is True
@@ -356,8 +356,8 @@ def test_identity_snapshot_persists_missing_fields_and_need():
         "needs_identity": True,
         "identity_attempts": 1,
         "missing_identity_fields": ["name"],
-        "pending_need": "cáº§n mÃ¡y lá»c",
+        "pending_need": "cần máy lọc",
     }
     snapshot = persistence_nodes._identity_snapshot(state)
     assert snapshot["missing_identity_fields"] == ["name"]
-    assert snapshot["pending_need"] == "cáº§n mÃ¡y lá»c"
+    assert snapshot["pending_need"] == "cần máy lọc"
