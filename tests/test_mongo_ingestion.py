@@ -1,61 +1,51 @@
-"""
-tests/test_mongo_ingestion.py
-Kiá»ƒm tra:
-1. ingestion.py nháº­n 1 document Mongo vÃ  sinh embedding_text chÃ­nh xÃ¡c.
-2. MongoStore vÃ  CRUD cÆ¡ báº£n.
-"""
+"""Test normalization for the current products.json catalog schema."""
 
-from src.memory.semantic_rag.ingestion import ingest_product_document, ingest_policy_document
+from src.memory.semantic_rag.ingestion import ingest_product_document
 
 
-def test_ingest_single_mongo_doc():
-    mongo_product_doc = {
-        "_id": "SKU-PH-TEST-01",
-        "sku": "SKU-PH-TEST-01",
-        "name": "Test Phone Ultra",
-        "category": "dien_thoai",
-        "brand": "TechBrand",
-        "specs": {"screen_inch": 6.7, "battery_mah": 5000, "chipset": "Snapdragon 8 Gen 3"},
+def test_ingest_product_document_uses_catalog_schema():
+    product = {
+        "sku": "SKU-SN-TEST",
+        "name": "Giày chạy bộ",
+        "category": "thoi-trang/giay",
+        "brand": "RunLite",
+        "list_price_vnd": 1_290_000,
+        "attributes": {"material": "vải lưới", "return_days": 7},
+        "stock": 12,
         "variants": [
-            {"storage_gb": 256, "ram_gb": 12, "color": "Ä‘en", "price_vnd": 15000000, "stock_qty": 10}
+            {
+                "variant_sku": "SKU-SN-TEST-42-DEN",
+                "size": 42,
+                "color": "đen",
+                "price_delta_vnd": 50_000,
+                "stock": 4,
+            }
         ],
-        "warranty_months": 12,
-        "installment": {"supported": True, "interest_rate": 0, "min_months": 3, "max_months": 12},
-        "trade_in": {"supported": True},
-        "promos": [{"promo_code": "KM-TEST", "description": "Táº·ng quÃ ", "discount_vnd": 500000, "active": True}]
     }
 
-    # Cháº¡y qua ingestion.py
-    prepared = ingest_product_document(mongo_product_doc)
+    prepared = ingest_product_document(product)
 
-    assert prepared["_id"] == "SKU-PH-TEST-01"
-    assert prepared["min_price"] == 15000000
-    assert prepared["in_stock"] is True
-    assert "embedding_text" in prepared
-    assert "Test Phone Ultra" in prepared["embedding_text"]
-    assert "Snapdragon 8 Gen 3" in prepared["embedding_text"]
-    assert "15.000.000Ä‘" in prepared["embedding_text"]
-
-    print("Test ingest_product_document passed!")
-
-    mongo_policy_doc = {
-        "_id": "policy_return",
-        "policy_id": "return_policy",
-        "category": "doi_tra",
-        "details": {
-            "window_days": 7,
-            "conditions": "nguyÃªn seal",
-            "who_pays_shipping": "shop"
+    assert prepared["_id"] == "SKU-SN-TEST"
+    assert prepared["variants"] == [
+        {
+            "variant_sku": "SKU-SN-TEST-42-DEN",
+            "size": 42,
+            "color": "đen",
         }
-    }
-
-    prepared_pol = ingest_policy_document(mongo_policy_doc)
-    assert prepared_pol["_id"] == "policy_return"
-    assert "embedding_text" in prepared_pol
-    assert "Ä‘á»•i tráº£" in prepared_pol["embedding_text"]
-
-    print("Test ingest_policy_document passed!")
-
-
-if __name__ == "__main__":
-    test_ingest_single_mongo_doc()
+    ]
+    assert (
+        not {
+            "list_price_vnd",
+            "min_price",
+            "max_price",
+            "stock",
+            "total_stock",
+            "in_stock",
+        }
+        & prepared.keys()
+    )
+    assert "1.290.000đ" not in prepared["embedding_text"]
+    assert "tồn kho" not in prepared["embedding_text"]
+    assert "SKU-SN-TEST-42-DEN" in prepared["embedding_text"]
+    assert "vải lưới" in prepared["embedding_text"]
+    assert not {"price_delta_vnd", "stock"} & prepared["variants"][0].keys()

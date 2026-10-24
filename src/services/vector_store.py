@@ -1,10 +1,7 @@
 """
-src/services/vector_store.py
-Client wrapper cho Qdrant Vector Database (Cloud / Local), hỗ trợ:
-- Nhánh 1 (Dense): Gemini text-embedding-004 (768 chiều, Cosine distance)
-- Nhánh 2 (Sparse): BM25S lexical weights (indices & values)
-- Thuật toán RRF (Reciprocal Rank Fusion) kết hợp kết quả tự động
-- Metadata Filtering (category, in_stock, min_price, max_price)
+Qdrant vector database client wrapper for cloud and local deployments.
+Supports dense Gemini embeddings, sparse BM25S vectors, RRF fusion, and
+static metadata filters for product category.
 """
 
 import os
@@ -32,15 +29,14 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
-    Range
 )
 
-# Namespace cố định để tạo UUID ổn định từ SKU / document _id
+# Fixed namespace used to generate stable UUIDs from SKUs or document IDs.
 SKU_NAMESPACE = uuid.UUID("12345678-1234-5678-1234-567812345678")
 
 
 def get_deterministic_uuid(key: str) -> str:
-    """Tạo UUIDv5 cố định từ SKU để làm ID trong Qdrant."""
+    """Generate a stable UUIDv5 from a SKU for use as a Qdrant point ID."""
     return str(uuid.uuid5(SKU_NAMESPACE, key))
 
 
@@ -49,7 +45,7 @@ class QdrantVectorStore:
         self,
         url: Optional[str] = None,
         api_key: Optional[str] = None,
-        path: Optional[str] = None
+        path: Optional[str] = None,
     ):
         self.url = url or os.getenv("QDRANT_URL")
         self.api_key = api_key or os.getenv("QDRANT_API_KEY")
@@ -60,12 +56,19 @@ class QdrantVectorStore:
         elif self.path:
             self.client = QdrantClient(path=self.path)
         else:
-            # Mặc định lưu cục bộ vào thư mục data/qdrant_storage nếu chưa có Qdrant server
+            # Use local storage when no Qdrant server or explicit path is configured.
             default_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                "data", "qdrant_storage"
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                ),
+                "data",
+                "qdrant_storage",
             )
             self.client = QdrantClient(path=default_path)
+
+    def close(self) -> None:
+        """Close the underlying Qdrant client."""
+        self.client.close()
 
     def init_collection(
         self,
@@ -73,10 +76,10 @@ class QdrantVectorStore:
         dense_dim: Optional[int] = None,
         recreate: bool = False,
     ):
-        """
-        Khởi tạo collection với cả 2 chỉ mục trong cùng 1 collection:
-        - Dense: 768 chiều (Gemini text-embedding-004)
-        - Sparse: BM25S token indices & scores
+        """Create a collection with dense and sparse vector indexes.
+
+        Dense vectors use Gemini embeddings; sparse vectors use BM25S indices
+        and scores.
         """
         dense_dim = dense_dim or int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768"))
         exists = self.client.collection_exists(collection_name)
@@ -91,25 +94,21 @@ class QdrantVectorStore:
                     "dense": VectorParams(size=dense_dim, distance=Distance.COSINE)
                 },
                 sparse_vectors_config={
-                    "sparse": SparseVectorParams(
-                        index=SparseIndexParams(on_disk=False)
-                    )
-                }
+                    "sparse": SparseVectorParams(index=SparseIndexParams(on_disk=False))
+                },
             )
-            print(f" Đã khởi tạo Qdrant collection '{collection_name}' (Dense 768-dim + Sparse BM25S).")
+            print(
+                f" Đã khởi tạo Qdrant collection '{collection_name}' (Dense 768-dim + Sparse BM25S)."
+            )
 
         if collection_name == "products":
             self._ensure_product_payload_indexes()
 
     def _ensure_product_payload_indexes(self) -> None:
-        """Create the payload indexes required by product query filters."""
+        """Index only static product metadata used by Qdrant filters."""
         collection_name = "products"
         payload_schema = self.client.get_collection(collection_name).payload_schema
-        indexes = (
-            ("category", models.PayloadSchemaType.KEYWORD),
-            ("in_stock", models.PayloadSchemaType.BOOL),
-            ("min_price", models.PayloadSchemaType.INTEGER),
-        )
+        indexes = (("category", models.PayloadSchemaType.KEYWORD),)
 
         for field_name, field_schema in indexes:
             if field_name not in payload_schema:
@@ -119,45 +118,39 @@ class QdrantVectorStore:
                     field_schema=field_schema,
                 )
 
-
     def upsert_catalog_documents(
         self,
         collection_name: str,
         documents: List[Dict[str, Any]],
         dense_vectors: List[List[float]],
-        sparse_vectors: List[Dict[str, Any]]
+        sparse_vectors: List[Dict[str, Any]],
     ):
-        """
-        Lưu cả 2 loại Vector (Dense 768 và Sparse BM25S) vào cùng 1 Collection trên Qdrant.
-        """
+        """Store dense and sparse BM25S vectors in the same Qdrant collection."""
         self.init_collection(collection_name)
         points = []
+        if collection_name == "products":
+            from src.memory.semantic_rag.payload import sanitize_product_payload
 
         for doc, dense, sparse in zip(documents, dense_vectors, sparse_vectors):
+            payload = doc
+            if collection_name == "products":
+                payload = sanitize_product_payload(doc)
             doc_id = doc.get("_id") or doc.get("sku")
             point_id = get_deterministic_uuid(str(doc_id))
 
             vector_dict = {
                 "dense": dense,
                 "sparse": SparseVector(
-                    indices=sparse["indices"],
-                    values=sparse["values"]
-                )
+                    indices=sparse["indices"], values=sparse["values"]
+                ),
             }
 
-            points.append(
-                PointStruct(
-                    id=point_id,
-                    vector=vector_dict,
-                    payload=doc
-                )
-            )
+            points.append(PointStruct(id=point_id, vector=vector_dict, payload=payload))
 
-        self.client.upsert(
-            collection_name=collection_name,
-            points=points
+        self.client.upsert(collection_name=collection_name, points=points)
+        print(
+            f" Đã upsert {len(points)} documents (Dense 768 + Sparse BM25S) vào Qdrant '{collection_name}'."
         )
-        print(f" Đã upsert {len(points)} documents (Dense 768 + Sparse BM25S) vào Qdrant '{collection_name}'.")
 
     def hybrid_search_rrf(
         self,
@@ -168,12 +161,21 @@ class QdrantVectorStore:
         category: Optional[str] = None,
         in_stock_only: bool = False,
         min_price: Optional[int] = None,
-        max_price: Optional[int] = None
+        max_price: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
+        """Run hybrid RRF search using only static Qdrant metadata filters.
+
+        Price and inventory filters must be applied using their live data source;
+        they are deliberately not represented in product Qdrant payloads.
         """
-        Tìm kiếm Hybrid sử dụng thuật toán RRF (Reciprocal Rank Fusion) trên Qdrant
-        kết hợp bộ lọc metadata.
-        """
+        if collection_name == "products" and (
+            in_stock_only or min_price is not None or max_price is not None
+        ):
+            raise ValueError(
+                "Qdrant product payloads do not contain live stock or price data; "
+                "apply these filters through the inventory and pricing services."
+            )
+
         if collection_name == "products":
             self._ensure_product_payload_indexes()
 
@@ -182,24 +184,9 @@ class QdrantVectorStore:
             must_conditions.append(
                 FieldCondition(key="category", match=MatchValue(value=category))
             )
-        if in_stock_only:
-            must_conditions.append(
-                FieldCondition(key="in_stock", match=MatchValue(value=True))
-            )
-        if min_price is not None or max_price is not None:
-            price_range = {}
-            if min_price is not None:
-                price_range["gte"] = min_price
-            if max_price is not None:
-                price_range["lte"] = max_price
-            must_conditions.append(
-                FieldCondition(key="min_price", range=Range(**price_range))
-            )
-
         query_filter = Filter(must=must_conditions) if must_conditions else None
         sparse_vector = SparseVector(
-            indices=query_sparse["indices"],
-            values=query_sparse["values"]
+            indices=query_sparse["indices"], values=query_sparse["values"]
         )
 
         response = self.client.query_points(
@@ -216,7 +203,7 @@ class QdrantVectorStore:
                     using="sparse",
                     limit=max(top_k * 5, top_k),
                     filter=query_filter,
-                )
+                ),
             ],
             query=FusionQuery(fusion=Fusion.RRF),
             limit=top_k,
@@ -231,12 +218,10 @@ class QdrantVectorStore:
         return results
 
     def get_by_sku(self, collection_name: str, sku: str) -> Optional[Dict[str, Any]]:
-        """Tra cứu sản phẩm theo SKU."""
+        """Look up a product by SKU."""
         point_id = get_deterministic_uuid(sku)
         records = self.client.retrieve(
-            collection_name=collection_name,
-            ids=[point_id],
-            with_payload=True
+            collection_name=collection_name, ids=[point_id], with_payload=True
         )
         if records:
             return records[0].payload

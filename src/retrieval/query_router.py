@@ -1,10 +1,10 @@
 """
 src/retrieval/query_router.py
-Phân loại lượt thoại của khách hàng để định tuyến xử lý phù hợp:
-- hỏi sản phẩm / cấu hình / giá / so sánh -> RAG catalog / tools/catalog
-- hỏi đơn hàng / vận chuyển / chính sách -> RAG policies / tools/order
-- phản đối (giá cao, phân vân, hỏi người thân) -> objection handling strategy
-- chitchat / chào hỏi / từ chối -> conversational flow
+Classify customer turns and route them to the appropriate handler:
+- Product, specification, price, and comparison questions -> catalog RAG/tools.
+- Order, delivery, and policy questions -> policy RAG/order tools.
+- Objections (price concerns, hesitation, or asking others) -> objection handling.
+- Small talk, greetings, and refusals -> conversational flow.
 """
 
 from typing import Dict, Any
@@ -25,43 +25,67 @@ class QueryRouter:
         self.llm_client = llm_client
 
     def route(self, turn_text: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """
-        Phân tích lượt thoại và quyết định tool/module cần gọi.
-        """
+        """Analyze a customer turn and select the tool or module to call."""
         text_lower = turn_text.lower()
 
-        # Quy tắc định tuyến cơ bản (Rule-based kết hợp LLM)
-        if any(w in text_lower for w in ["đổi trả", "bảo hành", "ship", "giao hàng", "phí vận chuyển", "cod"]):
+        # Apply basic rule-based routing, with optional LLM support.
+        if any(
+            w in text_lower
+            for w in [
+                "đổi trả",
+                "bảo hành",
+                "ship",
+                "giao hàng",
+                "phí vận chuyển",
+                "cod",
+            ]
+        ):
             return {
                 "turn_type": TurnType.POLICY_QUERY,
                 "recommended_tool": "retrieval.search_policies",
-                "target": "policies"
+                "target": "policies",
             }
 
-        if any(w in text_lower for w in ["giá", "cấu hình", "bao nhiêu tiền", "ram", "pin", "màu", "so sánh", "có máy nào"]):
+        if any(
+            w in text_lower
+            for w in [
+                "giá",
+                "cấu hình",
+                "bao nhiêu tiền",
+                "ram",
+                "pin",
+                "màu",
+                "so sánh",
+                "có máy nào",
+            ]
+        ):
             return {
                 "turn_type": TurnType.PRODUCT_QUERY,
                 "recommended_tool": "retrieval.search_products",
-                "target": "catalog"
+                "target": "catalog",
             }
 
-        if any(w in text_lower for w in ["đắt quá", "giá cao", "để hỏi", "suy nghĩ thêm", "chưa mua"]):
+        if any(
+            w in text_lower
+            for w in ["đắt quá", "giá cao", "để hỏi", "suy nghĩ thêm", "chưa mua"]
+        ):
             return {
                 "turn_type": TurnType.OBJECTION,
                 "recommended_tool": "harness.handle_objection",
-                "target": "objection_bank"
+                "target": "objection_bank",
             }
 
-        if any(w in text_lower for w in ["chốt", "đặt hàng", "mua máy này", "lấy con này"]):
+        if any(
+            w in text_lower for w in ["chốt", "đặt hàng", "mua máy này", "lấy con này"]
+        ):
             return {
                 "turn_type": TurnType.ORDER_INTENT,
                 "recommended_tool": "tools.order_create",
-                "target": "orders"
+                "target": "orders",
             }
 
         return {
             "turn_type": TurnType.CHITCHAT,
             "recommended_tool": "harness.chat_reply",
-            "target": "direct_reply"
+            "target": "direct_reply",
         }
-

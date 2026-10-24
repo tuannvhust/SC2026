@@ -1,0 +1,3465 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>SC2026 · Customer Service Workspace</title>
+		<style>
+			:root {
+				--bg: #f5f7fb;
+				--panel: #fff;
+				--ink: #182230;
+				--muted: #6b7788;
+				--line: #e7ebf1;
+				--brand: #3859d7;
+				--brand-soft: #edf1ff;
+				--green: #16845b;
+				--green-soft: #e9f7f0;
+				--amber: #a9660a;
+				--amber-soft: #fff4dc;
+				--red: #c13f4b;
+				--red-soft: #fff0f1;
+				--shadow: 0 8px 24px rgba(27, 42, 74, 0.055);
+				--radius: 16px;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--ink);
+				font:
+					14px/1.45 Inter,
+					ui-sans-serif,
+					system-ui,
+					-apple-system,
+					BlinkMacSystemFont,
+					"Segoe UI",
+					sans-serif;
+			}
+			button,
+			input,
+			textarea,
+			select {
+				font: inherit;
+			}
+			button {
+				cursor: pointer;
+			}
+			button:focus-visible,
+			input:focus-visible,
+			textarea:focus-visible,
+			select:focus-visible {
+				outline: 3px solid #a8b8ff;
+				outline-offset: 2px;
+			}
+			.app {
+				min-height: 100vh;
+				display: grid;
+				grid-template-columns: 224px minmax(0, 1fr);
+			}
+			.sidebar {
+				background: #111a2c;
+				color: #d6ddec;
+				padding: 22px 14px;
+				display: flex;
+				flex-direction: column;
+				gap: 28px;
+			}
+			.brand {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 0 9px;
+				color: white;
+				font-weight: 750;
+				font-size: 16px;
+				letter-spacing: -0.3px;
+			}
+			.brand-mark {
+				width: 32px;
+				height: 32px;
+				border-radius: 10px;
+				background: linear-gradient(135deg, #8195ff, #5368e7);
+				display: grid;
+				place-items: center;
+				color: white;
+				font-weight: 800;
+			}
+			.brand small {
+				display: block;
+				color: #8f9bb3;
+				font-size: 10px;
+				letter-spacing: 1.5px;
+				font-weight: 650;
+				margin-top: 1px;
+			}
+			.nav-label {
+				font-size: 10px;
+				color: #8190aa;
+				font-weight: 750;
+				letter-spacing: 1.4px;
+				padding: 0 11px;
+				margin-bottom: 7px;
+			}
+			.nav {
+				display: grid;
+				gap: 4px;
+			}
+			.nav button {
+				border: 0;
+				background: transparent;
+				color: #aeb9ce;
+				text-align: left;
+				padding: 11px 12px;
+				border-radius: 10px;
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				font-weight: 600;
+			}
+			.nav button:hover {
+				background: #202c43;
+				color: white;
+			}
+			.nav button.active {
+				background: #2b3c64;
+				color: white;
+				box-shadow: inset 3px 0 #8ea0ff;
+			}
+			.nav .ico {
+				width: 18px;
+				text-align: center;
+				font-size: 16px;
+			}
+			.sidebar-bottom {
+				margin-top: auto;
+				background: #1a263b;
+				border: 1px solid #2a3750;
+				border-radius: 13px;
+				padding: 13px;
+			}
+			.avatar {
+				width: 34px;
+				height: 34px;
+				border-radius: 50%;
+				background: #e6eaff;
+				color: #334ab5;
+				display: grid;
+				place-items: center;
+				font-weight: 750;
+				flex-shrink: 0;
+			}
+			.userrow {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			}
+			.userrow strong {
+				font-size: 12px;
+				color: #f3f5fb;
+				display: block;
+			}
+			.userrow small {
+				font-size: 11px;
+				color: #8f9bb3;
+			}
+			.main {
+				min-width: 0;
+			}
+			.topbar {
+				height: 72px;
+				background: #fff;
+				border-bottom: 1px solid var(--line);
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0 28px;
+				gap: 20px;
+			}
+			.breadcrumb {
+				color: var(--muted);
+				font-size: 12px;
+			}
+			.breadcrumb strong {
+				color: var(--ink);
+				font-size: 14px;
+				margin-left: 8px;
+			}
+			.top-actions {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+			.demo-pill {
+				background: #fff4dc;
+				color: #8d5a0b;
+				border: 1px solid #f4dfad;
+				border-radius: 999px;
+				padding: 6px 10px;
+				font-size: 11px;
+				font-weight: 750;
+				letter-spacing: 0.2px;
+			}
+			.iconbtn {
+				width: 36px;
+				height: 36px;
+				border: 1px solid var(--line);
+				background: white;
+				border-radius: 10px;
+				color: #5f6b7c;
+			}
+			.content {
+				padding: 25px 27px;
+				max-width: 1700px;
+				margin: auto;
+			}
+			.page-head {
+				display: flex;
+				align-items: flex-start;
+				justify-content: space-between;
+				gap: 18px;
+				margin-bottom: 22px;
+			}
+			.eyebrow {
+				font-size: 11px;
+				color: var(--brand);
+				font-weight: 800;
+				text-transform: uppercase;
+				letter-spacing: 1.2px;
+			}
+			h1 {
+				font-size: 25px;
+				line-height: 1.2;
+				letter-spacing: -0.7px;
+				margin: 5px 0 7px;
+			}
+			h2 {
+				font-size: 15px;
+				margin: 0;
+				letter-spacing: -0.2px;
+			}
+			h3 {
+				font-size: 13px;
+				margin: 0;
+			}
+			p {
+				margin: 0;
+			}
+			.sub {
+				color: var(--muted);
+				font-size: 13px;
+			}
+			.btn {
+				border: 1px solid var(--line);
+				background: white;
+				color: #344054;
+				padding: 9px 12px;
+				border-radius: 10px;
+				font-weight: 650;
+				display: inline-flex;
+				align-items: center;
+				gap: 7px;
+			}
+			.btn:hover {
+				background: #f8faff;
+				border-color: #cfd7e7;
+			}
+			.btn.primary {
+				background: var(--brand);
+				color: white;
+				border-color: var(--brand);
+			}
+			.btn.primary:hover {
+				background: #2949c4;
+			}
+			.btn.soft {
+				background: var(--brand-soft);
+				border-color: #dbe2ff;
+				color: var(--brand);
+			}
+			.btn.danger {
+				color: var(--red);
+				border-color: #f0cbd0;
+				background: #fffafa;
+			}
+			.btn.small {
+				padding: 6px 9px;
+				font-size: 12px;
+			}
+			.btn:disabled {
+				opacity: 0.42;
+				cursor: not-allowed;
+			}
+			.kpis {
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: 13px;
+				margin-bottom: 19px;
+			}
+			.kpi {
+				background: white;
+				border: 1px solid var(--line);
+				border-radius: 14px;
+				padding: 15px 17px;
+				box-shadow: 0 2px 8px rgba(20, 35, 70, 0.02);
+			}
+			.kpi-top {
+				display: flex;
+				justify-content: space-between;
+				color: var(--muted);
+				font-size: 12px;
+			}
+			.kpi-icon {
+				width: 28px;
+				height: 28px;
+				border-radius: 9px;
+				background: #f0f3ff;
+				color: var(--brand);
+				display: grid;
+				place-items: center;
+			}
+			.kpi strong {
+				font-size: 25px;
+				display: block;
+				letter-spacing: -0.8px;
+				margin: 10px 0 2px;
+			}
+			.kpi small {
+				font-size: 11px;
+				color: var(--muted);
+			}
+			.workspace {
+				display: grid;
+				grid-template-columns: minmax(250px, 0.82fr) minmax(
+						390px,
+						1.48fr
+					) minmax(270px, 0.9fr);
+				gap: 14px;
+				align-items: stretch;
+				min-height: 650px;
+			}
+			.card {
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				box-shadow: 0 2px 8px rgba(20, 35, 70, 0.025);
+				min-width: 0;
+				overflow: hidden;
+			}
+			.card-head {
+				padding: 16px 16px 13px;
+				border-bottom: 1px solid var(--line);
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 10px;
+			}
+			.card-head .mutedline {
+				color: var(--muted);
+				font-size: 11px;
+				margin-top: 3px;
+			}
+			.counter {
+				font-size: 11px;
+				font-weight: 750;
+				color: #667085;
+				background: #f1f3f7;
+				padding: 4px 7px;
+				border-radius: 7px;
+			}
+			.inbox-tools {
+				padding: 12px 12px 9px;
+				border-bottom: 1px solid var(--line);
+			}
+			.search {
+				width: 100%;
+				border: 1px solid #e1e6ef;
+				border-radius: 9px;
+				padding: 10px 11px 10px 34px;
+				background: #fbfcfe;
+				color: var(--ink);
+				outline: none;
+			}
+			.search-wrap {
+				position: relative;
+			}
+			.search-wrap:before {
+				content: "⌕";
+				position: absolute;
+				left: 12px;
+				top: 6px;
+				color: #8994a6;
+				font-size: 20px;
+			}
+			.chips {
+				display: flex;
+				gap: 5px;
+				margin-top: 10px;
+				flex-wrap: wrap;
+			}
+			.chip {
+				border: 1px solid transparent;
+				background: #f4f6fa;
+				color: #667085;
+				border-radius: 7px;
+				padding: 5px 8px;
+				font-size: 11px;
+				font-weight: 700;
+			}
+			.chip.active {
+				background: var(--brand-soft);
+				color: var(--brand);
+				border-color: #dce3ff;
+			}
+			.interaction-list {
+				max-height: 610px;
+				overflow: auto;
+			}
+			.interaction {
+				padding: 14px 13px;
+				border-bottom: 1px solid #f0f2f6;
+				cursor: pointer;
+				border-left: 3px solid transparent;
+			}
+			.interaction:hover {
+				background: #fafbff;
+			}
+			.interaction.selected {
+				background: #f0f3ff;
+				border-left-color: var(--brand);
+			}
+			.interaction-top {
+				display: flex;
+				align-items: center;
+				gap: 9px;
+			}
+			.channel-icon {
+				width: 32px;
+				height: 32px;
+				border-radius: 10px;
+				display: grid;
+				place-items: center;
+				font-size: 13px;
+				font-weight: 800;
+				flex-shrink: 0;
+			}
+			.phone {
+				background: #e7f7ef;
+				color: #17835c;
+			}
+			.zalo {
+				background: #e9f1ff;
+				color: #2563c8;
+			}
+			.facebook {
+				background: #edf0ff;
+				color: #4b58bc;
+			}
+			.person {
+				min-width: 0;
+				flex: 1;
+			}
+			.person strong {
+				font-size: 12px;
+				display: block;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.person small {
+				display: block;
+				font-size: 10px;
+				color: var(--muted);
+				margin-top: 2px;
+			}
+			.time {
+				font-size: 10px;
+				color: #8a94a4;
+				white-space: nowrap;
+			}
+			.preview {
+				font-size: 11px;
+				color: #687487;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				margin: 9px 0 8px 41px;
+			}
+			.interaction-bottom {
+				margin-left: 41px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 6px;
+			}
+			.status {
+				display: inline-flex;
+				align-items: center;
+				gap: 5px;
+				font-size: 10px;
+				font-weight: 750;
+				border-radius: 6px;
+				padding: 4px 7px;
+				white-space: nowrap;
+			}
+			.status:before {
+				content: "";
+				width: 5px;
+				height: 5px;
+				border-radius: 50%;
+				background: currentColor;
+			}
+			.s-open {
+				background: #edf1ff;
+				color: #435bc8;
+			}
+			.s-pending {
+				background: #fff3dc;
+				color: #a56809;
+			}
+			.s-resolved {
+				background: #e7f7ee;
+				color: #148052;
+			}
+			.s-handoff {
+				background: #f4eaff;
+				color: #8651b6;
+			}
+			.priority {
+				font-size: 10px;
+				color: #a9660a;
+			}
+			.conversation {
+				display: flex;
+				flex-direction: column;
+				min-height: 0;
+			}
+			.conversation-head {
+				padding: 16px 18px;
+				border-bottom: 1px solid var(--line);
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+			}
+			.customer-title {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				min-width: 0;
+			}
+			.customer-title h2 {
+				font-size: 15px;
+			}
+			.customer-title p {
+				font-size: 11px;
+				color: var(--muted);
+				margin-top: 3px;
+			}
+			.head-actions {
+				display: flex;
+				gap: 6px;
+				align-items: center;
+			}
+			.head-actions select {
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				padding: 7px 8px;
+				background: #fff;
+				color: #4b5565;
+				font-size: 11px;
+			}
+			.context-strip {
+				padding: 10px 17px;
+				background: #fbfcff;
+				border-bottom: 1px solid var(--line);
+				display: flex;
+				align-items: center;
+				gap: 9px;
+				flex-wrap: wrap;
+			}
+			.context-strip span {
+				font-size: 11px;
+				color: #5f6c80;
+			}
+			.tag {
+				font-size: 10px;
+				font-weight: 750;
+				border-radius: 6px;
+				padding: 4px 7px;
+				background: #f1f4f8;
+				color: #596579;
+			}
+			.tag.blue {
+				background: #edf1ff;
+				color: #455bca;
+			}
+			.tag.green {
+				background: #e7f7ee;
+				color: #148052;
+			}
+			.tag.amber {
+				background: #fff3dc;
+				color: #a56809;
+			}
+			.transcript {
+				padding: 20px 18px;
+				flex: 1;
+				min-height: 250px;
+				max-height: 410px;
+				overflow: auto;
+				background: linear-gradient(#fff, #fdfdff);
+			}
+			.date-divider {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				color: #9aa3b1;
+				font-size: 10px;
+				margin: 0 0 18px;
+			}
+			.date-divider:before,
+			.date-divider:after {
+				content: "";
+				height: 1px;
+				background: #edf0f5;
+				flex: 1;
+			}
+			.msg {
+				display: flex;
+				gap: 8px;
+				margin: 13px 0;
+				align-items: flex-end;
+			}
+			.msg.agent {
+				justify-content: flex-end;
+			}
+			.msg .mini-avatar {
+				width: 25px;
+				height: 25px;
+				border-radius: 50%;
+				display: grid;
+				place-items: center;
+				font-size: 9px;
+				font-weight: 800;
+				background: #e9edff;
+				color: #465cc7;
+				flex-shrink: 0;
+			}
+			.bubble {
+				max-width: 82%;
+				padding: 10px 12px;
+				border-radius: 13px;
+				background: #f1f3f7;
+				color: #344054;
+				font-size: 12px;
+				line-height: 1.55;
+			}
+			.bubble .msg-time {
+				display: block;
+				color: #8993a2;
+				font-size: 9px;
+				margin-top: 5px;
+			}
+			.msg.agent .bubble {
+				background: #405bd3;
+				color: white;
+				border-bottom-right-radius: 4px;
+			}
+			.msg.agent .msg-time {
+				color: #d4dcff;
+			}
+			.msg.customer .bubble {
+				border-bottom-left-radius: 4px;
+			}
+			.msg-note {
+				margin: 14px auto;
+				background: #fff8e9;
+				border: 1px solid #f3e4bc;
+				border-radius: 9px;
+				padding: 8px 11px;
+				color: #926316;
+				font-size: 10px;
+				max-width: 90%;
+				text-align: center;
+			}
+			.composer {
+				border-top: 1px solid var(--line);
+				padding: 13px 15px 15px;
+				background: white;
+			}
+			.suggestion {
+				background: #f7f8ff;
+				border: 1px solid #e1e6ff;
+				border-radius: 10px;
+				padding: 10px 11px;
+				margin-bottom: 10px;
+			}
+			.suggestion-head {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 5px;
+			}
+			.suggestion-head strong {
+				font-size: 11px;
+				color: #4357bc;
+			}
+			.suggestion p {
+				font-size: 11px;
+				color: #596579;
+				line-height: 1.5;
+			}
+			.composer textarea {
+				width: 100%;
+				resize: vertical;
+				min-height: 65px;
+				border: 1px solid #dfe5ee;
+				border-radius: 10px;
+				padding: 11px;
+				color: var(--ink);
+				outline: none;
+			}
+			.composer-bottom {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 8px;
+				margin-top: 9px;
+			}
+			.composer-bottom small {
+				font-size: 10px;
+				color: #8993a2;
+			}
+			.composer-actions {
+				display: flex;
+				gap: 7px;
+			}
+			.context-card {
+				display: flex;
+				flex-direction: column;
+			}
+			.context-tabs {
+				display: flex;
+				gap: 2px;
+				padding: 0 12px;
+				border-bottom: 1px solid var(--line);
+			}
+			.context-tabs button {
+				border: 0;
+				background: transparent;
+				padding: 11px 9px;
+				color: #7a8494;
+				font-size: 11px;
+				font-weight: 750;
+				border-bottom: 2px solid transparent;
+			}
+			.context-tabs button.active {
+				color: var(--brand);
+				border-bottom-color: var(--brand);
+			}
+			.context-body {
+				padding: 15px;
+				overflow: auto;
+				max-height: 690px;
+			}
+			.profile-top {
+				display: flex;
+				align-items: center;
+				gap: 11px;
+				margin-bottom: 15px;
+			}
+			.profile-top .avatar {
+				width: 42px;
+				height: 42px;
+				font-size: 13px;
+			}
+			.profile-top strong {
+				display: block;
+				font-size: 13px;
+			}
+			.profile-top small {
+				color: var(--muted);
+				font-size: 10px;
+			}
+			.identity-box {
+				border-radius: 10px;
+				padding: 10px 11px;
+				margin-bottom: 15px;
+				background: var(--green-soft);
+				border: 1px solid #cdebdc;
+			}
+			.identity-box.unverified {
+				background: var(--amber-soft);
+				border-color: #f1dfb6;
+			}
+			.identity-title {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				font-size: 11px;
+				font-weight: 800;
+				color: var(--green);
+			}
+			.identity-box.unverified .identity-title {
+				color: var(--amber);
+			}
+			.identity-box p {
+				font-size: 10px;
+				color: #687487;
+				margin-top: 5px;
+				line-height: 1.45;
+			}
+			.section-title {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin: 17px 0 9px;
+			}
+			.section-title strong {
+				font-size: 11px;
+			}
+			.section-title button {
+				border: 0;
+				background: none;
+				color: var(--brand);
+				font-size: 10px;
+				font-weight: 750;
+			}
+			.brief {
+				border: 1px solid #e5e9f4;
+				background: #fbfcff;
+				border-radius: 11px;
+				padding: 12px;
+			}
+			.brief-label {
+				font-size: 9px;
+				color: #7180b7;
+				font-weight: 800;
+				letter-spacing: 1px;
+				text-transform: uppercase;
+				margin-bottom: 6px;
+			}
+			.brief p {
+				font-size: 11px;
+				line-height: 1.55;
+				color: #4b586b;
+			}
+			.kv {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px 8px;
+			}
+			.kv label {
+				display: block;
+				font-size: 10px;
+				color: #8a94a4;
+				margin-bottom: 3px;
+			}
+			.kv strong {
+				font-size: 11px;
+				font-weight: 700;
+				display: block;
+				overflow-wrap: anywhere;
+			}
+			.case {
+				padding: 11px;
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				display: flex;
+				gap: 9px;
+				align-items: flex-start;
+			}
+			.case-icon {
+				width: 29px;
+				height: 29px;
+				border-radius: 8px;
+				background: #fff1df;
+				color: #a9670a;
+				display: grid;
+				place-items: center;
+			}
+			.case strong {
+				display: block;
+				font-size: 11px;
+			}
+			.case small {
+				display: block;
+				color: var(--muted);
+				font-size: 10px;
+				margin-top: 3px;
+			}
+			.timeline {
+				position: relative;
+				padding-left: 15px;
+			}
+			.timeline:before {
+				content: "";
+				position: absolute;
+				left: 4px;
+				top: 7px;
+				bottom: 8px;
+				width: 1px;
+				background: #e2e7f0;
+			}
+			.timeline-item {
+				position: relative;
+				padding: 0 0 15px 8px;
+			}
+			.timeline-item:before {
+				content: "";
+				position: absolute;
+				left: -14px;
+				top: 4px;
+				width: 7px;
+				height: 7px;
+				border-radius: 50%;
+				background: #9caaf2;
+				border: 2px solid #eef0ff;
+			}
+			.timeline-item strong {
+				font-size: 10px;
+				display: block;
+			}
+			.timeline-item p {
+				font-size: 10px;
+				color: #6f7a8c;
+				margin-top: 3px;
+				line-height: 1.45;
+			}
+			.timeline-item small {
+				font-size: 9px;
+				color: #a0a8b4;
+				display: block;
+				margin-top: 3px;
+			}
+			.mini-link {
+				border: 0;
+				background: none;
+				padding: 0;
+				color: var(--brand);
+				font-weight: 750;
+				font-size: 10px;
+			}
+			.view {
+				display: none;
+			}
+			.view.active {
+				display: block;
+			}
+			.hidden {
+				display: none !important;
+			}
+			.table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+			.table th,
+			.table td {
+				text-align: left;
+				padding: 12px 14px;
+				border-bottom: 1px solid #edf0f5;
+				font-size: 12px;
+			}
+			.table th {
+				font-size: 10px;
+				text-transform: uppercase;
+				letter-spacing: 0.7px;
+				color: #7d8797;
+				background: #fbfcfe;
+			}
+			.table td {
+				color: #455164;
+			}
+			.table td strong {
+				color: #202b3c;
+			}
+			.table-wrap {
+				overflow: auto;
+			}
+			.customer-grid {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 14px;
+			}
+			.customer-card {
+				background: #fff;
+				border: 1px solid var(--line);
+				border-radius: 15px;
+				padding: 17px;
+			}
+			.customer-card .profile-top {
+				margin-bottom: 12px;
+			}
+			.customer-card p {
+				font-size: 11px;
+				color: var(--muted);
+				margin: 5px 0 13px;
+			}
+			.customer-card .card-foot {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				border-top: 1px solid #eff1f5;
+				padding-top: 12px;
+			}
+			.eval-grid {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 14px;
+				margin-bottom: 18px;
+			}
+			.eval-stat {
+				background: #fff;
+				border: 1px solid var(--line);
+				border-radius: 14px;
+				padding: 17px;
+			}
+			.eval-stat strong {
+				display: block;
+				font-size: 24px;
+				margin: 8px 0 3px;
+			}
+			.eval-stat small {
+				font-size: 11px;
+				color: var(--muted);
+			}
+			.banner {
+				background: #fff7e6;
+				border: 1px solid #f0dfb5;
+				color: #805916;
+				border-radius: 11px;
+				padding: 11px 13px;
+				font-size: 11px;
+				margin-bottom: 17px;
+				line-height: 1.5;
+			}
+			.empty {
+				padding: 35px 15px;
+				text-align: center;
+				color: var(--muted);
+				font-size: 12px;
+			}
+			.modal-backdrop {
+				position: fixed;
+				inset: 0;
+				background: rgba(18, 27, 46, 0.38);
+				display: grid;
+				place-items: center;
+				padding: 20px;
+				z-index: 20;
+			}
+			.modal {
+				width: min(480px, 100%);
+				background: #fff;
+				border-radius: 16px;
+				box-shadow: 0 24px 80px rgba(14, 24, 45, 0.22);
+				overflow: hidden;
+			}
+			.modal-head {
+				padding: 17px 19px;
+				border-bottom: 1px solid var(--line);
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+			.modal-body {
+				padding: 18px;
+			}
+			.field {
+				display: grid;
+				gap: 6px;
+				margin-bottom: 14px;
+			}
+			.field label {
+				font-size: 11px;
+				color: #5f6b7c;
+				font-weight: 750;
+			}
+			.field input,
+			.field textarea,
+			.field select {
+				width: 100%;
+				border: 1px solid #dfe5ee;
+				border-radius: 9px;
+				padding: 10px;
+				background: #fff;
+			}
+			.field textarea {
+				min-height: 80px;
+				resize: vertical;
+			}
+			.modal-foot {
+				display: flex;
+				justify-content: flex-end;
+				gap: 8px;
+				padding: 13px 18px;
+				border-top: 1px solid var(--line);
+			}
+			.toast {
+				position: fixed;
+				bottom: 22px;
+				right: 22px;
+				background: #17243a;
+				color: #fff;
+				border-radius: 11px;
+				padding: 12px 15px;
+				box-shadow: var(--shadow);
+				font-size: 12px;
+				z-index: 30;
+				max-width: 340px;
+				animation: up 0.18s ease-out;
+			}
+			@keyframes up {
+				from {
+					transform: translateY(8px);
+					opacity: 0;
+				}
+				to {
+					transform: none;
+					opacity: 1;
+				}
+			}
+
+			.catalog-toolbar {
+				display: grid;
+				grid-template-columns: minmax(220px, 1fr) 200px 200px;
+				gap: 10px;
+				margin: 0 0 16px;
+				background: #fff;
+				border: 1px solid var(--line);
+				padding: 12px;
+				border-radius: 13px;
+			}
+			.catalog-toolbar .search-wrap {
+				min-width: 0;
+			}
+			.catalog-select {
+				border: 1px solid #e1e6ef;
+				border-radius: 9px;
+				padding: 9px 10px;
+				background: #fbfcfe;
+				color: #475467;
+				min-width: 0;
+			}
+			.catalog-card {
+				background: #fff;
+				border: 1px solid var(--line);
+				border-radius: 15px;
+				padding: 17px;
+				box-shadow: 0 2px 8px rgba(20, 35, 70, 0.025);
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+			}
+			.catalog-card-top {
+				display: flex;
+				align-items: flex-start;
+				gap: 12px;
+			}
+			.catalog-art {
+				width: 58px;
+				height: 58px;
+				border-radius: 14px;
+				display: grid;
+				place-items: center;
+				font-size: 28px;
+				background: linear-gradient(135deg, #edf1ff, #f7f8ff);
+				flex-shrink: 0;
+			}
+			.catalog-card h2 {
+				font-size: 15px;
+				line-height: 1.35;
+			}
+			.catalog-card .sku {
+				font-size: 10px;
+				color: #8993a2;
+				margin-top: 4px;
+			}
+			.catalog-card .desc {
+				font-size: 12px;
+				line-height: 1.55;
+				color: #667085;
+				min-height: 38px;
+			}
+			.catalog-price {
+				font-size: 22px;
+				font-weight: 800;
+				letter-spacing: -0.6px;
+			}
+			.catalog-price small {
+				font-size: 11px;
+				font-weight: 500;
+				color: #8993a2;
+				letter-spacing: 0;
+			}
+			.catalog-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 6px;
+			}
+			.catalog-card .card-foot {
+				margin-top: auto;
+				padding-top: 10px;
+				border-top: 1px solid #eef0f4;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 8px;
+			}
+			.promo-art {
+				background: linear-gradient(135deg, #fff0dc, #fff8ee);
+				color: #a9660a;
+			}
+			.promo-value {
+				font-size: 23px;
+				font-weight: 850;
+				color: #a9660a;
+				letter-spacing: -0.6px;
+			}
+			.catalog-detail {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 15px;
+			}
+			.catalog-detail .detail-block {
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				padding: 12px;
+			}
+			.catalog-detail .detail-block label {
+				font-size: 10px;
+				color: #8993a2;
+				display: block;
+				margin-bottom: 5px;
+			}
+			.catalog-detail .detail-block strong {
+				font-size: 12px;
+				display: block;
+			}
+			.catalog-detail .full {
+				grid-column: 1/-1;
+			}
+			.detail-list {
+				padding-left: 17px;
+				margin: 0;
+				color: #596579;
+				font-size: 12px;
+				line-height: 1.8;
+			}
+			.source-note {
+				font-size: 10px;
+				color: #8993a2;
+				margin-top: 4px;
+			}
+			.policy-toolbar {
+				margin-bottom: 22px;
+			}
+			.policy-section-head {
+				display: flex;
+				align-items: flex-end;
+				justify-content: space-between;
+				gap: 14px;
+				margin: 23px 0 12px;
+			}
+			.policy-section-head h2 {
+				font-size: 17px;
+			}
+			.policy-section-head .sub {
+				margin-top: 4px;
+				font-size: 11px;
+			}
+			.archive-head {
+				border-top: 1px solid var(--line);
+				padding-top: 23px;
+				margin-top: 32px;
+			}
+			.policy-card {
+				gap: 11px;
+			}
+			.policy-card .policy-title-row {
+				display: flex;
+				align-items: flex-start;
+				gap: 10px;
+			}
+			.policy-icon {
+				width: 42px;
+				height: 42px;
+				display: grid;
+				place-items: center;
+				border-radius: 12px;
+				background: #edf1ff;
+				color: var(--brand);
+				font-size: 20px;
+				flex-shrink: 0;
+			}
+			.policy-card.archived .policy-icon {
+				background: #fff3dc;
+				color: #a56809;
+			}
+			.policy-card h2 {
+				line-height: 1.35;
+			}
+			.policy-id {
+				font-size: 10px;
+				color: #8993a2;
+				margin-top: 4px;
+			}
+			.policy-summary {
+				font-size: 12px;
+				line-height: 1.55;
+				color: #667085;
+			}
+			.policy-meta {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 9px;
+				padding: 11px;
+				background: #fafbfe;
+				border: 1px solid #edf0f5;
+				border-radius: 10px;
+			}
+			.policy-meta label {
+				display: block;
+				color: #8993a2;
+				font-size: 10px;
+				margin-bottom: 3px;
+			}
+			.policy-meta strong {
+				font-size: 11px;
+				display: block;
+				overflow-wrap: anywhere;
+			}
+			.policy-card .card-foot {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 8px;
+				padding-top: 11px;
+				border-top: 1px solid #eef0f4;
+				margin-top: auto;
+			}
+			.policy-version-list {
+				display: grid;
+				gap: 8px;
+			}
+			.policy-version-item {
+				padding: 10px 11px;
+				border: 1px solid var(--line);
+				border-radius: 9px;
+				display: flex;
+				align-items: flex-start;
+				justify-content: space-between;
+				gap: 10px;
+			}
+			.policy-version-item strong {
+				font-size: 11px;
+				display: block;
+			}
+			.policy-version-item small {
+				display: block;
+				color: var(--muted);
+				font-size: 10px;
+				margin-top: 3px;
+			}
+			.policy-text {
+				font-size: 12px;
+				line-height: 1.75;
+				color: #475467;
+				white-space: pre-line;
+			}
+			.policy-archive-note {
+				background: #fff7e6;
+				border: 1px solid #f0dfb5;
+				color: #805916;
+				border-radius: 9px;
+				padding: 10px 12px;
+				font-size: 11px;
+				line-height: 1.5;
+			}
+			.policy-badges {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+				margin-top: 8px;
+			}
+			@media (max-width: 850px) {
+				.policy-section-head {
+					align-items: flex-start;
+					flex-direction: column;
+				}
+				.policy-meta {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+			@media (max-width: 850px) {
+				.catalog-toolbar {
+					grid-template-columns: 1fr 1fr;
+				}
+				.catalog-toolbar .search-wrap {
+					grid-column: 1/-1;
+				}
+				.catalog-detail {
+					grid-template-columns: 1fr;
+				}
+				.catalog-detail .full {
+					grid-column: auto;
+				}
+			}
+			@media (max-width: 520px) {
+				.catalog-toolbar {
+					grid-template-columns: 1fr;
+				}
+				.catalog-toolbar .search-wrap {
+					grid-column: auto;
+				}
+			}
+
+			@media (max-width: 1250px) {
+				.app {
+					grid-template-columns: 75px minmax(0, 1fr);
+				}
+				.sidebar {
+					padding: 20px 10px;
+				}
+				.brand {
+					justify-content: center;
+					padding: 0;
+				}
+				.brand-text,
+				.nav-label,
+				.nav button .nav-text,
+				.sidebar-bottom .user-details,
+				.sidebar-bottom .side-note {
+					display: none;
+				}
+				.nav button {
+					justify-content: center;
+					padding: 12px 5px;
+				}
+				.sidebar-bottom {
+					padding: 9px;
+					display: flex;
+					justify-content: center;
+				}
+				.workspace {
+					grid-template-columns: minmax(230px, 0.8fr) minmax(340px, 1.4fr);
+				}
+				.context-card {
+					grid-column: 1/-1;
+				}
+				.context-body {
+					max-height: none;
+					display: grid;
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+					gap: 15px;
+				}
+				.context-body > * {
+					min-width: 0;
+				}
+				.context-body .section-title {
+					margin-top: 4px;
+				}
+			}
+			@media (max-width: 850px) {
+				.app {
+					display: block;
+				}
+				.sidebar {
+					position: sticky;
+					top: 0;
+					z-index: 10;
+					height: auto;
+					padding: 9px 12px;
+					flex-direction: row;
+					align-items: center;
+					justify-content: space-between;
+				}
+				.brand {
+					padding: 0;
+				}
+				.nav {
+					display: flex;
+					gap: 3px;
+				}
+				.nav-label,
+				.brand-text,
+				.sidebar-bottom {
+					display: none;
+				}
+				.nav button {
+					padding: 9px;
+					border-radius: 9px;
+				}
+				.nav button .nav-text {
+					display: none;
+				}
+				.topbar {
+					height: 58px;
+					padding: 0 15px;
+				}
+				.content {
+					padding: 18px 13px;
+				}
+				.page-head {
+					margin-bottom: 16px;
+				}
+				h1 {
+					font-size: 22px;
+				}
+				.kpis {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+					gap: 9px;
+				}
+				.workspace {
+					grid-template-columns: 1fr;
+					min-height: 0;
+				}
+				.interaction-list {
+					max-height: 310px;
+				}
+				.conversation {
+					min-height: 620px;
+				}
+				.context-card {
+					grid-column: auto;
+				}
+				.context-body {
+					display: block;
+				}
+				.customer-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+				.eval-grid {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+			@media (max-width: 520px) {
+				.topbar {
+					padding: 0 11px;
+				}
+				.demo-pill {
+					font-size: 9px;
+				}
+				.content {
+					padding: 15px 10px;
+				}
+				.page-head {
+					display: block;
+				}
+				.page-head > .btn {
+					margin-top: 12px;
+				}
+				.kpi {
+					padding: 12px;
+				}
+				.kpi strong {
+					font-size: 22px;
+				}
+				.workspace {
+					gap: 10px;
+				}
+				.conversation-head {
+					padding: 12px;
+				}
+				.head-actions select {
+					max-width: 105px;
+				}
+				.context-strip {
+					padding: 9px 12px;
+				}
+				.transcript {
+					padding: 15px 11px;
+				}
+				.bubble {
+					max-width: 90%;
+				}
+				.composer {
+					padding: 11px;
+				}
+				.customer-grid,
+				.eval-grid {
+					grid-template-columns: 1fr;
+				}
+				.nav button {
+					font-size: 12px;
+				}
+				.nav .ico {
+					font-size: 15px;
+				}
+				.nav {
+					gap: 0;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="app">
+			<aside class="sidebar">
+				<div class="brand">
+					<div class="brand-mark">S</div>
+					<div class="brand-text">SC2026<small>AGENT WORKSPACE</small></div>
+				</div>
+				<div>
+					<div class="nav-label">WORKSPACE</div>
+					<nav class="nav">
+						<button class="active" data-view="workspace">
+							<span class="ico">▦</span><span class="nav-text">Workspace</span>
+						</button>
+						<button data-view="customers">
+							<span class="ico">♙</span><span class="nav-text">Customers</span>
+						</button>
+						<button data-view="products">
+							<span class="ico">▣</span><span class="nav-text">Products</span>
+						</button>
+						<button data-view="promotions">
+							<span class="ico">％</span
+							><span class="nav-text">Promotions</span>
+						</button>
+						<button data-view="policies">
+							<span class="ico">▤</span><span class="nav-text">Policies</span>
+						</button>
+						<button data-view="evaluation">
+							<span class="ico">◷</span><span class="nav-text">Evaluation</span>
+						</button>
+						<button data-view="improvement">
+							<span class="ico">✧</span
+							><span class="nav-text">Improvement</span>
+						</button>
+					</nav>
+				</div>
+				<div class="sidebar-bottom">
+					<div class="userrow">
+						<div class="avatar">LT</div>
+						<div class="user-details">
+							<strong>Linh Trần</strong><small>Customer service agent</small>
+						</div>
+					</div>
+					<p
+						class="side-note"
+						style="
+							color: #8190aa;
+							font-size: 10px;
+							margin-top: 12px;
+							line-height: 1.5;
+						"
+					>
+						Workspace preview · Local mock data only
+					</p>
+				</div>
+			</aside>
+			<main class="main">
+				<header class="topbar">
+					<div class="breadcrumb">
+						SC2026 <strong id="crumb">/ Workspace</strong>
+					</div>
+					<div class="top-actions">
+						<span class="demo-pill">● DEMO · MOCK DATA</span
+						><button class="iconbtn" id="helpBtn" title="About this demo">
+							?
+						</button>
+						<div
+							class="avatar"
+							style="width: 32px; height: 32px; font-size: 11px"
+						>
+							LT
+						</div>
+					</div>
+				</header>
+				<div class="content">
+					<section class="view active" id="view-workspace">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Customer operations</div>
+								<h1>
+									Good morning, Linh <span style="font-size: 20px">✦</span>
+								</h1>
+								<p class="sub">
+									Keep every conversation connected. Pick up where your customer
+									left off.
+								</p>
+							</div>
+							<button class="btn primary" id="newInteraction">
+								＋ New interaction
+							</button>
+						</div>
+						<div class="kpis">
+							<div class="kpi">
+								<div class="kpi-top">
+									Open interactions <span class="kpi-icon">▤</span>
+								</div>
+								<strong id="openCount">08</strong
+								><small>Across all demo channels</small>
+							</div>
+							<div class="kpi">
+								<div class="kpi-top">
+									Waiting for reply <span class="kpi-icon">◷</span>
+								</div>
+								<strong id="pendingCount">03</strong
+								><small>Customer or internal follow-up</small>
+							</div>
+							<div class="kpi">
+								<div class="kpi-top">
+									Handoffs today <span class="kpi-icon">⇢</span>
+								</div>
+								<strong id="handoffCount">02</strong
+								><small>Simulated handoff events</small>
+							</div>
+							<div class="kpi">
+								<div class="kpi-top">
+									Resolved today <span class="kpi-icon">✓</span>
+								</div>
+								<strong id="resolvedCount">12</strong
+								><small>Illustrative demo count</small>
+							</div>
+						</div>
+						<div class="workspace">
+							<section class="card">
+								<div class="card-head">
+									<div>
+										<h2>Interaction inbox</h2>
+										<div class="mutedline">Prioritize what needs attention</div>
+									</div>
+									<span class="counter" id="inboxCount">6 items</span>
+								</div>
+								<div class="inbox-tools">
+									<div class="search-wrap">
+										<input
+											class="search"
+											id="search"
+											placeholder="Search customer or message…"
+										/>
+									</div>
+									<div class="chips" id="channelFilters">
+										<button class="chip active" data-channel="All">All</button
+										><button class="chip" data-channel="Phone">Phone</button
+										><button class="chip" data-channel="Zalo">Zalo</button
+										><button class="chip" data-channel="Facebook">
+											Facebook
+										</button>
+									</div>
+									<div class="chips" id="statusFilters">
+										<button class="chip active" data-status="All">
+											All status</button
+										><button class="chip" data-status="Open">Open</button
+										><button class="chip" data-status="Pending">Pending</button
+										><button class="chip" data-status="Handoff">Handoff</button>
+									</div>
+								</div>
+								<div class="interaction-list" id="interactionList"></div>
+							</section>
+							<section class="card conversation">
+								<div class="conversation-head">
+									<div class="customer-title">
+										<div class="channel-icon zalo" id="activeChannelIcon">
+											Z
+										</div>
+										<div style="min-width: 0">
+											<h2 id="activeName">Nguyễn Minh Anh</h2>
+											<p id="activeMeta">Zalo · Interaction IN-2048</p>
+										</div>
+									</div>
+									<div class="head-actions">
+										<select id="statusSelect" aria-label="Interaction status">
+											<option>Open</option>
+											<option>Pending</option>
+											<option>Resolved</option>
+											<option>Handoff</option></select
+										><button
+											class="iconbtn"
+											id="moreBtn"
+											title="Interaction details"
+										>
+											···
+										</button>
+									</div>
+								</div>
+								<div class="context-strip">
+									<span
+										>Linked case
+										<strong id="activeCase" style="color: #344054"
+											>CS-104 · Product consultation</strong
+										></span
+									><span class="tag blue" id="activePriority"
+										>Normal priority</span
+									><span class="tag green" id="activeIdentityTag"
+										>Identity verified</span
+									>
+								</div>
+								<div
+									class="transcript"
+									id="transcript"
+									aria-live="polite"
+								></div>
+								<div class="composer">
+									<div class="suggestion">
+										<div class="suggestion-head">
+											<strong
+												>✧ Suggested response
+												<span style="font-weight: 500; color: #929bb4"
+													>· demo</span
+												></strong
+											><button class="mini-link" id="useSuggestion">
+												Use reply ↗
+											</button>
+										</div>
+										<p id="suggestionText">
+											Dạ, em xin phép kiểm tra lại thông tin sản phẩm và gửi
+											anh/chị lựa chọn phù hợp nhất với nhu cầu ạ.
+										</p>
+									</div>
+									<textarea
+										id="messageInput"
+										placeholder="Type a reply to the customer… (demo only)"
+									></textarea>
+									<div class="composer-bottom">
+										<small
+											>↳ Messages are added locally; nothing is sent
+											externally.</small
+										>
+										<div class="composer-actions">
+											<button class="btn small" id="clearMessage">Clear</button
+											><button class="btn primary small" id="sendMessage">
+												Send message ↗
+											</button>
+										</div>
+									</div>
+								</div>
+							</section>
+							<aside class="card context-card">
+								<div class="card-head">
+									<div>
+										<h2>Customer context</h2>
+										<div class="mutedline">The essentials, at a glance</div>
+									</div>
+									<button class="btn small" id="viewCustomer">
+										View profile ↗
+									</button>
+								</div>
+								<div class="context-tabs">
+									<button class="active" data-ctab="overview">Overview</button
+									><button data-ctab="journey">Journey</button
+									><button data-ctab="case">Case details</button>
+								</div>
+								<div class="context-body" id="contextBody"></div>
+							</aside>
+						</div>
+					</section>
+					<section class="view" id="view-customers">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Customer directory</div>
+								<h1>Customers</h1>
+								<p class="sub">
+									Profiles connected to demo interactions and cases.
+								</p>
+							</div>
+							<button class="btn" id="backWorkspace">
+								← Back to workspace
+							</button>
+						</div>
+						<div class="card" style="margin-bottom: 15px; padding: 12px">
+							<div class="search-wrap">
+								<input
+									class="search"
+									id="customerSearch"
+									placeholder="Search customer name, ID, or contact…"
+								/>
+							</div>
+						</div>
+						<div class="customer-grid" id="customerGrid"></div>
+					</section>
+					<section class="view" id="view-products">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Product catalog</div>
+								<h1>Products</h1>
+								<p class="sub">
+									Browse product facts that an agent can use when answering
+									customer questions.
+								</p>
+							</div>
+							<span class="demo-pill">CATALOG DEMO</span>
+						</div>
+						<div class="banner">
+							<strong>Data note:</strong> catalog source files were not
+							available in the inspected repository branch. The products below
+							are illustrative fixtures and should be replaced with records from
+							<code>data/catalog/products.js</code>.
+						</div>
+						<div class="kpis" id="productKpis"></div>
+						<div class="catalog-toolbar">
+							<div class="search-wrap">
+								<input
+									class="search"
+									id="productSearch"
+									placeholder="Search product name, SKU, category…"
+								/>
+							</div>
+							<select id="productCategory" class="catalog-select">
+								<option value="All">All categories</option></select
+							><select id="productAvailability" class="catalog-select">
+								<option value="All">All availability</option>
+								<option value="In stock">In stock</option>
+								<option value="Low stock">Low stock</option>
+								<option value="Out of stock">Out of stock</option>
+							</select>
+						</div>
+						<div class="customer-grid" id="productGrid"></div>
+					</section>
+					<section class="view" id="view-promotions">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Offers & eligibility</div>
+								<h1>Promotions</h1>
+								<p class="sub">
+									Review offer conditions before mentioning a discount or
+									benefit to a customer.
+								</p>
+							</div>
+							<span class="demo-pill">PROMOTION DEMO</span>
+						</div>
+						<div class="banner">
+							<strong>Data note:</strong> promotion source files were not
+							available in the inspected repository branch. These examples are
+							illustrative only and should be replaced with records from
+							<code>data/catalog/promotions.js</code>.
+						</div>
+						<div class="kpis" id="promotionKpis"></div>
+						<div class="catalog-toolbar">
+							<div class="search-wrap">
+								<input
+									class="search"
+									id="promotionSearch"
+									placeholder="Search promotion name, code, or product…"
+								/>
+							</div>
+							<select id="promotionStatus" class="catalog-select">
+								<option value="All">All statuses</option>
+								<option value="Active">Active</option>
+								<option value="Upcoming">Upcoming</option>
+								<option value="Expired">Expired</option></select
+							><select id="promotionType" class="catalog-select">
+								<option value="All">All offer types</option>
+							</select>
+						</div>
+						<div class="customer-grid" id="promotionGrid"></div>
+					</section>
+					<section class="view" id="view-policies">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Knowledge & governance</div>
+								<h1>Store policies</h1>
+								<p class="sub">
+									A versioned policy library for agents and supervisors. Current
+									rules are separated from archived versions.
+								</p>
+							</div>
+							<span class="demo-pill">POLICY ARCHIVE DEMO</span>
+						</div>
+						<div class="banner">
+							<strong>Prototype data notice:</strong> policy text below is
+							illustrative, not an approved store policy. In a real deployment,
+							each version should come from an authorized source and carry an
+							owner, approval record, effective date, and audit history.
+						</div>
+						<div class="kpis" id="policyKpis"></div>
+						<div class="catalog-toolbar policy-toolbar">
+							<div class="search-wrap">
+								<input
+									class="search"
+									id="policySearch"
+									placeholder="Search policy title, ID, keyword, or content…"
+								/>
+							</div>
+							<select id="policyCategory" class="catalog-select">
+								<option value="All">All categories</option></select
+							><select id="policySort" class="catalog-select">
+								<option value="effective-desc">Newest effective first</option>
+								<option value="effective-asc">Oldest effective first</option>
+								<option value="title-asc">Policy title A–Z</option>
+							</select>
+						</div>
+						<div class="policy-section-head">
+							<div>
+								<h2>Current policies</h2>
+								<p class="sub">
+									Use these versions for new customer interactions, subject to
+									real-time approval and access controls.
+								</p>
+							</div>
+							<span class="tag green" id="currentPolicyCount">0 current</span>
+						</div>
+						<div class="customer-grid" id="currentPolicyGrid"></div>
+						<div class="policy-section-head archive-head">
+							<div>
+								<h2>Archived policy versions</h2>
+								<p class="sub">
+									Read-only history for supervisor review, disputes, and
+									checking which rule applied at an earlier date.
+								</p>
+							</div>
+							<span class="tag amber" id="archivedPolicyCount">0 archived</span>
+						</div>
+						<div class="customer-grid" id="archivedPolicyGrid"></div>
+					</section>
+					<section class="view" id="view-evaluation">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Quality overview</div>
+								<h1>Evaluation</h1>
+								<p class="sub">
+									Explore the evaluation experience using illustrative
+									scenarios.
+								</p>
+							</div>
+							<button class="btn" id="exportDemo">↓ Export demo summary</button>
+						</div>
+						<div class="banner">
+							<strong>Demo data notice:</strong> all metrics and run outcomes
+							below are illustrative UI data. No evaluation runner, trace, or
+							backend is connected.
+						</div>
+						<div class="eval-grid">
+							<div class="eval-stat">
+								<div class="sub">Task Success Rate</div>
+								<strong>82.4%</strong
+								><small>Illustrative · 28 / 34 scenarios</small>
+							</div>
+							<div class="eval-stat">
+								<div class="sub">Resolution Quality</div>
+								<strong>4.2 / 5</strong><small>Illustrative rubric score</small>
+							</div>
+							<div class="eval-stat">
+								<div class="sub">Handoff rate</div>
+								<strong>11.8%</strong
+								><small>Illustrative · includes expected handoffs</small>
+							</div>
+						</div>
+						<div class="card">
+							<div class="card-head">
+								<div>
+									<h2>Scenario runs</h2>
+									<div class="mutedline">
+										Example cases to demonstrate evaluation review
+									</div>
+								</div>
+								<span class="demo-pill">ILLUSTRATIVE</span>
+							</div>
+							<div class="table-wrap">
+								<table class="table">
+									<thead>
+										<tr>
+											<th>Scenario</th>
+											<th>Focus</th>
+											<th>Mode</th>
+											<th>Outcome</th>
+											<th>Evidence</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr>
+											<td><strong>SC-01 · Returning customer</strong></td>
+											<td>Cross-session continuity</td>
+											<td>Memory-enabled</td>
+											<td><span class="status s-resolved">Pass</span></td>
+											<td>
+												<button class="mini-link" data-evidence="SC-01">
+													View details ↗
+												</button>
+											</td>
+										</tr>
+										<tr>
+											<td><strong>SC-04 · Channel switch</strong></td>
+											<td>Identity resolution</td>
+											<td>Baseline</td>
+											<td>
+												<span class="status s-pending">Needs review</span>
+											</td>
+											<td>
+												<button class="mini-link" data-evidence="SC-04">
+													View details ↗
+												</button>
+											</td>
+										</tr>
+										<tr>
+											<td><strong>SC-07 · Policy boundary</strong></td>
+											<td>Grounded response</td>
+											<td>Memory-enabled</td>
+											<td><span class="status s-resolved">Pass</span></td>
+											<td>
+												<button class="mini-link" data-evidence="SC-07">
+													View details ↗
+												</button>
+											</td>
+										</tr>
+										<tr>
+											<td><strong>SC-12 · Escalation</strong></td>
+											<td>Correct human handoff</td>
+											<td>Baseline</td>
+											<td><span class="status s-resolved">Pass</span></td>
+											<td>
+												<button class="mini-link" data-evidence="SC-12">
+													View details ↗
+												</button>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</section>
+					<section class="view" id="view-improvement">
+						<div class="page-head">
+							<div>
+								<div class="eyebrow">Continuous improvement</div>
+								<h1>Improvement</h1>
+								<p class="sub">
+									A proposed space for reviewing patterns and planning the next
+									iteration.
+								</p>
+							</div>
+						</div>
+						<div class="banner">
+							This area is intentionally lightweight in the mock UI. Improvement
+							workflows have not been connected to real traces or evaluation
+							data.
+						</div>
+						<div class="customer-grid">
+							<div class="customer-card">
+								<div class="kpi-icon">↻</div>
+								<h2 style="margin-top: 13px">Review recurring issues</h2>
+								<p>
+									Identify scenarios where customers repeat information or the
+									agent loses continuity.
+								</p>
+								<span class="tag">Proposed</span>
+							</div>
+							<div class="customer-card">
+								<div class="kpi-icon">✧</div>
+								<h2 style="margin-top: 13px">Memory proposals</h2>
+								<p>
+									Present candidate memory changes for authorized human review
+									before approval.
+								</p>
+								<span class="tag">Human approval required</span>
+							</div>
+							<div class="customer-card">
+								<div class="kpi-icon">◎</div>
+								<h2 style="margin-top: 13px">Compare iterations</h2>
+								<p>
+									Compare scenario-level evidence across baseline and improved
+									configurations.
+								</p>
+								<span class="tag">Not connected</span>
+							</div>
+						</div>
+					</section>
+				</div>
+			</main>
+		</div>
+		<div id="modalRoot"></div>
+		<div id="toastRoot"></div>
+		<script>
+			const interactions = [
+				{
+					id: "IN-2048",
+					customerId: "CUS-1024",
+					name: "Nguyễn Minh Anh",
+					channel: "Zalo",
+					time: "2m",
+					preview: "Mẫu AirPure Y còn hàng không em?",
+					status: "Open",
+					priority: "Normal",
+					identity: true,
+					caseId: "CS-104",
+					caseTitle: "Tư vấn máy lọc không khí",
+					suggestion:
+						"Dạ, em xin phép kiểm tra lại tình trạng sản phẩm và gửi anh/chị thông tin chính xác nhất ạ.",
+					messages: [
+						{
+							from: "customer",
+							text: "Chào em, chị hỏi lại mẫu AirPure Y hôm trước nhé.",
+							time: "09:41",
+						},
+						{
+							from: "agent",
+							text: "Dạ em chào chị Minh Anh. Em có thể hỗ trợ chị tiếp tục từ phần tư vấn trước ạ.",
+							time: "09:42",
+						},
+						{
+							from: "customer",
+							text: "Mẫu AirPure Y còn hàng không em? Chị đang cân nhắc thêm.",
+							time: "09:43",
+						},
+					],
+				},
+				{
+					id: "IN-2047",
+					customerId: "CUS-1024",
+					name: "Nguyễn Minh Anh",
+					channel: "Phone",
+					time: "18m",
+					preview: "Khách hỏi thêm mẫu giá thấp hơn",
+					status: "Resolved",
+					priority: "Normal",
+					identity: true,
+					caseId: "CS-104",
+					caseTitle: "Tư vấn máy lọc không khí",
+					messages: [
+						{
+							from: "note",
+							text: "Cuộc gọi mô phỏng · khách chưa chốt sản phẩm",
+							time: "09:12",
+						},
+						{
+							from: "customer",
+							text: "Mẫu AirPure Y hơi vượt ngân sách. Mẫu X giá bao nhiêu em?",
+							time: "09:13",
+						},
+						{
+							from: "agent",
+							text: "Dạ AirPure X có giá 4.890.000đ, là lựa chọn thấp hơn ạ.",
+							time: "09:14",
+						},
+						{
+							from: "customer",
+							text: "Để chị hỏi thêm chồng rồi gọi lại nhé.",
+							time: "09:15",
+						},
+					],
+				},
+				{
+					id: "IN-2046",
+					customerId: "CUS-1031",
+					name: "Trần Quốc Bảo",
+					channel: "Facebook",
+					time: "31m",
+					preview: "Shop có hỗ trợ đổi size không ạ?",
+					status: "Pending",
+					priority: "High",
+					identity: false,
+					caseId: "CS-111",
+					caseTitle: "Đổi kích thước sản phẩm",
+					suggestion:
+						"Dạ shop có thể hỗ trợ kiểm tra chính sách đổi size. Anh cho em xin mã đơn hàng để em hướng dẫn bước tiếp theo ạ.",
+					messages: [
+						{
+							from: "customer",
+							text: "Shop ơi áo mình mua hôm qua hơi chật, có đổi size được không ạ?",
+							time: "09:19",
+						},
+						{
+							from: "agent",
+							text: "Dạ em hỗ trợ anh kiểm tra chính sách đổi size nhé. Anh cho em xin mã đơn hàng ạ.",
+							time: "09:20",
+						},
+						{
+							from: "customer",
+							text: "Mình chưa tìm thấy mã đơn, để mình kiểm tra lại.",
+							time: "09:21",
+						},
+					],
+				},
+				{
+					id: "IN-2045",
+					customerId: "CUS-1008",
+					name: "Lê Thu Hà",
+					channel: "Zalo",
+					time: "46m",
+					preview: "Em gửi lại chính sách giao hàng nhé",
+					status: "Handoff",
+					priority: "High",
+					identity: true,
+					caseId: "CS-098",
+					caseTitle: "Giao hàng trễ",
+					messages: [
+						{
+							from: "customer",
+							text: "Đơn của chị trễ hơn dự kiến 2 ngày rồi em.",
+							time: "08:56",
+						},
+						{
+							from: "agent",
+							text: "Dạ em xin lỗi vì trải nghiệm này. Trường hợp này cần kiểm tra thêm với bộ phận vận chuyển ạ.",
+							time: "08:57",
+						},
+						{
+							from: "note",
+							text: "Đã tạo handoff demo · Chờ supervisor tiếp nhận",
+							time: "08:58",
+						},
+					],
+				},
+				{
+					id: "IN-2044",
+					customerId: "CUS-1042",
+					name: "Phạm Gia Huy",
+					channel: "Phone",
+					time: "1h",
+					preview: "Cần tư vấn gói sản phẩm phù hợp",
+					status: "Open",
+					priority: "Normal",
+					identity: false,
+					caseId: "CS-116",
+					caseTitle: "Tư vấn sản phẩm",
+					messages: [
+						{
+							from: "customer",
+							text: "Anh muốn hỏi về sản phẩm bên mình.",
+							time: "08:31",
+						},
+						{
+							from: "agent",
+							text: "Dạ, em có thể hỗ trợ anh. Anh đang quan tâm dòng sản phẩm nào ạ?",
+							time: "08:32",
+						},
+					],
+				},
+				{
+					id: "IN-2043",
+					customerId: "CUS-1008",
+					name: "Lê Thu Hà",
+					channel: "Facebook",
+					time: "Hôm qua",
+					preview: "Khách hỏi về thời gian giao hàng",
+					status: "Resolved",
+					priority: "Low",
+					identity: true,
+					caseId: "CS-098",
+					caseTitle: "Giao hàng trễ",
+					messages: [
+						{
+							from: "customer",
+							text: "Shop ơi đơn hàng của mình đang ở đâu vậy?",
+							time: "16:10",
+						},
+						{
+							from: "agent",
+							text: "Dạ em đã ghi nhận và hướng dẫn chị cách kiểm tra trạng thái đơn hàng.",
+							time: "16:11",
+						},
+					],
+				},
+			];
+			const customers = {
+				"CUS-1024": {
+					name: "Nguyễn Minh Anh",
+					initials: "MA",
+					phone: "09•• ••• 482",
+					email: "minh.anh@example.demo",
+					segment: "Returning customer",
+					verified: true,
+					caseCount: 1,
+					history: [
+						{
+							title: "Đang tư vấn AirPure Y",
+							detail: "Zalo · Khách quay lại hỏi tình trạng hàng",
+							time: "Hôm nay · 09:41",
+							id: "IN-2048",
+						},
+						{
+							title: "So sánh AirPure X và Y",
+							detail: "Phone · Chưa chốt sản phẩm",
+							time: "Hôm nay · 09:12",
+							id: "IN-2047",
+						},
+						{
+							title: "Bắt đầu tư vấn sản phẩm",
+							detail: "Phone · Nhu cầu máy lọc không khí",
+							time: "12/10 · 14:20",
+							id: "IN-2012",
+						},
+					],
+				},
+				"CUS-1031": {
+					name: "Trần Quốc Bảo",
+					initials: "QB",
+					phone: "09•• ••• 177",
+					email: "quoc.bao@example.demo",
+					segment: "New customer",
+					verified: false,
+					caseCount: 1,
+					history: [
+						{
+							title: "Yêu cầu đổi size",
+							detail: "Facebook · Chưa xác minh danh tính",
+							time: "Hôm nay · 09:19",
+							id: "IN-2046",
+						},
+					],
+				},
+				"CUS-1008": {
+					name: "Lê Thu Hà",
+					initials: "TH",
+					phone: "09•• ••• 603",
+					email: "thu.ha@example.demo",
+					segment: "Returning customer",
+					verified: true,
+					caseCount: 1,
+					history: [
+						{
+							title: "Theo dõi giao hàng",
+							detail: "Zalo · Chuyển bộ phận vận chuyển",
+							time: "Hôm nay · 08:56",
+							id: "IN-2045",
+						},
+						{
+							title: "Hỏi trạng thái đơn",
+							detail: "Facebook · Đã hướng dẫn",
+							time: "Hôm qua · 16:10",
+							id: "IN-2043",
+						},
+					],
+				},
+				"CUS-1042": {
+					name: "Phạm Gia Huy",
+					initials: "GH",
+					phone: "Chưa xác minh",
+					email: "Chưa cung cấp",
+					segment: "New customer",
+					verified: false,
+					caseCount: 1,
+					history: [
+						{
+							title: "Tư vấn sản phẩm",
+							detail: "Phone · Đang mở",
+							time: "Hôm nay · 08:31",
+							id: "IN-2044",
+						},
+					],
+				},
+			};
+			let activeId = "IN-2048",
+				channelFilter = "All",
+				statusFilter = "All",
+				contextTab = "overview",
+				activeView = "workspace";
+			const byId = (id) => interactions.find((x) => x.id === id);
+			const active = () => byId(activeId);
+			const customer = () => customers[active().customerId];
+			const escapeHtml = (s) =>
+				String(s ?? "").replace(
+					/[&<>"']/g,
+					(c) =>
+						({
+							"&": "&amp;",
+							"<": "&lt;",
+							">": "&gt;",
+							'"': "&quot;",
+							"'": "&#39;",
+						})[c],
+				);
+			const initials = (n) =>
+				n
+					.split(" ")
+					.filter(Boolean)
+					.slice(-2)
+					.map((x) => x[0])
+					.join("")
+					.toUpperCase();
+			function toast(msg) {
+				const root = document.getElementById("toastRoot");
+				root.innerHTML = `<div class="toast">${escapeHtml(msg)}</div>`;
+				setTimeout(() => (root.innerHTML = ""), 2800);
+			}
+			function channelClass(ch) {
+				return ch === "Phone" ? "phone" : ch === "Zalo" ? "zalo" : "facebook";
+			}
+			function channelLetter(ch) {
+				return ch === "Phone" ? "☎" : ch === "Zalo" ? "Z" : "f";
+			}
+			function statusClass(s) {
+				return (
+					{
+						Open: "s-open",
+						Pending: "s-pending",
+						Resolved: "s-resolved",
+						Handoff: "s-handoff",
+					}[s] || "s-open"
+				);
+			}
+			function statusTag(s) {
+				return `<span class="status ${statusClass(s)}">${escapeHtml(s)}</span>`;
+			}
+			function renderInbox() {
+				const q = document.getElementById("search").value.toLowerCase();
+				const filtered = interactions.filter(
+					(x) =>
+						(channelFilter === "All" || x.channel === channelFilter) &&
+						(statusFilter === "All" || x.status === statusFilter) &&
+						[x.name, x.id, x.preview, x.caseTitle]
+							.join(" ")
+							.toLowerCase()
+							.includes(q),
+				);
+				document.getElementById("inboxCount").textContent =
+					`${filtered.length} items`;
+				const root = document.getElementById("interactionList");
+				if (!filtered.length) {
+					root.innerHTML =
+						'<div class="empty">No interactions match these filters.</div>';
+					return;
+				}
+				root.innerHTML = filtered
+					.map(
+						(
+							x,
+						) => `<div class="interaction ${x.id === activeId ? "selected" : ""}" data-id="${x.id}">
+  <div class="interaction-top"><div class="channel-icon ${channelClass(x.channel)}">${channelLetter(x.channel)}</div><div class="person"><strong>${escapeHtml(x.name)}</strong><small>${x.channel} · ${x.id}</small></div><span class="time">${x.time}</span></div>
+  <div class="preview">${escapeHtml(x.preview)}</div><div class="interaction-bottom">${statusTag(x.status)}<span class="priority">${x.priority === "High" ? "▲ High" : x.priority === "Low" ? "Low" : " "}</span></div></div>`,
+					)
+					.join("");
+				root.querySelectorAll(".interaction").forEach((el) =>
+					el.addEventListener("click", () => {
+						activeId = el.dataset.id;
+						contextTab = "overview";
+						renderAll();
+					}),
+				);
+			}
+			function renderConversation() {
+				const x = active(),
+					c = customer();
+				document.getElementById("activeName").textContent = x.name;
+				document.getElementById("activeMeta").textContent =
+					`${x.channel} · Interaction ${x.id}`;
+				const ci = document.getElementById("activeChannelIcon");
+				ci.className = `channel-icon ${channelClass(x.channel)}`;
+				ci.textContent = channelLetter(x.channel);
+				document.getElementById("activeCase").textContent =
+					`${x.caseId} · ${x.caseTitle}`;
+				document.getElementById("activePriority").textContent =
+					`${x.priority} priority`;
+				document.getElementById("activeIdentityTag").className =
+					`tag ${c.verified ? "green" : "amber"}`;
+				document.getElementById("activeIdentityTag").textContent = c.verified
+					? "Identity verified"
+					: "Identity unverified";
+				document.getElementById("statusSelect").value = x.status;
+				document.getElementById("suggestionText").textContent =
+					x.suggestion ||
+					"Dạ, em đã ghi nhận yêu cầu. Em sẽ kiểm tra thêm thông tin trước khi phản hồi chính xác cho anh/chị ạ.";
+				const transcript = document.getElementById("transcript");
+				transcript.innerHTML =
+					`<div class="date-divider">TODAY · ${x.id}</div>` +
+					x.messages
+						.map((m) => {
+							if (m.from === "note")
+								return `<div class="msg-note">ⓘ ${escapeHtml(m.text)} <span style="opacity:.65">· ${escapeHtml(m.time)}</span></div>`;
+							const isAgent = m.from === "agent";
+							return `<div class="msg ${isAgent ? "agent" : "customer"}">${isAgent ? "" : `<div class="mini-avatar">${initials(x.name)}</div>`}<div class="bubble">${escapeHtml(m.text)}<span class="msg-time">${escapeHtml(m.time)} ${isAgent ? "· You" : ""}</span></div>${isAgent ? '<div class="mini-avatar" style="background:#405bd3;color:white">LT</div>' : ""}</div>`;
+						})
+						.join("");
+				transcript.scrollTop = transcript.scrollHeight;
+				document.getElementById("sendMessage").disabled = !c.verified;
+				document.getElementById("sendMessage").title = c.verified
+					? "Add a demo message to this transcript"
+					: "Identity is unverified; message sending is restricted in this demo";
+			}
+			function renderContext() {
+				const x = active(),
+					c = customer(),
+					body = document.getElementById("contextBody");
+				document
+					.querySelectorAll("[data-ctab]")
+					.forEach((b) =>
+						b.classList.toggle("active", b.dataset.ctab === contextTab),
+					);
+				if (contextTab === "overview") {
+					body.innerHTML = `<div class="profile-top"><div class="avatar">${c.initials}</div><div><strong>${escapeHtml(c.name)}</strong><small>${x.customerId} · ${c.segment}</small></div></div>
+   <div class="identity-box ${c.verified ? "" : "unverified"}"><div class="identity-title"><span>${c.verified ? "✓ Identity verified" : "! Identity not verified"}</span><span style="font-size:10px">${c.verified ? "Confirmed" : "Restricted"}</span></div><p>${c.verified ? "Identity confirmed in this demo. Continue using only relevant customer context." : "Only limited context is shown. Write/commit actions are restricted until identity is verified."}</p>${c.verified ? "" : '<button class="btn small" style="margin-top:8px" id="verifyDemo">Simulate verification</button>'}</div>
+   <div class="section-title"><strong>Call Brief</strong><span class="tag blue">Demo summary</span></div><div class="brief"><div class="brief-label">Customer context</div><p>${x.customerId === "CUS-1024" ? "Khách đã được tư vấn AirPure Y qua cuộc gọi trước, đồng thời hỏi giá AirPure X như phương án tiết kiệm hơn. Chưa có xác nhận chốt mẫu. Hiện khách quay lại hỏi tình trạng hàng." : x.customerId === "CUS-1031" ? "Khách muốn đổi size sản phẩm đã mua. Chưa xác minh danh tính và chưa có mã đơn hàng; cần hướng dẫn bước xác minh phù hợp." : x.customerId === "CUS-1008" ? "Khách phản ánh giao hàng trễ. Lịch sử có liên hệ qua Facebook trước đó; tương tác hiện tại đã được chuyển để kiểm tra thêm." : "Khách mới hỏi thông tin sản phẩm. Chưa xác minh danh tính, nên chỉ thu thập nhu cầu chung."}</p></div>
+   <div class="section-title"><strong>Customer details</strong><button id="editMemory" ${c.verified ? "" : "disabled"}>Propose memory edit</button></div><div class="kv"><div><label>Phone</label><strong>${escapeHtml(c.phone)}</strong></div><div><label>Customer ID</label><strong>${x.customerId}</strong></div><div><label>Email</label><strong>${escapeHtml(c.email)}</strong></div><div><label>Related cases</label><strong>${c.caseCount} active / recent</strong></div></div>
+   <div class="section-title"><strong>Current case</strong><button id="goCase">View details ↗</button></div><div class="case"><div class="case-icon">▣</div><div><strong>${escapeHtml(x.caseId)} · ${escapeHtml(x.caseTitle)}</strong><small>Linked to ${x.id} · Relationship in demo data</small><small style="margin-top:5px">${x.status === "Resolved" ? "Resolved" : x.status === "Handoff" ? "Waiting for handoff" : x.status === "Pending" ? "Waiting for reply" : "In progress"}</small></div></div>
+   <div class="section-title"><strong>Recent journey</strong><button data-switch-tab="journey">View timeline ↗</button></div>${timelineHtml(c.history.slice(0, 2))}`;
+				} else if (contextTab === "journey") {
+					body.innerHTML = `<div class="section-title" style="margin-top:0"><strong>Customer journey</strong><span class="tag">${c.history.length} events</span></div><p class="sub" style="font-size:10px;margin-bottom:15px">Each contact is a separate interaction. The timeline does not merge transcripts.</p>${timelineHtml(c.history)}<div class="section-title"><strong>Current interaction</strong></div><div class="case"><div class="case-icon">↗</div><div><strong>${x.id} · ${x.channel}</strong><small>${x.status} · ${x.caseId}</small><small style="margin-top:4px">Current conversation is separate from previous sessions.</small></div></div>`;
+				} else {
+					body.innerHTML = `<div class="section-title" style="margin-top:0"><strong>${escapeHtml(x.caseId)} · Case details</strong>${statusTag(x.status)}</div><div class="brief"><div class="brief-label">Issue summary</div><p>${escapeHtml(x.caseTitle)}. This case is linked to the current interaction in the seeded mock data.</p></div><div class="section-title"><strong>Case metadata</strong></div><div class="kv"><div><label>Case ID</label><strong>${x.caseId}</strong></div><div><label>Customer</label><strong>${x.customerId}</strong></div><div><label>Current interaction</label><strong>${x.id}</strong></div><div><label>Channel</label><strong>${x.channel}</strong></div></div><div class="section-title"><strong>Related interactions</strong></div>${timelineHtml(c.history)}`;
+				}
+				body.querySelectorAll("[data-switch-tab]").forEach((b) =>
+					b.addEventListener("click", () => {
+						contextTab = b.dataset.switchTab;
+						renderContext();
+					}),
+				);
+				const verify = document.getElementById("verifyDemo");
+				if (verify)
+					verify.addEventListener("click", () =>
+						openModal(
+							"Simulate identity verification",
+							`<p class="sub" style="margin-bottom:14px">This changes only the local demo state. No identity service is called.</p><div class="field"><label>Demo verification method</label><select id="verifyMethod"><option>Confirm with masked phone</option><option>Confirm order detail</option><option>Supervisor-reviewed identity</option></select></div>`,
+							() => {
+								customers[x.customerId].verified = true;
+								renderAll();
+								toast("Demo identity state updated to verified.");
+							},
+						),
+					);
+				const mem = document.getElementById("editMemory");
+				if (mem)
+					mem.addEventListener("click", () =>
+						openModal(
+							"Propose a memory update",
+							`<p class="sub" style="margin-bottom:14px">This creates a review proposal only. It does not change customer memory.</p><div class="field"><label>Memory field</label><select id="memoryField"><option>Product preference</option><option>Communication preference</option><option>Customer context</option></select></div><div class="field"><label>Proposed value</label><textarea id="memoryValue" placeholder="Describe the proposed memory update…"></textarea></div><div class="field"><label>Reason / evidence</label><input id="memoryReason" placeholder="Why should this be remembered?" /></div>`,
+							() => {
+								const v = document.getElementById("memoryValue").value.trim();
+								if (!v) {
+									toast("Enter a proposed value first.");
+									return false;
+								}
+								toast("Memory proposal created for human review (demo only).");
+							},
+						),
+					);
+				const go = document.getElementById("goCase");
+				if (go)
+					go.addEventListener("click", () => {
+						contextTab = "case";
+						renderContext();
+					});
+			}
+			function timelineHtml(items) {
+				return `<div class="timeline">${items.map((h) => `<div class="timeline-item"><strong>${escapeHtml(h.title)}</strong><p>${escapeHtml(h.detail)}</p><small>${escapeHtml(h.time)} · ${escapeHtml(h.id)}</small></div>`).join("")}</div>`;
+			}
+			function renderCounts() {
+				document.getElementById("openCount").textContent = String(
+					interactions.filter((x) => x.status === "Open").length,
+				).padStart(2, "0");
+				document.getElementById("pendingCount").textContent = String(
+					interactions.filter((x) => x.status === "Pending").length,
+				).padStart(2, "0");
+				document.getElementById("handoffCount").textContent = String(
+					interactions.filter((x) => x.status === "Handoff").length,
+				).padStart(2, "0");
+				document.getElementById("resolvedCount").textContent = String(
+					interactions.filter((x) => x.status === "Resolved").length + 8,
+				).padStart(2, "0");
+			}
+			function renderAll() {
+				renderInbox();
+				renderConversation();
+				renderContext();
+				renderCounts();
+			}
+			function switchView(view) {
+				activeView = view;
+				document
+					.querySelectorAll(".view")
+					.forEach((el) =>
+						el.classList.toggle("active", el.id === `view-${view}`),
+					);
+				document
+					.querySelectorAll("[data-view]")
+					.forEach((b) =>
+						b.classList.toggle("active", b.dataset.view === view),
+					);
+				document.getElementById("crumb").textContent =
+					"/ " +
+					({
+						workspace: "Workspace",
+						customers: "Customers",
+						products: "Products",
+						promotions: "Promotions",
+						policies: "Store policies",
+						evaluation: "Evaluation",
+						improvement: "Improvement",
+					}[view] || view);
+				if (view === "customers") renderCustomers();
+				if (view === "products") renderProducts();
+				if (view === "promotions") renderPromotions();
+				if (view === "policies") renderPolicies();
+			}
+			function renderCustomers() {
+				const q = (
+					document.getElementById("customerSearch")?.value || ""
+				).toLowerCase();
+				const root = document.getElementById("customerGrid");
+				root.innerHTML =
+					Object.entries(customers)
+						.filter(([id, c]) =>
+							[id, c.name, c.phone, c.email]
+								.join(" ")
+								.toLowerCase()
+								.includes(q),
+						)
+						.map(([id, c]) => {
+							const records = interactions.filter((x) => x.customerId === id);
+							return `<div class="customer-card"><div class="profile-top"><div class="avatar">${c.initials}</div><div><strong>${escapeHtml(c.name)}</strong><small>${id} · ${escapeHtml(c.segment)}</small></div></div><p>${escapeHtml(c.phone)}<br>${escapeHtml(c.email)}</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px"><span class="tag ${c.verified ? "green" : "amber"}">${c.verified ? "Verified" : "Unverified"}</span><span class="tag">${records.length} interactions</span></div><div class="card-foot"><small style="color:var(--muted)">Latest: ${records[0]?.id || "—"}</small><button class="btn small" data-customer="${id}">Open workspace ↗</button></div></div>`;
+						})
+						.join("") || '<div class="empty">No customers found.</div>';
+				root.querySelectorAll("[data-customer]").forEach((b) =>
+					b.addEventListener("click", () => {
+						const record = interactions.find(
+							(x) => x.customerId === b.dataset.customer,
+						);
+						if (record) {
+							activeId = record.id;
+							switchView("workspace");
+							renderAll();
+							contextTab = "journey";
+							renderContext();
+						}
+					}),
+				);
+			}
+			function openModal(
+				title,
+				body,
+				onConfirm,
+				confirmText = "Save proposal",
+			) {
+				const root = document.getElementById("modalRoot");
+				root.innerHTML = `<div class="modal-backdrop" id="backdrop"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>${escapeHtml(title)}</h2><button class="iconbtn" id="closeModal">×</button></div><div class="modal-body">${body}</div><div class="modal-foot"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="confirmModal">${escapeHtml(confirmText)}</button></div></div></div>`;
+				const close = () => (root.innerHTML = "");
+				document.getElementById("closeModal").onclick = close;
+				document.getElementById("cancelModal").onclick = close;
+				document.getElementById("backdrop").addEventListener("click", (e) => {
+					if (e.target.id === "backdrop") close();
+				});
+				document.getElementById("confirmModal").onclick = () => {
+					const result = onConfirm?.();
+					if (result !== false) close();
+				};
+			}
+
+			// Illustrative catalog fixtures. Replace these with the project's data/catalog modules when available.
+			const products = [
+				{
+					id: "PRD-001",
+					sku: "AIR-X",
+					name: "AirPure X",
+					category: "Air Purifier",
+					price: 4890000,
+					availability: "In stock",
+					stock: 24,
+					description:
+						"Máy lọc không khí cho không gian gia đình, lựa chọn cân đối về chi phí.",
+					features: [
+						"Lọc bụi và tác nhân gây dị ứng",
+						"Chế độ vận hành ban đêm",
+						"Phù hợp phòng ngủ hoặc phòng làm việc",
+					],
+					warranty: "24 tháng",
+					tags: ["Bán chạy", "Gia đình"],
+					icon: "❋",
+				},
+				{
+					id: "PRD-002",
+					sku: "AIR-Y",
+					name: "AirPure Y",
+					category: "Air Purifier",
+					price: 6890000,
+					availability: "Low stock",
+					stock: 4,
+					description:
+						"Dòng máy lọc không khí cao cấp hơn, dành cho khách hàng cần thêm tính năng.",
+					features: [
+						"Tự động điều chỉnh chế độ lọc",
+						"Hiển thị chất lượng không khí",
+						"Chế độ vận hành yên tĩnh",
+					],
+					warranty: "24 tháng",
+					tags: ["Cao cấp", "Tiết kiệm điện"],
+					icon: "✺",
+				},
+				{
+					id: "PRD-003",
+					sku: "BREEZE-MINI",
+					name: "Breeze Mini",
+					category: "Air Purifier",
+					price: 2190000,
+					availability: "In stock",
+					stock: 38,
+					description:
+						"Thiết kế nhỏ gọn cho bàn làm việc hoặc phòng diện tích nhỏ.",
+					features: ["Kích thước nhỏ gọn", "Dễ di chuyển", "Ba mức quạt"],
+					warranty: "12 tháng",
+					tags: ["Nhỏ gọn", "Phổ thông"],
+					icon: "❊",
+				},
+				{
+					id: "PRD-004",
+					sku: "PURE-FILTER-Y",
+					name: "AirPure Y Replacement Filter",
+					category: "Accessories",
+					price: 590000,
+					availability: "Out of stock",
+					stock: 0,
+					description: "Bộ lọc thay thế tương thích với dòng AirPure Y.",
+					features: ["Phụ kiện thay thế", "Kiểm tra tương thích trước khi đặt"],
+					warranty: "Theo chính sách phụ kiện",
+					tags: ["Phụ kiện"],
+					icon: "▤",
+				},
+			];
+			const promotions = [
+				{
+					id: "PROMO-001",
+					code: "AIRCARE10",
+					name: "Air Care — giảm 10%",
+					type: "Percentage discount",
+					status: "Active",
+					value: "10%",
+					start: "2026-10-01",
+					end: "2026-10-31",
+					minimum: 3000000,
+					products: ["AIR-X", "AIR-Y"],
+					description:
+						"Ưu đãi cho một số mẫu máy lọc không khí trong thời gian chương trình.",
+					terms: [
+						"Áp dụng cho sản phẩm được liệt kê",
+						"Đơn hàng tối thiểu 3.000.000đ",
+						"Không tự động cộng dồn với ưu đãi khác",
+					],
+					icon: "％",
+				},
+				{
+					id: "PROMO-002",
+					code: "BUNDLECARE",
+					name: "Ưu đãi mua kèm bộ lọc",
+					type: "Bundle offer",
+					status: "Active",
+					value: "Tặng phụ kiện",
+					start: "2026-10-10",
+					end: "2026-11-15",
+					minimum: 0,
+					products: ["AIR-Y", "PURE-FILTER-Y"],
+					description: "Ưu đãi mua kèm phụ kiện cho sản phẩm đủ điều kiện.",
+					terms: [
+						"Cần xác nhận tồn kho phụ kiện trước khi tư vấn",
+						"Áp dụng theo cặp sản phẩm đủ điều kiện",
+						"Quà tặng có thể hết trước ngày kết thúc",
+					],
+					icon: "✦",
+				},
+				{
+					id: "PROMO-003",
+					code: "WELCOME5",
+					name: "Ưu đãi khách hàng mới",
+					type: "Percentage discount",
+					status: "Upcoming",
+					value: "5%",
+					start: "2026-11-01",
+					end: "2026-11-30",
+					minimum: 1500000,
+					products: ["AIR-X", "BREEZE-MINI"],
+					description: "Chương trình dự kiến dành cho khách hàng mới.",
+					terms: [
+						"Chỉ có hiệu lực trong thời gian chương trình",
+						"Đơn hàng tối thiểu 1.500.000đ",
+						"Cần kiểm tra điều kiện khách hàng",
+					],
+					icon: "↗",
+				},
+				{
+					id: "PROMO-004",
+					code: "SUMMER15",
+					name: "Summer Refresh",
+					type: "Percentage discount",
+					status: "Expired",
+					value: "15%",
+					start: "2026-06-01",
+					end: "2026-06-30",
+					minimum: 2000000,
+					products: ["AIR-X", "AIR-Y"],
+					description:
+						"Chương trình đã kết thúc; không nên giới thiệu như ưu đãi còn hiệu lực.",
+					terms: ["Đã hết hạn", "Không áp dụng cho đơn hàng mới"],
+					icon: "◷",
+				},
+			];
+			const money = (n) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
+			function renderProductKpis() {
+				const root = document.getElementById("productKpis");
+				root.innerHTML = `<div class="kpi"><div class="kpi-top">Catalog items <span class="kpi-icon">▣</span></div><strong>${products.length}</strong><small>Illustrative product fixtures</small></div><div class="kpi"><div class="kpi-top">In stock <span class="kpi-icon">✓</span></div><strong>${products.filter((p) => p.availability === "In stock").length}</strong><small>Seeded availability only</small></div><div class="kpi"><div class="kpi-top">Low stock <span class="kpi-icon">◷</span></div><strong>${products.filter((p) => p.availability === "Low stock").length}</strong><small>Check before making promises</small></div><div class="kpi"><div class="kpi-top">Categories <span class="kpi-icon">⌘</span></div><strong>${new Set(products.map((p) => p.category)).size}</strong><small>Illustrative categories</small></div>`;
+			}
+			function renderProducts() {
+				const q = (
+						document.getElementById("productSearch")?.value || ""
+					).toLowerCase(),
+					cat = document.getElementById("productCategory")?.value || "All",
+					av = document.getElementById("productAvailability")?.value || "All";
+				const root = document.getElementById("productGrid");
+				const list = products.filter(
+					(p) =>
+						(cat === "All" || p.category === cat) &&
+						(av === "All" || p.availability === av) &&
+						[p.id, p.sku, p.name, p.category, p.description, ...p.tags]
+							.join(" ")
+							.toLowerCase()
+							.includes(q),
+				);
+				root.innerHTML =
+					list
+						.map(
+							(p) =>
+								`<article class="catalog-card"><div class="catalog-card-top"><div class="catalog-art">${p.icon}</div><div style="min-width:0;flex:1"><h2>${escapeHtml(p.name)}</h2><div class="sku">${p.id} · SKU ${p.sku}</div><div class="catalog-meta" style="margin-top:8px"><span class="tag">${escapeHtml(p.category)}</span><span class="tag ${p.availability === "In stock" ? "green" : p.availability === "Low stock" ? "amber" : ""}">${escapeHtml(p.availability)}</span></div></div></div><p class="desc">${escapeHtml(p.description)}</p><div class="catalog-price">${money(p.price)} <small>incl. VAT · demo</small></div><div class="catalog-meta">${p.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div><div class="card-foot"><small style="color:var(--muted)">Stock: ${p.stock} · Warranty: ${escapeHtml(p.warranty)}</small><button class="btn small" data-product="${p.id}">View details ↗</button></div></article>`,
+						)
+						.join("") ||
+					'<div class="empty">No products match these filters.</div>';
+				root
+					.querySelectorAll("[data-product]")
+					.forEach((b) => (b.onclick = () => showProduct(b.dataset.product)));
+			}
+			function showProduct(id) {
+				const p = products.find((x) => x.id === id);
+				if (!p) return;
+				const linked = promotions.filter((x) => x.products.includes(p.sku));
+				openModal(
+					p.name,
+					`<div class="catalog-detail"><div class="detail-block"><label>Product ID / SKU</label><strong>${p.id} · ${p.sku}</strong></div><div class="detail-block"><label>Category</label><strong>${escapeHtml(p.category)}</strong></div><div class="detail-block"><label>Price (demo)</label><strong>${money(p.price)}</strong></div><div class="detail-block"><label>Availability (demo)</label><strong>${escapeHtml(p.availability)} · ${p.stock} units</strong></div><div class="detail-block full"><label>Description</label><strong style="font-weight:500;line-height:1.65">${escapeHtml(p.description)}</strong></div><div class="detail-block"><label>Warranty</label><strong>${escapeHtml(p.warranty)}</strong></div><div class="detail-block"><label>Tags</label><strong>${p.tags.map(escapeHtml).join(" · ")}</strong></div><div class="detail-block full"><label>Key features</label><ul class="detail-list">${p.features.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div><div class="detail-block full"><label>Linked promotions (demo mapping)</label>${linked.length ? linked.map((x) => `<p style="font-size:12px;margin:5px 0"><strong>${escapeHtml(x.name)}</strong> · ${escapeHtml(x.code)} · ${escapeHtml(x.status)}</p>`).join("") : "<strong>No linked promotion in the mock catalog.</strong>"}</div></div><p class="source-note">Illustrative data only — verify price, inventory, warranty and compatibility against the real catalog before making customer commitments.</p>`,
+					() => true,
+					"Close details",
+				);
+			}
+			function renderPromotionKpis() {
+				const root = document.getElementById("promotionKpis");
+				root.innerHTML = `<div class="kpi"><div class="kpi-top">Total promotions <span class="kpi-icon">％</span></div><strong>${promotions.length}</strong><small>Illustrative promotion fixtures</small></div><div class="kpi"><div class="kpi-top">Active <span class="kpi-icon">✓</span></div><strong>${promotions.filter((p) => p.status === "Active").length}</strong><small>Still verify terms and eligibility</small></div><div class="kpi"><div class="kpi-top">Upcoming <span class="kpi-icon">◷</span></div><strong>${promotions.filter((p) => p.status === "Upcoming").length}</strong><small>Not active yet</small></div><div class="kpi"><div class="kpi-top">Expired <span class="kpi-icon">!</span></div><strong>${promotions.filter((p) => p.status === "Expired").length}</strong><small>Do not offer as current</small></div>`;
+			}
+			function renderPromotions() {
+				const q = (
+						document.getElementById("promotionSearch")?.value || ""
+					).toLowerCase(),
+					st = document.getElementById("promotionStatus")?.value || "All",
+					type = document.getElementById("promotionType")?.value || "All";
+				const root = document.getElementById("promotionGrid");
+				const list = promotions.filter(
+					(p) =>
+						(st === "All" || p.status === st) &&
+						(type === "All" || p.type === type) &&
+						[p.id, p.code, p.name, p.type, p.description, ...p.products]
+							.join(" ")
+							.toLowerCase()
+							.includes(q),
+				);
+				root.innerHTML =
+					list
+						.map(
+							(p) =>
+								`<article class="catalog-card"><div class="catalog-card-top"><div class="catalog-art promo-art">${p.icon}</div><div style="min-width:0;flex:1"><h2>${escapeHtml(p.name)}</h2><div class="sku">${p.id} · Code ${escapeHtml(p.code)}</div><div class="catalog-meta" style="margin-top:8px"><span class="tag ${p.status === "Active" ? "green" : p.status === "Upcoming" ? "blue" : ""}">${escapeHtml(p.status)}</span><span class="tag">${escapeHtml(p.type)}</span></div></div></div><div class="promo-value">${escapeHtml(p.value)}</div><p class="desc">${escapeHtml(p.description)}</p><div class="kv"><div><label>Valid from</label><strong>${p.start}</strong></div><div><label>Valid until</label><strong>${p.end}</strong></div><div><label>Minimum order</label><strong>${p.minimum ? money(p.minimum) : "No minimum (demo)"}</strong></div><div><label>Eligible SKUs</label><strong>${p.products.map(escapeHtml).join(", ")}</strong></div></div><div class="card-foot"><small style="color:var(--muted)">${p.terms.length} conditions to check</small><button class="btn small" data-promotion="${p.id}">View terms ↗</button></div></article>`,
+						)
+						.join("") ||
+					'<div class="empty">No promotions match these filters.</div>';
+				root
+					.querySelectorAll("[data-promotion]")
+					.forEach(
+						(b) => (b.onclick = () => showPromotion(b.dataset.promotion)),
+					);
+			}
+			function showPromotion(id) {
+				const p = promotions.find((x) => x.id === id);
+				if (!p) return;
+				const linked = products.filter((x) => p.products.includes(x.sku));
+				openModal(
+					p.name,
+					`<div class="catalog-detail"><div class="detail-block"><label>Promotion ID / Code</label><strong>${p.id} · ${escapeHtml(p.code)}</strong></div><div class="detail-block"><label>Status</label><strong>${escapeHtml(p.status)} · ${escapeHtml(p.type)}</strong></div><div class="detail-block"><label>Offer</label><strong>${escapeHtml(p.value)}</strong></div><div class="detail-block"><label>Minimum order</label><strong>${p.minimum ? money(p.minimum) : "No minimum (demo)"}</strong></div><div class="detail-block"><label>Start date</label><strong>${p.start}</strong></div><div class="detail-block"><label>End date</label><strong>${p.end}</strong></div><div class="detail-block full"><label>Description</label><strong style="font-weight:500;line-height:1.65">${escapeHtml(p.description)}</strong></div><div class="detail-block full"><label>Terms & eligibility checks</label><ul class="detail-list">${p.terms.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div><div class="detail-block full"><label>Eligible products (demo mapping)</label>${linked.map((x) => `<p style="font-size:12px;margin:5px 0"><strong>${escapeHtml(x.name)}</strong> · ${escapeHtml(x.sku)} · ${money(x.price)}</p>`).join("") || "<strong>No matching products.</strong>"}</div></div><p class="source-note">Never promise an offer from this prototype. Confirm live dates, stock, customer eligibility, stacking rules and checkout behavior from the source of truth.</p>`,
+					() => true,
+					"Close details",
+				);
+			}
+			const policies = [
+				{
+					id: "POL-RET",
+					topic: "Returns & refunds",
+					category: "Returns",
+					version: "2.0",
+					status: "Current",
+					effective: "2026-08-01",
+					published: "2026-07-25",
+					owner: "Customer Operations",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative current return window and refund handling guidance.",
+					keywords: ["return", "refund", "exchange", "receipt"],
+					content:
+						"1. Customers may request a return within 14 calendar days of delivery.\n2. Items must meet the store's stated condition requirements.\n3. Refund timing depends on the original payment provider.\n4. Escalate exceptions or unclear product-condition cases to a supervisor.",
+					changeNote:
+						"Revised the illustrative return window and clarified escalation requirements.",
+					previous: "POL-RET-v1.0",
+				},
+				{
+					id: "POL-RET-v1.0",
+					topic: "Returns & refunds",
+					category: "Returns",
+					version: "1.0",
+					status: "Archived",
+					effective: "2026-01-01",
+					effectiveTo: "2026-07-31",
+					published: "2025-12-18",
+					owner: "Customer Operations",
+					approvedBy: "Legacy example record",
+					summary:
+						"Previous illustrative return guidance, retained for historical review.",
+					keywords: ["return", "refund", "exchange", "legacy"],
+					content:
+						"1. Customers could request a return within 7 calendar days of delivery.\n2. Exceptions were handled case by case.\n3. Unclear cases were referred to a supervisor.",
+					changeNote: "Superseded by version 2.0 on 2026-08-01.",
+					supersededBy: "POL-RET",
+				},
+				{
+					id: "POL-WAR",
+					topic: "Warranty & repair",
+					category: "Warranty",
+					version: "1.2",
+					status: "Current",
+					effective: "2026-06-15",
+					published: "2026-06-10",
+					owner: "Product Support",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative warranty intake checklist and repair escalation path.",
+					keywords: ["warranty", "repair", "serial number", "receipt"],
+					content:
+						"1. Confirm the product model, serial number, purchase date, and proof of purchase where available.\n2. Do not promise warranty coverage before eligibility is checked.\n3. Route damage, safety, or unclear coverage cases to Product Support.",
+					changeNote:
+						"Added a reminder not to confirm coverage before verification.",
+					previous: "POL-WAR-v1.0",
+				},
+				{
+					id: "POL-WAR-v1.0",
+					topic: "Warranty & repair",
+					category: "Warranty",
+					version: "1.0",
+					status: "Archived",
+					effective: "2025-10-01",
+					effectiveTo: "2026-06-14",
+					published: "2025-09-20",
+					owner: "Product Support",
+					approvedBy: "Legacy example record",
+					summary: "Previous illustrative warranty intake guidance.",
+					keywords: ["warranty", "repair", "serial number", "legacy"],
+					content:
+						"1. Ask for the product model and purchase date.\n2. Refer unclear coverage questions to Product Support.",
+					changeNote: "Superseded by version 1.2 on 2026-06-15.",
+					supersededBy: "POL-WAR",
+				},
+				{
+					id: "POL-SHP",
+					topic: "Shipping & delivery",
+					category: "Shipping",
+					version: "1.1",
+					status: "Current",
+					effective: "2026-05-01",
+					published: "2026-04-22",
+					owner: "Fulfilment Operations",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative guidance for delivery estimates, delays, and order tracking.",
+					keywords: ["shipping", "delivery", "tracking", "delay"],
+					content:
+						"1. Share only delivery estimates returned by the live order or fulfilment system.\n2. If tracking has not updated, explain that the status is not yet confirmed.\n3. Escalate delivery exceptions using the order reference.",
+					changeNote:
+						"Clarified how to communicate unconfirmed tracking information.",
+				},
+				{
+					id: "POL-SHP-v1.0",
+					topic: "Shipping & delivery",
+					category: "Shipping",
+					version: "1.0",
+					status: "Archived",
+					effective: "2025-11-01",
+					effectiveTo: "2026-04-30",
+					published: "2025-10-21",
+					owner: "Fulfilment Operations",
+					approvedBy: "Legacy example record",
+					summary: "Previous illustrative delivery-delay handling guidance.",
+					keywords: ["shipping", "delivery", "tracking", "legacy"],
+					content:
+						"1. Provide the estimated delivery window shown in the order record.\n2. Ask a supervisor for help when an order appears delayed.",
+					changeNote: "Superseded by version 1.1 on 2026-05-01.",
+					supersededBy: "POL-SHP",
+				},
+				{
+					id: "POL-DAT",
+					topic: "Customer data & privacy",
+					category: "Privacy",
+					version: "1.0",
+					status: "Current",
+					effective: "2026-03-01",
+					published: "2026-02-15",
+					owner: "Operations & Compliance",
+					approvedBy: "Supervisor review (demo)",
+					summary:
+						"Illustrative safeguards for identity checks and handling customer information.",
+					keywords: ["privacy", "identity", "personal data", "verification"],
+					content:
+						"1. Verify identity before disclosing account-specific information or committing sensitive changes.\n2. Access only customer data needed to handle the request.\n3. Refer privacy requests or suspected data exposure to the designated supervisor.",
+					changeNote: "Initial illustrative version.",
+				},
+			];
+			function policyMatches(p, q, cat) {
+				return (
+					(cat === "All" || p.category === cat) &&
+					[
+						p.id,
+						p.topic,
+						p.category,
+						p.version,
+						p.status,
+						p.summary,
+						p.owner,
+						p.approvedBy,
+						p.content,
+						...p.keywords,
+					]
+						.join(" ")
+						.toLowerCase()
+						.includes(q)
+				);
+			}
+			function renderPolicyKpis() {
+				const root = document.getElementById("policyKpis");
+				const current = policies.filter((p) => p.status === "Current"),
+					archived = policies.filter((p) => p.status === "Archived");
+				root.innerHTML = `<div class="kpi"><div class="kpi-top">Current policies <span class="kpi-icon">✓</span></div><strong>${current.length}</strong><small>Use only after source verification</small></div><div class="kpi"><div class="kpi-top">Archived versions <span class="kpi-icon">▤</span></div><strong>${archived.length}</strong><small>Kept for historical lookup</small></div><div class="kpi"><div class="kpi-top">Policy topics <span class="kpi-icon">⌘</span></div><strong>${new Set(policies.map((p) => p.category)).size}</strong><small>Illustrative categories</small></div><div class="kpi"><div class="kpi-top">Version history <span class="kpi-icon">↻</span></div><strong>${new Set(policies.map((p) => p.id.replace(/-v\d+\.\d+$/, ""))).size}</strong><small>Policy IDs and version labels</small></div>`;
+			}
+			function renderPolicies() {
+				const q = (document.getElementById("policySearch")?.value || "")
+						.trim()
+						.toLowerCase(),
+					cat = document.getElementById("policyCategory")?.value || "All",
+					sort =
+						document.getElementById("policySort")?.value || "effective-desc";
+				const sorted = policies
+					.filter((p) => policyMatches(p, q, cat))
+					.sort((a, b) =>
+						sort === "title-asc"
+							? a.topic.localeCompare(b.topic) ||
+								b.effective.localeCompare(a.effective)
+							: sort === "effective-asc"
+								? a.effective.localeCompare(b.effective)
+								: b.effective.localeCompare(a.effective),
+					);
+				const current = sorted.filter((p) => p.status === "Current"),
+					archived = sorted.filter((p) => p.status === "Archived");
+				const card = (p) =>
+					`<article class="catalog-card policy-card ${p.status === "Archived" ? "archived" : ""}"><div class="policy-title-row"><div class="policy-icon">${p.status === "Archived" ? "◷" : "▤"}</div><div style="min-width:0;flex:1"><h2>${escapeHtml(p.topic)}</h2><div class="policy-id">${escapeHtml(p.id)} · Version ${escapeHtml(p.version)}</div><div class="policy-badges"><span class="tag ${p.status === "Current" ? "green" : "amber"}">${p.status === "Current" ? "Current / effective" : "Archived / read-only"}</span><span class="tag">${escapeHtml(p.category)}</span></div></div></div><p class="policy-summary">${escapeHtml(p.summary)}</p><div class="policy-meta"><div><label>Effective from</label><strong>${p.effective}</strong></div><div><label>${p.status === "Archived" ? "Effective until" : "Published"}</label><strong>${p.status === "Archived" ? p.effectiveTo || "Not specified" : p.published}</strong></div><div><label>Policy owner</label><strong>${escapeHtml(p.owner)}</strong></div><div><label>Approval record</label><strong>${escapeHtml(p.approvedBy)}</strong></div></div>${p.status === "Archived" ? `<div class="policy-archive-note">Historical record. ${escapeHtml(p.changeNote)} Do not use as the current rule.</div>` : ""}<div class="card-foot"><small style="color:var(--muted)">${p.status === "Current" ? "Current reference" : "Historical lookup"}</small><button class="btn small" data-policy="${escapeHtml(p.id)}">${p.status === "Current" ? "View policy ↗" : "View archived version ↗"}</button></div></article>`;
+				document.getElementById("currentPolicyGrid").innerHTML =
+					current.map(card).join("") ||
+					'<div class="empty">No current policies match this search.</div>';
+				document.getElementById("archivedPolicyGrid").innerHTML =
+					archived.map(card).join("") ||
+					'<div class="empty">No archived versions match this search.</div>';
+				document.getElementById("currentPolicyCount").textContent =
+					`${current.length} current`;
+				document.getElementById("archivedPolicyCount").textContent =
+					`${archived.length} archived`;
+				document
+					.querySelectorAll("[data-policy]")
+					.forEach((b) => (b.onclick = () => showPolicy(b.dataset.policy)));
+			}
+			function showPolicy(id) {
+				const p = policies.find((x) => x.id === id);
+				if (!p) return;
+				const related = policies
+					.filter((x) => x.topic === p.topic)
+					.sort((a, b) => b.effective.localeCompare(a.effective));
+				const versions = related
+					.map(
+						(v) =>
+							`<div class="policy-version-item"><div><strong>Version ${escapeHtml(v.version)} · ${escapeHtml(v.status)}</strong><small>Effective ${v.effective} · Published ${v.published}</small></div><button class="btn small" data-policy-version="${escapeHtml(v.id)}">Open</button></div>`,
+					)
+					.join("");
+				openModal(
+					`${p.topic} · v${p.version}`,
+					`<div class="policy-badges" style="margin:0 0 14px"><span class="tag ${p.status === "Current" ? "green" : "amber"}">${p.status === "Current" ? "Current version" : "Archived version · read-only"}</span><span class="tag">${escapeHtml(p.id)}</span><span class="tag">${escapeHtml(p.category)}</span></div>${p.status === "Archived" ? `<div class="policy-archive-note" style="margin-bottom:14px">Historical lookup only. ${escapeHtml(p.changeNote)} This version must not be used to answer a new customer request. Superseded by ${escapeHtml(p.supersededBy || "a later version")}. </div>` : ""}<div class="catalog-detail"><div class="detail-block"><label>Effective from</label><strong>${p.effective}</strong></div><div class="detail-block"><label>${p.status === "Archived" ? "Effective until" : "Published"}</label><strong>${p.status === "Archived" ? p.effectiveTo || "Not specified" : p.published}</strong></div><div class="detail-block"><label>Owner</label><strong>${escapeHtml(p.owner)}</strong></div><div class="detail-block"><label>Approval record</label><strong>${escapeHtml(p.approvedBy)}</strong></div><div class="detail-block full"><label>Summary</label><strong style="font-weight:500;line-height:1.6">${escapeHtml(p.summary)}</strong></div><div class="detail-block full"><label>Policy text (illustrative)</label><div class="policy-text">${escapeHtml(p.content)}</div></div><div class="detail-block full"><label>Version history for this policy</label><div class="policy-version-list">${versions}</div></div></div><p class="source-note">In production, preserve immutable version content and approval metadata. Historical lookup should be searchable by the interaction date, while current answers should resolve only to an approved effective version.</p>`,
+					() => true,
+					"Close",
+				);
+				document
+					.querySelectorAll("[data-policy-version]")
+					.forEach(
+						(b) => (b.onclick = () => showPolicy(b.dataset.policyVersion)),
+					);
+			}
+			function initPolicies() {
+				const cats = [...new Set(policies.map((p) => p.category))];
+				document.getElementById("policyCategory").innerHTML =
+					'<option value="All">All categories</option>' +
+					cats.map((x) => `<option>${escapeHtml(x)}</option>`).join("");
+				renderPolicyKpis();
+				renderPolicies();
+			}
+
+			function initCatalog() {
+				const cats = [...new Set(products.map((p) => p.category))];
+				document.getElementById("productCategory").innerHTML =
+					'<option value="All">All categories</option>' +
+					cats.map((x) => `<option>${escapeHtml(x)}</option>`).join("");
+				const types = [...new Set(promotions.map((p) => p.type))];
+				document.getElementById("promotionType").innerHTML =
+					'<option value="All">All offer types</option>' +
+					types.map((x) => `<option>${escapeHtml(x)}</option>`).join("");
+				renderProductKpis();
+				renderProducts();
+				renderPromotionKpis();
+				renderPromotions();
+			}
+
+			document
+				.getElementById("productSearch")
+				.addEventListener("input", renderProducts);
+			document
+				.getElementById("productCategory")
+				.addEventListener("change", renderProducts);
+			document
+				.getElementById("productAvailability")
+				.addEventListener("change", renderProducts);
+			document
+				.getElementById("promotionSearch")
+				.addEventListener("input", renderPromotions);
+			document
+				.getElementById("promotionStatus")
+				.addEventListener("change", renderPromotions);
+			document
+				.getElementById("promotionType")
+				.addEventListener("change", renderPromotions);
+			document
+				.getElementById("policySearch")
+				.addEventListener("input", renderPolicies);
+			document
+				.getElementById("policyCategory")
+				.addEventListener("change", renderPolicies);
+			document
+				.getElementById("policySort")
+				.addEventListener("change", renderPolicies);
+			document
+				.querySelectorAll("[data-view]")
+				.forEach((b) =>
+					b.addEventListener("click", () => switchView(b.dataset.view)),
+				);
+			document.getElementById("search").addEventListener("input", renderInbox);
+			document.querySelectorAll("[data-channel]").forEach((b) =>
+				b.addEventListener("click", () => {
+					channelFilter = b.dataset.channel;
+					document
+						.querySelectorAll("[data-channel]")
+						.forEach((x) => x.classList.toggle("active", x === b));
+					renderInbox();
+				}),
+			);
+			document.querySelectorAll("[data-status]").forEach((b) =>
+				b.addEventListener("click", () => {
+					statusFilter = b.dataset.status;
+					document
+						.querySelectorAll("[data-status]")
+						.forEach((x) => x.classList.toggle("active", x === b));
+					renderInbox();
+				}),
+			);
+			document.querySelectorAll("[data-ctab]").forEach((b) =>
+				b.addEventListener("click", () => {
+					contextTab = b.dataset.ctab;
+					renderContext();
+				}),
+			);
+			document
+				.getElementById("statusSelect")
+				.addEventListener("change", (e) => {
+					const x = active();
+					if (!customer().verified && e.target.value === "Resolved") {
+						e.target.value = x.status;
+						toast(
+							"Restricted: verify identity before committing this status change.",
+						);
+						return;
+					}
+					x.status = e.target.value;
+					renderAll();
+					toast(`Interaction ${x.id} status updated locally: ${x.status}.`);
+				});
+			document.getElementById("sendMessage").addEventListener("click", () => {
+				const x = active(),
+					c = customer(),
+					input = document.getElementById("messageInput"),
+					text = input.value.trim();
+				if (!c.verified) {
+					toast("Identity unverified: sending is restricted in this demo.");
+					return;
+				}
+				if (!text) {
+					toast("Write a message first.");
+					input.focus();
+					return;
+				}
+				const time = new Date().toLocaleTimeString("vi-VN", {
+					hour: "2-digit",
+					minute: "2-digit",
+				});
+				x.messages.push({ from: "agent", text, time });
+				x.preview = text;
+				x.time = "now";
+				input.value = "";
+				renderAll();
+				toast("Demo message added to local transcript; not sent externally.");
+			});
+			document
+				.getElementById("clearMessage")
+				.addEventListener(
+					"click",
+					() => (document.getElementById("messageInput").value = ""),
+				);
+			document.getElementById("useSuggestion").addEventListener("click", () => {
+				if (!customer().verified) {
+					toast("Identity unverified: verify before preparing a send action.");
+					return;
+				}
+				document.getElementById("messageInput").value =
+					document.getElementById("suggestionText").textContent;
+				document.getElementById("messageInput").focus();
+			});
+			document.getElementById("viewCustomer").addEventListener("click", () => {
+				switchView("customers");
+				document.getElementById("customerSearch").value = active().customerId;
+				renderCustomers();
+			});
+			document
+				.getElementById("backWorkspace")
+				.addEventListener("click", () => switchView("workspace"));
+			document
+				.getElementById("customerSearch")
+				.addEventListener("input", renderCustomers);
+			document.getElementById("newInteraction").addEventListener("click", () =>
+				openModal(
+					"Create a demo interaction",
+					`<div class="field"><label>Customer</label><select id="newCustomer"><option value="CUS-1024">Nguyễn Minh Anh · Returning</option><option value="CUS-1031">Trần Quốc Bảo · Unverified</option><option value="CUS-1008">Lê Thu Hà · Returning</option><option value="CUS-1042">Phạm Gia Huy · New</option></select></div><div class="field"><label>Channel</label><select id="newChannel"><option>Phone</option><option>Zalo</option><option>Facebook</option></select></div><div class="field"><label>Initial customer message</label><textarea id="newText">Chào shop, mình cần được hỗ trợ thêm ạ.</textarea></div><p class="sub">Creates a new interaction record in local state only.</p>`,
+					() => {
+						const cid = document.getElementById("newCustomer").value,
+							ch = document.getElementById("newChannel").value,
+							txt = document.getElementById("newText").value.trim();
+						const c = customers[cid];
+						const id = "IN-" + (2050 + interactions.length);
+						interactions.unshift({
+							id,
+							customerId: cid,
+							name: c.name,
+							channel: ch,
+							time: "now",
+							preview: txt || "New interaction",
+							status: "Open",
+							priority: "Normal",
+							identity: c.verified,
+							caseId: "CS-NEW",
+							caseTitle: "New customer request",
+							suggestion:
+								"Dạ, em đã nhận được yêu cầu. Em sẽ hỗ trợ anh/chị ngay ạ.",
+							messages: [
+								{
+									from: "customer",
+									text: txt || "New interaction started.",
+									time: new Date().toLocaleTimeString("vi-VN", {
+										hour: "2-digit",
+										minute: "2-digit",
+									}),
+								},
+							],
+						});
+						activeId = id;
+						channelFilter = "All";
+						statusFilter = "All";
+						document
+							.querySelectorAll("[data-channel]")
+							.forEach((b) =>
+								b.classList.toggle("active", b.dataset.channel === "All"),
+							);
+						document
+							.querySelectorAll("[data-status]")
+							.forEach((b) =>
+								b.classList.toggle("active", b.dataset.status === "All"),
+							);
+						switchView("workspace");
+						renderAll();
+						toast("New demo interaction created locally.");
+					},
+					"Create interaction",
+				),
+			);
+			document
+				.getElementById("moreBtn")
+				.addEventListener("click", () =>
+					openModal(
+						"Interaction details",
+						`<div class="kv" style="margin-bottom:16px"><div><label>Interaction ID</label><strong>${active().id}</strong></div><div><label>Channel</label><strong>${active().channel}</strong></div><div><label>Customer profile</label><strong>${active().customerId}</strong></div><div><label>Case</label><strong>${active().caseId}</strong></div></div><p class="sub">Interaction, customer profile, case, and runtime session are distinct records in the proposed domain model.</p>`,
+						() => true,
+						"Close",
+					),
+				);
+			document
+				.getElementById("helpBtn")
+				.addEventListener("click", () =>
+					openModal(
+						"About this mock UI",
+						`<p style="line-height:1.7">This is a standalone, proposal-stage UI for SC2026. It combines a Continuity Desk workspace with a customer journey timeline. All interactions, metrics, status updates, verification, and handoffs are simulated locally. No backend, LangGraph, database, real LLM, telephony, Zalo, or Facebook connection is active.</p>`,
+						() => true,
+						"Got it",
+					),
+				);
+			document.getElementById("exportDemo").addEventListener("click", () => {
+				const blob = new Blob(
+					[
+						JSON.stringify(
+							{
+								notice: "Illustrative demo data; not measured results.",
+								scenarios: [
+									{
+										id: "SC-01",
+										focus: "Cross-session continuity",
+										mode: "Memory-enabled",
+										outcome: "Pass",
+									},
+									{
+										id: "SC-04",
+										focus: "Identity resolution",
+										mode: "Baseline",
+										outcome: "Needs review",
+									},
+									{
+										id: "SC-07",
+										focus: "Grounded response",
+										mode: "Memory-enabled",
+										outcome: "Pass",
+									},
+									{
+										id: "SC-12",
+										focus: "Human handoff",
+										mode: "Baseline",
+										outcome: "Pass",
+									},
+								],
+							},
+							null,
+							2,
+						),
+					],
+					{ type: "application/json" },
+				);
+				const a = document.createElement("a");
+				a.href = URL.createObjectURL(blob);
+				a.download = "sc2026-demo-evaluation.json";
+				a.click();
+				URL.revokeObjectURL(a.href);
+				toast("Demo summary exported.");
+			});
+			document
+				.querySelectorAll("[data-evidence]")
+				.forEach((b) =>
+					b.addEventListener("click", () =>
+						openModal(
+							`Scenario evidence · ${b.dataset.evidence}`,
+							`<div class="banner">Illustrative example only. This does not come from a real evaluator or trace.</div><div class="field"><label>Scenario observation</label><textarea readonly>Review the interaction transcript, expected outcome, and relevant customer history. Compare observed behavior against the scenario success criteria.</textarea></div><div class="field"><label>Evidence source</label><input readonly value="Seeded mock scenario · No trace connected" /></div>`,
+							() => true,
+							"Close",
+						),
+					),
+				);
+			initCatalog();
+			initPolicies();
+			renderAll();
+		</script>
+	</body>
+</html>

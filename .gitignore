@@ -1,64 +1,52 @@
-# Biến môi trường & cấu hình bí mật (Environment variables & secrets)
 .env
-*.env
-
-# SQLite databases
-*.db
-*.sqlite
-*.sqlite3
-
-# Python cache & build artifacts
+!.env.example
+.venv/
+.conda/
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Môi trường ảo (Virtual environments)
-venv/
-.venv/
-env/
-ENV/
-
-# Testing & Coverage
 .pytest_cache/
-.coverage
-htmlcov/
+.mypy_cache/
+.ruff_cache/
+coverage/
+dist/
+build/
 
-# Cấu hình IDE & hệ điều hành
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-
-# Docs riêng tư
-NOTES.md
-data/**
-
-# Dữ liệu sinh ra lúc runtime của Vector Store & BM25
+# Local service state and generated runtime files
 data/qdrant_storage/
-data/processed/bm25_*
-*.db
-*.sqlite
+data/processed/
+data/memory/
 
-# Các file log
+# Local development and editor files
+.vscode/
 *.log
-runs/
-trace_demo.jsonl
+.DS_Store
+
+# Node.js dependencies and build output
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Accidental root npm manifests; frontend has its own package files
+/package.json
+/package-lock.json
+
+# Memory dump and audit reports (may contain sensitive database exports)
+supabase_memory_dump.md
+reports/
+*.dump.md
+
+# Ignore generated files from the data_gen script
+data_gen/briefs
+data_gen/fact_packs
+data_gen/raw
+data_gen/scenarios*
+data_gen/transcripts*
+
+AGENTS.md
+harness_memory.db
+*.pdf
