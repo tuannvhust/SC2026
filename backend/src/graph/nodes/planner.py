@@ -19,7 +19,6 @@ from src.tools.tool_repository import M1_TOOLS
 # Import identity constant for the hard guard in plan_step_node.
 from src.graph.nodes.input_nodes import MAX_IDENTITY_ATTEMPTS
 
-
 logger = logging.getLogger(__name__)
 
 # Rough LLM budget guard: keep the per-call prompt compact to avoid 413/ITPM.
@@ -341,7 +340,7 @@ def _current_turn_tool_trace(messages: List[BaseMessage]) -> List[BaseMessage]:
         else:
             compact.append(message)
     if len(compact) > MAX_TOOL_MESSAGES_IN_TRACE:
-        compact = compact[-MAX_TOOL_MESSAGES_IN_TRACE :]
+        compact = compact[-MAX_TOOL_MESSAGES_IN_TRACE:]
     return compact
 
 
@@ -365,9 +364,7 @@ def build_planner_prompt(state: AgentState) -> List[BaseMessage]:
     )
     context = SystemMessage(
         content=(
-            "Customer context:\n\n"
-            + _format_call_brief(call_brief)
-            + feedback_context
+            "Customer context:\n\n" + _format_call_brief(call_brief) + feedback_context
         )
     )
     prompt: List[BaseMessage] = [
@@ -415,7 +412,7 @@ def plan_step_node(state: AgentState) -> Dict[str, Any]:
     needs_identity = state.get("needs_identity", False)
     identity_status = state.get("identity_status") or ""
 
-        # Final safety net: unresolved identity must not enter LLM planning.
+    # Final safety net: unresolved identity must not enter LLM planning.
     if needs_identity and identity_status in {
         "ambiguous",
         "identity_conflict",
@@ -535,4 +532,3 @@ def plan_step_node(state: AgentState) -> Dict[str, Any]:
         response.content = clean_text
 
     return {"messages": [response]}
-

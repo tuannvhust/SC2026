@@ -48,3 +48,5 @@ reports/
 *.dump.md
 
 *.pdf
+generated/scenario-dataset/
+AGENTS.md
