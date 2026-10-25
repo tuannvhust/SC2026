@@ -150,7 +150,7 @@ def test_router_schema_restricts_categories_to_all_project_catalog_categories():
         "thoi-trang/phu-kien",
     } == set(categories)
     catalog_path = (
-        Path(__file__).resolve().parents[1] / "data" / "catalog" / "products.json"
+        Path(__file__).resolve().parents[3] / "data" / "catalog" / "products.json"
     )
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     project_categories = {

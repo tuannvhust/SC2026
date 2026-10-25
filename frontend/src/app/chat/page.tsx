@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { SidebarLeft } from "@/components/sidebar-left";
-import { SidebarRight } from "@/components/sidebar-right";
-import { ChatHeader } from "@/components/chat-header";
-import { ChatMessages } from "@/components/chat-messages";
-import { ChatInput } from "@/components/chat-input";
+import { SidebarLeft } from "@/features/shell/components/sidebar-left";
+import { SidebarRight } from "@/features/shell/components/sidebar-right";
+import { ChatHeader } from "@/features/chat/components/chat-header";
+import { ChatMessages } from "@/features/chat/components/chat-messages";
+import { ChatInput } from "@/features/chat/components/chat-input";
 import { useChatStream } from "@/hooks/use-chat-stream";
 
 export default function ChatPage() {

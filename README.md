@@ -1,26 +1,45 @@
 # SC2026
 
+Harness for a Vietnamese sales support agent, with a FastAPI/LangGraph backend
+and a Next.js frontend. See [the architecture guide](docs/architecture.md) for
+component ownership and [the development guide](docs/development.md) for the
+short command reference.
+
 ## Cấu trúc thư mục
 
 ```text
 SC2026/
-├── data/
-│   └── catalog/                 # Dữ liệu catalog nguồn
-├── frontend/                    # Next.js + React + Tailwind UI
-├── scripts/                     # Seed/sync dữ liệu
-├── src/
-│   ├── api/                     # FastAPI app và API routers
-│   ├── config.py                # Kết nối dịch vụ dùng chung, theo vòng đời ứng dụng
-│   ├── memory/semantic_rag/     # Router, rewrite, retrieval, rerank, generate
-│   └── services/                # Gemini, MongoDB, Qdrant, BM25 clients
-├── tests/                       # Unit, integration và smoke tests
+├── backend/
+│   ├── src/                     # FastAPI, agent graph, tools, memory, services
+│   ├── tests/
+│   │   ├── unit/
+│   │   └── integration/
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── src/                     # Next.js app, feature UI, hooks, types
+│   └── Dockerfile
+├── data/                        # Reference catalog/policy, schemas, evaluation, ASR
+├── generated/
+│   └── scenario-dataset/        # Scenarios, transcripts, and generation artifacts
+├── scripts/
+│   ├── seed/
+│   ├── database/
+│   └── development/
+├── tests/                       # Cross-service and Docker smoke tests
+├── docs/                        # Architecture, development, and database notes
 ├── compose.yaml
-├── Dockerfile.backend
-├── Dockerfile.frontend
-├── requirements.txt
+├── .dockerignore
+├── .gitignore
 ├── .env.example
-└── .env
+├── AGENTS.md
+└── pytest.ini
 ```
+
+Quy ước tên: Python dùng `snake_case` (class dùng `PascalCase`); React component
+dùng `PascalCase.tsx`; hook dùng tiền tố `use-`; thư mục và tài liệu mới dùng
+`kebab-case`. Dữ liệu benchmark giữ nguyên tên và đường dẫn nguồn để các công
+cụ và kịch bản hiện có tiếp tục hoạt động.
 
 ## Yêu cầu môi trường
 
@@ -116,7 +135,8 @@ Trên Windows PowerShell:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
+$env:PYTHONPATH="backend"
 python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -125,6 +145,9 @@ Backend chạy tại:
 - Health: `http://localhost:8000/health`
 - Swagger: `http://localhost:8000/docs`
 - Chat API: `POST http://localhost:8000/api/chat`
+
+Backend dùng package `src` trong `backend/src`; khi chạy từ repo root cần giữ
+`PYTHONPATH=backend` như lệnh phía trên.
 
 Ví dụ request:
 
@@ -212,7 +235,7 @@ vì Compose có thể render secret từ `.env`.
 Chạy toàn bộ Python tests:
 
 ```powershell
-python -m pytest tests -q
+python -m pytest -q
 ```
 
 Chạy frontend build:
@@ -236,8 +259,16 @@ Smoke test kiểm tra:
 Các test gọi API thật có thể cần credential và dịch vụ bên ngoài:
 
 ```powershell
-python tests/test_api_external.py
-python tests/test_pipeline_rag_real.py
+python backend/tests/integration/test_api_external.py
+python backend/tests/integration/test_pipeline_rag_real.py
 ```
 
 Không chạy các test integration này trong CI nếu chưa cấu hình secret tương ứng.
+
+## Dữ liệu và file local
+
+`data/` giữ dữ liệu tham chiếu, chính sách, schema, ASR và evaluation ở các
+đường dẫn được code sử dụng. `generated/scenario-dataset/` giữ các scenario,
+transcript và artifacts đã sinh. Không đưa secret, cơ sở dữ liệu local, cache
+Qdrant/BM25 hoặc output chạy thử vào Git. Xem `.gitignore` để biết các mẫu bị bỏ
+qua.

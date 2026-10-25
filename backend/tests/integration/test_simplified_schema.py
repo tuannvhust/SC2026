@@ -49,6 +49,6 @@ def test_profile_upsert_keeps_current_value_only(monkeypatch):
 def test_no_legacy_table_queries_in_runtime():
     import pathlib
 
-    runtime = (pathlib.Path("src/tools/tool_repository.py").read_text(encoding="utf-8") + pathlib.Path("src/memory/working/postgres_store.py").read_text(encoding="utf-8"))
+    runtime = (pathlib.Path("backend/src/tools/tool_repository.py").read_text(encoding="utf-8") + pathlib.Path("backend/src/memory/working/postgres_store.py").read_text(encoding="utf-8"))
     for legacy in ("customer_identities", "customer_addresses", "profile_fact_candidates", "INSERT INTO profile_fact_history", "FROM profile_fact_history"):
         assert legacy not in runtime

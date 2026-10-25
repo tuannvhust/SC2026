@@ -5,7 +5,7 @@ import { Copy, RefreshCw, User, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/types/product";
-import { ProductCard } from "./product-card";
+import { ProductCard } from "@/features/products/components/product-card";
 
 interface ChatMessagesProps {
   messages: Message[];

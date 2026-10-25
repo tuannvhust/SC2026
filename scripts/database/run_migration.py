@@ -1,7 +1,7 @@
 """Run versioned SQL migrations against configured Supabase project.
 
 Usage:
-    python scripts/run_migration.py [--rollback]
+    python scripts/database/run_migration.py [--rollback]
 
 Safety:
     - No automatic DROP / TRUNCATE / data deletion before running migrations.
@@ -18,9 +18,12 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+BACKEND_ROOT = PROJECT_ROOT / "backend"
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -71,7 +74,7 @@ def run_migration(rollback: bool = False):
     db_url = default_database_url()
     print(f"[MIGRATION] Target database: {describe_database_url(db_url)}")
 
-    migration_dir = PROJECT_ROOT / "src" / "memory" / "migrations"
+    migration_dir = BACKEND_ROOT / "src" / "memory" / "migrations"
     sequence = ["002_simplified_schema", "001_schema_v1"] if rollback else ["001_schema_v1", "002_simplified_schema"]
 
     from sqlalchemy import create_engine

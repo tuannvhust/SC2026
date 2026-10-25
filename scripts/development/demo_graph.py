@@ -1,4 +1,4 @@
-"""scripts/demo_graph.py
+"""scripts/development/demo_graph.py
 Interactive CLI testing script for LangGraph execution stream.
 """
 
@@ -29,9 +29,12 @@ logging.getLogger("src.graph.nodes.input_nodes").setLevel(logging.DEBUG)
 
 from langchain_core.messages import HumanMessage
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+BACKEND_ROOT = PROJECT_ROOT / "backend"
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 # Shared [GRAPH][run=...] trace helper (stdlib-only; same format as the API).
 from src.graph.trace import GraphTrace, new_run_id  # noqa: E402
