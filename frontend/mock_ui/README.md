@@ -1,4 +1,4 @@
-# SC2026 Mock UI — Continuity Desk + Customer Journey
+# SC2026 Mock UI — Agent Workspace + Customer Experience
 
 A standalone, proposal-stage mock UI for the SC2026 customer-service agent project.
 
@@ -20,6 +20,18 @@ Alternatively, serve this folder with any static file server.
 - **Store policies:** searchable policy library split into current policies and archived versions, with category/date sorting, read-only archive notices, policy detail views, and per-topic version history.
 - **Evaluation:** illustrative scenario results and demo export.
 - **Improvement:** proposal-stage placeholder for future workflows.
+- **Account portal:** open separate administrator and customer areas. The customer area requires a name, a selected channel, and the matching Facebook ID, Zalo ID, or phone number before showing the conversation.
+- **Customer experience:** Facebook, Zalo, and phone each have their own customer conversation view. Facebook and Zalo use distinct platform-inspired layouts; phone supports local audio playback with clearly labeled illustrative ASR and chatbot audio.
+
+## Preview the customer experience
+
+1. Open `index.html` in a modern browser (or serve this folder with a static file server).
+2. Choose **Tài khoản khách hàng** from the account portal.
+3. Select Facebook, Zalo, or SĐT, then enter your name and the matching channel ID or phone number.
+4. Send a text message, or on the phone channel upload an audio file to see its local player and illustrative ASR. The chatbot response uses fixed mock text and a short sample sound on the phone channel.
+5. End the session to see the ended state. Use **Đăng xuất** to return to the account portal. The administrator account opens the existing workspace separately.
+
+All customer-side identity resolution, chat replies, product/promotion details, ASR text, and chatbot audio are illustrative local mock data. Uploaded audio is played locally in the browser; it is not sent to a service. Nothing is persisted or transmitted.
 
 ## Catalog data status
 
@@ -40,6 +52,7 @@ The intended source files are `data/catalog/products.js` and `data/catalog/promo
 - Search/filter promotions and inspect offer terms and eligible products.
 - Search/filter store policies, inspect effective dates and approval metadata, and navigate between current and archived versions.
 - Export an illustrative evaluation summary.
+- Choose an account from the portal; customer login requires a channel, name, and matching ID/phone before opening the customer conversation. Send text, upload/play phone audio, inspect ASR mock text, end the session, and return to the portal with logout.
 
 ## Policy archive design notes
 

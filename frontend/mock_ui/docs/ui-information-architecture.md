@@ -2,7 +2,18 @@
 
 ```mermaid
 flowchart TD
-  A[SC2026 Agent Workspace] --> W[Workspace]
+  A[SC2026 account portal] --> ADM[Administrator account]
+  A --> CUS[Customer account]
+  ADM --> W[Agent workspace]
+  CUS --> LOGIN[Choose channel + enter name and ID / phone]
+  LOGIN --> FB[Facebook Messenger-style conversation]
+  LOGIN --> ZALO[Zalo OA-style conversation]
+  LOGIN --> PHONE[Phone conversation + audio upload]
+  PHONE --> ASR[Local audio player + illustrative ASR]
+  FB --> CONV[Demo conversation + end session]
+  ZALO --> CONV
+  PHONE --> CONV
+  CONV --> ITEM[Advised product + illustrative promotion]
   A --> C[Customers]
   A --> P[Products]
   A --> O[Promotions]

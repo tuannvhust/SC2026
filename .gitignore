@@ -48,5 +48,5 @@ data_gen/scenarios*
 data_gen/transcripts*
 
 AGENTS.md
-harness_memory.db
 *.pdf
+generated/scenario-dataset/

@@ -1,5 +1,30 @@
 # SC2026 Mock UI — User Flows
 
+## Separate account entry and customer login
+
+```mermaid
+flowchart TD
+  A[SC2026 account portal] -->|Admin account| ADM[Open employee workspace]
+  A -->|Customer account| B[Customer login page]
+  B --> C{Choose channel}
+  C -->|Facebook| D[Enter name + fb_id]
+  C -->|Zalo| E[Enter name + zalo_id]
+  C -->|Phone| F[Enter name + phone number]
+  D --> G[Open Facebook-style conversation]
+  E --> H[Open Zalo OA-style conversation]
+  F --> I[Open phone conversation]
+  G --> J[Send text]
+  H --> J
+  I -->|Optional| K[Upload audio + see player and illustrative ASR]
+  I --> J
+  J --> L[See fixed chatbot reply]
+  K --> L
+  L -->|Phone only| M[Play sample chatbot audio]
+  L --> N[End session or log out]
+```
+
+The administrator workspace and customer portal are separate entries. Customer login is required before opening its conversation. IDs and phone numbers only simulate identity resolution. Replies and ASR are fixtures, chatbot audio is a short embedded demo sound, and uploaded audio remains local to the browser. Facebook uses a Messenger-inspired header and blue sent bubbles; Zalo uses a blue OA bar, verified-account cue, and card-like message layout.
+
 ## Policy lookup and historical review
 
 ```mermaid

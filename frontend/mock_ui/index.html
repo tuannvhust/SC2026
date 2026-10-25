@@ -192,6 +192,111 @@
 				align-items: center;
 				gap: 12px;
 			}
+			.account-portal { min-height:100vh; display:grid; place-items:center; padding:24px; background:var(--bg); }
+			.account-portal[hidden],.app[hidden],[hidden] { display:none !important; }
+			.portal-card { width:min(880px,100%); padding:32px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); box-shadow:var(--shadow); }
+			.portal-brand { display:flex; align-items:center; gap:11px; font-weight:750; }
+			.portal-brand .brand-mark { background:linear-gradient(135deg,#8195ff,#5368e7); }
+			.portal-intro { margin:28px 0 22px; }
+			.portal-intro h1 { margin:4px 0 8px; }
+			.account-options { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+			.account-option { display:flex; flex-direction:column; min-height:220px; padding:20px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; }
+			.account-option h2 { margin:14px 0 6px; font-size:18px; }
+			.account-option p { flex:1; margin:0 0 18px; color:var(--muted); }
+			.account-icon { width:42px; height:42px; display:grid; place-items:center; border-radius:12px; background:var(--brand-soft); color:var(--brand); font-size:19px; font-weight:800; }
+			.account-option.customer .account-icon { background:var(--green-soft); color:var(--green); }
+			.login-step { display:none; }
+			.login-step.active { display:block; }
+			.login-back { margin-top:16px; border:0; padding:8px 0; background:none; color:var(--brand); font-weight:700; }
+			.login-channel-list { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0; }
+			.login-channel { min-height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; border:1px solid var(--line); border-radius:12px; background:white; color:var(--ink); font-weight:700; }
+			.login-channel[aria-pressed="true"] { border:2px solid var(--brand); background:var(--brand-soft); }
+			.login-channel[data-login-channel="Facebook"] .platform-mark { color:#1877f2; }
+			.login-channel[data-login-channel="Zalo"] .platform-mark { color:#0878e8; }
+			.login-channel[data-login-channel="Phone"] .platform-mark { color:var(--green); }
+			.platform-mark { width:26px; height:26px; display:grid; place-items:center; border-radius:50%; background:#f1f3f7; font-weight:800; }
+			.login-form { max-width:520px; }
+			.login-form .field { margin-bottom:14px; }
+			.login-error { min-height:20px; margin:8px 0; color:var(--red); font-size:13px; }
+			#customerExperience { display:none; }
+			.app.customer-view { display:block; min-height:100vh; }
+			.app.customer-view .sidebar,.app.customer-view .content,.app.customer-view > .main > .topbar { display:none; }
+			.app.customer-view .main { min-height:100vh; }
+			.app.customer-view #customerExperience { display:block; min-height:100vh; }
+			.customer-platform { --platform:#3859d7; --platform-soft:#edf1ff; min-height:100vh; background:#f5f7fb; }
+			.customer-platform[data-channel="Facebook"] { --platform:#0866ff; --platform-soft:#eaf2ff; background:#f0f2f5; }
+			.customer-platform[data-channel="Zalo"] { --platform:#0068ff; --platform-soft:#e7f1ff; background:#f3f7fc; }
+			.customer-platform[data-channel="Phone"] { --platform:#16845b; --platform-soft:#e9f7f0; }
+			.customer-topbar { min-height:64px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px max(20px,calc((100vw - 1160px)/2)); border-bottom:1px solid var(--line); background:#fff; }
+			.customer-platform[data-channel="Zalo"] .customer-topbar { color:white; background:var(--platform); border-color:var(--platform); }
+			.customer-platform[data-channel="Facebook"] .customer-topbar { min-height:72px; }
+			.customer-top-brand { display:flex; align-items:center; gap:11px; }
+			.customer-top-brand .avatar { width:40px; height:40px; background:var(--platform-soft); color:var(--platform); }
+			.customer-top-brand strong,.customer-top-brand small { display:block; }
+			.customer-top-brand small { margin-top:2px; color:var(--muted); }
+			.customer-platform[data-channel="Zalo"] .customer-top-brand small { color:#d8e8ff; }
+			.customer-top-actions { display:flex; align-items:center; gap:9px; }
+			.platform-action { min-width:38px; height:38px; padding:0 11px; border:0; border-radius:20px; background:var(--platform-soft); color:var(--platform); font-weight:750; }
+			.customer-platform[data-channel="Zalo"] .platform-action { background:#ffffff24; color:white; }
+			.customer-platform[data-channel="Zalo"] .session-tag { color:#0750b5; background:#fff; }
+			.customer-platform[data-channel="Facebook"] .session-tag { color:#176b4d; }
+			.customer-shell { max-width:1160px; margin:0 auto; padding:24px 22px; }
+			.customer-heading { margin-bottom:18px; }
+			.customer-heading h1 { margin:4px 0 5px; }
+			.customer-grid-layout { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:18px; align-items:start; }
+			.customer-chat { overflow:hidden; display:flex; flex-direction:column; min-height:570px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; box-shadow:var(--shadow); }
+			.chat-brand { display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line); background:#fff; }
+			.chat-brand .avatar { background:var(--platform-soft); color:var(--platform); }
+			.chat-meta { flex:1; }
+			.chat-meta strong,.chat-meta small { display:block; }
+			.chat-meta small { margin-top:2px; color:var(--muted); }
+			.session-tag { padding:5px 9px; border-radius:99px; color:var(--green); background:var(--green-soft); font-size:11px; font-weight:750; }
+			.session-tag.ended { color:var(--muted); background:#f0f2f5; }
+			.phone-callout { padding:10px 20px; color:#73520d; background:#fff8e8; font-size:12px; }
+			.customer-messages { flex:1; display:flex; flex-direction:column; gap:14px; padding:20px; background:#f8f9fc; }
+			.chat-turn { max-width:min(78%,560px); }
+			.chat-turn.customer { align-self:flex-end; }
+			.chat-turn.bot { align-self:flex-start; }
+			.turn-label { margin:0 0 5px 3px; color:var(--muted); font-size:11px; }
+			.turn-bubble { padding:12px 14px; border:1px solid var(--line); border-radius:15px 15px 15px 4px; background:white; line-height:1.55; }
+			.chat-turn.customer .turn-bubble { border-color:#dce7ff; border-radius:15px 15px 4px 15px; background:var(--platform-soft); }
+			.audio-player { display:block; width:min(310px,100%); height:38px; margin-bottom:8px; }
+			.asr-label { color:#536176; font-size:10px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+			.asr-text { margin-top:3px; }
+			.customer-composer { display:flex; align-items:center; gap:9px; padding:14px; border-top:1px solid var(--line); background:white; }
+			.customer-composer input[type=text] { min-width:0; flex:1; }
+			.upload-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:white; font-weight:650; white-space:nowrap; }
+			.upload-button input { display:none; }
+			.demo-sidebar { display:grid; gap:14px; }
+			.demo-card { padding:16px; border:1px solid var(--line); border-radius:var(--radius); background:white; box-shadow:var(--shadow); }
+			.demo-card h3 { margin:0 0 12px; font-size:14px; }
+			.demo-product { display:flex; gap:11px; align-items:center; }
+			.product-art { width:52px; height:52px; display:grid; place-items:center; border-radius:13px; background:var(--platform-soft); font-size:25px; }
+			.demo-product strong,.demo-product small { display:block; }
+			.demo-product small { margin-top:4px; color:var(--muted); }
+			.promo-note { padding:11px; border-radius:11px; color:#754d0a; background:#fff5da; font-size:12px; line-height:1.5; }
+			/* Facebook: familiar Messenger blue, compact header actions, and pill composer. */
+			.customer-platform[data-channel="Facebook"] .chat-brand { min-height:68px; }
+			.customer-platform[data-channel="Facebook"] .chat-turn.customer .turn-bubble { border:0; border-radius:18px 18px 5px 18px; color:#fff; background:#0866ff; }
+			.customer-platform[data-channel="Facebook"] .customer-composer input[type=text] { border:0; border-radius:22px; background:#f0f2f5; }
+			.customer-platform[data-channel="Facebook"] .customer-composer .btn.primary { border-radius:22px; background:#0866ff; }
+			/* Zalo OA: blue account bar, official badge, card-like messages, and OA quick actions. */
+			.customer-platform[data-channel="Zalo"] .customer-top-brand .avatar { border:2px solid white; background:white; }
+			.customer-platform[data-channel="Zalo"] .chat-brand { border-bottom:0; }
+			.customer-platform[data-channel="Zalo"] .chat-brand .avatar { position:relative; }
+			.customer-platform[data-channel="Zalo"] .chat-meta strong::after { content:" ✓"; color:var(--platform); font-size:12px; }
+			.customer-platform[data-channel="Zalo"] .customer-messages { background:#eaf1f9; }
+			.customer-platform[data-channel="Zalo"] .chat-turn .turn-bubble { border-radius:10px; box-shadow:0 1px 1px #15223812; }
+			.customer-platform[data-channel="Zalo"] .chat-turn.customer .turn-bubble { border:0; border-radius:10px 10px 3px 10px; background:#d7eaff; color:#123459; }
+			.customer-platform[data-channel="Zalo"] .customer-composer { flex-wrap:wrap; border-top:1px solid #dce5ef; }
+			.customer-platform[data-channel="Zalo"] .customer-composer::before { content:"Zalo OA · Sudo Home"; width:100%; color:#56708e; font-size:11px; font-weight:700; }
+			.customer-platform[data-channel="Zalo"] .customer-composer input[type=text] { border-radius:8px; }
+			.customer-platform[data-channel="Zalo"] .customer-composer .btn.primary { background:#0878e8; }
+			.customer-platform[data-channel="Phone"] .chat-brand .avatar::after { content:"☎"; }
+			.customer-platform[data-channel="Facebook"] .chat-brand .avatar::after,.customer-platform[data-channel="Facebook"] .customer-top-brand .avatar::after { content:"f"; color:#0866ff; font-weight:800; }
+			.customer-platform[data-channel="Zalo"] .chat-brand .avatar::after,.customer-platform[data-channel="Zalo"] .customer-top-brand .avatar::after { content:"Z"; color:#0878e8; font-weight:800; }
+			@media (max-width:850px) { .customer-grid-layout { grid-template-columns:1fr; } .demo-sidebar { grid-template-columns:1fr 1fr; } .customer-chat { min-height:520px; } }
+			@media (max-width:520px) { .account-portal { padding:12px; } .portal-card { padding:20px; } .account-options { grid-template-columns:1fr; } .account-option { min-height:0; } .login-channel-list { gap:6px; } .login-channel { font-size:12px; } .customer-topbar { padding:10px 12px; } .customer-top-brand small { max-width:170px; } .customer-top-actions { gap:5px; } .customer-top-actions .btn { padding:8px; font-size:12px; } .customer-shell { padding:20px 10px; } .customer-chat { min-height:500px; } .customer-messages { padding:13px 10px; } .chat-turn { max-width:92%; } .customer-composer { flex-wrap:wrap; padding:10px; } .customer-composer input[type=text] { flex-basis:100%; order:-1; } .demo-sidebar { grid-template-columns:1fr; } }
 			.demo-pill {
 				background: #fff4dc;
 				color: #8d5a0b;
@@ -1597,7 +1702,37 @@
 		</style>
 	</head>
 	<body>
-		<div class="app">
+		<section class="account-portal" id="accountPortal" aria-label="Cổng tài khoản SC2026">
+			<div class="portal-card">
+				<div class="portal-brand"><div class="brand-mark">S</div><div>SC2026<small style="display:block;color:var(--muted);font-size:10px;letter-spacing:1px">CUSTOMER SERVICE</small></div></div>
+				<div class="login-step active" id="accountChooser">
+					<div class="portal-intro"><div class="eyebrow">CHÀO MỪNG</div><h1>Chọn tài khoản để tiếp tục</h1><p class="sub">Hai không gian làm việc độc lập cho đội ngũ và khách hàng.</p></div>
+					<div class="account-options">
+						<article class="account-option"><div class="account-icon">▦</div><h2>Tài khoản quản trị</h2><p>Quản lý hội thoại, khách hàng, sản phẩm và chính sách trong workspace.</p><button class="btn primary" id="enterAdmin" type="button">Vào trang quản trị</button></article>
+						<article class="account-option customer"><div class="account-icon">♙</div><h2>Tài khoản khách hàng</h2><p>Đăng nhập bằng tên và kênh liên hệ để bắt đầu phiên tư vấn riêng.</p><button class="btn" id="enterCustomer" type="button">Đăng nhập khách hàng</button></article>
+					</div>
+					<p class="sub" style="margin:18px 0 0;font-size:11px">Bản demo · Không xác thực tài khoản hoặc gửi dữ liệu ra ngoài.</p>
+				</div>
+				<div class="login-step" id="customerLogin">
+					<div class="portal-intro"><div class="eyebrow">TÀI KHOẢN KHÁCH HÀNG</div><h1>Đăng nhập để được tư vấn</h1><p class="sub">Chọn kênh bạn đang sử dụng và nhập đúng thông tin định danh.</p></div>
+					<form class="login-form" id="customerLoginForm" novalidate>
+						<label class="field-label" style="display:block;font-weight:700;margin-bottom:8px">Kênh liên hệ <span style="color:var(--red)">*</span></label>
+						<div class="login-channel-list" role="group" aria-label="Chọn kênh đăng nhập">
+							<button class="login-channel" type="button" data-login-channel="Facebook" aria-pressed="false"><span class="platform-mark">f</span>Facebook</button>
+							<button class="login-channel" type="button" data-login-channel="Zalo" aria-pressed="false"><span class="platform-mark">Z</span>Zalo</button>
+							<button class="login-channel" type="button" data-login-channel="Phone" aria-pressed="false"><span class="platform-mark">☎</span>Số điện thoại</button>
+						</div>
+						<div class="field"><label for="customerLoginName">Họ và tên <span style="color:var(--red)">*</span></label><input id="customerLoginName" type="text" autocomplete="name" placeholder="Nhập tên của bạn" required /></div>
+						<div class="field"><label id="customerLoginIdLabel" for="customerLoginId">Thông tin định danh <span style="color:var(--red)">*</span></label><input id="customerLoginId" type="text" autocomplete="off" placeholder="Chọn kênh ở trên trước" required disabled /></div>
+						<div class="login-error" id="customerLoginError" role="alert"></div>
+						<button class="btn primary" type="submit">Đăng nhập &amp; tiếp tục</button>
+					</form>
+					<button class="login-back" id="backToAccounts" type="button">← Quay lại chọn tài khoản</button>
+					<p class="sub" style="font-size:11px">Thông tin chỉ được dùng để minh họa đăng nhập trong phiên trình duyệt này.</p>
+				</div>
+			</div>
+		</section>
+		<div class="app" id="application" hidden>
 			<aside class="sidebar">
 				<div class="brand">
 					<div class="brand-mark">S</div>
@@ -1661,6 +1796,7 @@
 						><button class="iconbtn" id="helpBtn" title="About this demo">
 							?
 						</button>
+						<button class="btn small" id="adminLogout" type="button">Đăng xuất</button>
 						<div
 							class="avatar"
 							style="width: 32px; height: 32px; font-size: 11px"
@@ -1669,6 +1805,34 @@
 						</div>
 					</div>
 				</header>
+				<section id="customerExperience" class="customer-platform" data-channel="Facebook" aria-label="Không gian tư vấn khách hàng">
+					<header class="customer-topbar">
+						<div class="customer-top-brand"><div class="avatar" aria-hidden="true"></div><div><strong id="customerPlatformName">Sudo Home · Facebook</strong><small id="customerPlatformSubtitle">Nhắn tin trực tiếp với shop</small></div></div>
+						<div class="customer-top-actions"><span class="session-tag" id="sessionTag">Đang tư vấn</span><button class="platform-action" id="platformCall" type="button" aria-label="Gọi cho shop" title="Gọi cho shop">☎</button><button class="platform-action" id="platformInfo" type="button" aria-label="Thông tin shop" title="Thông tin shop">i</button><button class="btn small" id="customerLogout" type="button">Đăng xuất</button></div>
+					</header>
+					<div class="customer-shell">
+						<div class="customer-heading"><div class="eyebrow">TƯ VẤN TRỰC TUYẾN</div><h1 id="customerWelcome">Xin chào</h1><p class="sub" id="customerWelcomeText">Cuộc trò chuyện được mô phỏng trực tiếp trên giao diện demo.</p></div>
+						<div class="customer-grid-layout">
+							<div class="customer-chat">
+								<div class="chat-brand"><div class="avatar" aria-hidden="true"></div><div class="chat-meta"><strong id="chatShopName">Sudo Home</strong><small id="chatShopSubtitle">Đang hoạt động · Trợ lý AI</small></div></div>
+								<div class="phone-callout" id="phoneCallout" hidden>Cuộc gọi demo · Tải bản ghi âm để xem audio và ASR minh họa.</div>
+								<div class="customer-messages" id="customerMessages" aria-live="polite"></div>
+								<div class="customer-composer" id="customerComposer" aria-label="Soạn tin nhắn">
+									<label class="upload-button" id="audioUploadLabel" hidden>＋ Ghi âm<input id="audioUpload" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm" /></label>
+									<input id="customerMessageInput" type="text" placeholder="Nhắn tin cho shop…" aria-label="Tin nhắn của bạn" />
+									<button class="btn primary" id="customerSend" type="button">Gửi</button>
+									<button class="btn" id="endCustomerSession" type="button">Kết thúc phiên</button>
+								</div>
+							</div>
+							<aside class="demo-sidebar" aria-label="Thông tin tư vấn demo">
+								<div class="demo-card"><div class="eyebrow">ĐANG ĐƯỢC TƯ VẤN</div><h3 style="margin-top:5px">Gợi ý cho không gian nhà bạn</h3><div class="demo-product"><div class="product-art" aria-hidden="true">🛋️</div><div><strong>Sofa Sora · 3 chỗ</strong><small>Vải linen · màu kem</small></div></div><p class="sub" style="font-size:12px;margin-bottom:0">Thông tin sản phẩm minh họa cho giao diện.</p></div>
+								<div class="demo-card"><div class="eyebrow">ƯU ĐÃI MINH HỌA</div><h3 style="margin-top:5px">Ưu đãi thành viên</h3><div class="promo-note">Tặng gối trang trí khi chọn bộ sofa đủ điều kiện. Điều kiện và ưu đãi trong mock chỉ để minh họa.</div></div>
+								<div class="demo-card"><strong style="font-size:12px">🔒 Trải nghiệm riêng tư</strong><p class="sub" style="font-size:12px;margin:6px 0 0">Định danh và nội dung chỉ được dùng trong phiên demo trên trình duyệt này.</p></div>
+							</aside>
+						</div>
+						<p class="sub" style="font-size:11px;text-align:center;margin:14px 0">Demo giao diện · Không kết nối Facebook, Zalo, điện thoại, ASR hay hệ thống bán hàng thật.</p>
+					</div>
+				</section>
 				<div class="content">
 					<section class="view active" id="view-workspace">
 						<div class="page-head">
@@ -2438,6 +2602,10 @@
 				statusFilter = "All",
 				contextTab = "overview",
 				activeView = "workspace";
+			let customerChannel = null,
+				customerName = "",
+				customerSession = false,
+				customerTurns = [];
 			const byId = (id) => interactions.find((x) => x.id === id);
 			const active = () => byId(activeId);
 			const customer = () => customers[active().customerId];
@@ -3457,6 +3625,140 @@
 						),
 					),
 				);
+			const sampleBotAudio = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAL0Hcg2fD7ENKQh9ALH4z/Jl8BTybPcF/98G7AyTDyMO/Ah4AZL5XPN58Knxn/YL/voFWAx4D4cOxAlxAnv69vOc8E3x2/UT/Q8FuAtMD9wOhApoA2j7nfTP8P/wIfUe/B8EDAsSDyIPOAtbBFv8TvUR8cHwcvQs+ysDVQrIDlkP4QtKBVH9C/Zj8ZLwz/NA+jMCkwlvDoAPfgw0Bkr+0fbD8XLwOPNZ+TkByAgIDpgPDw0XB0T/ofcx8mLwrvJ5+D4A9AeSDaAPkg30Bz4Aefiu8mLwMfKh90T/FwcPDZgPCA7ICDkBWfk483Lww/HR9kr+NAZ+DIAPbw6TCTMCQPrP85LwY/EL9lH9SgXhC1kPyA5VCisDLPty9MHwEfFO9Vv8WwQ4CyIPEg8MCx8EHvwh9f/wz/Cd9Gj7aAOECtwOTA+4Cw8FE/3b9U3xnPD283v6cQLECYcOeA9YDPoFC/6f9qnxefBc85L5eAH8CCMOkw/sDN8GBf9s9xTyZfDP8rH4fQApCLENnw9yDb0HAABD+I7yYfBP8tf3g/9PBzENmw/sDZQI+wAh+RTzbfDd8QT3iP5uBqQMhw9XDmEJ9QEG+qjziPB58Tz2j/2FBQoMZA+zDiUK7QLx+kj0tPAk8Xz1mPyYBGMLMQ8BD98K4gPh+/T07vDe8Mj0pfulA7IK7w4/D44L1ATV/Kv1OPGn8B/0tvqvAvUJnQ5uDzEMwAXN/W32kfGA8ILzzPm2AS8JPQ6OD8gMpwbH/jj3+PFo8PHy6fi8AF8Izw2eD1INhwfC/wz4bvJg8G7yDPjC/4cHUg2eD88NXwi8AOn48fJo8PjxOPfH/qcGyAyODz0OLwm2Acz5gvOA8JHxbfbN/cAFMQxuD50O9QmvArb6H/Sn8Djxq/XV/NQEjgs/D+8OsgqlA6X7yPTe8O7w9PTh++ID3woBDzEPYwuYBJj8fPUk8bTwSPTx+u0CJQqzDmQPCgyFBY/9PPZ58YjwqPMG+vUBYQlXDocPpAxuBoj+BPfd8W3wFPMh+fsAlAjsDZsPMQ1PB4P/1/dP8mHwjvJD+A==";
+			const showPortalStep = (step) => {
+				document.getElementById("accountChooser").classList.toggle("active", step === "accounts");
+				document.getElementById("customerLogin").classList.toggle("active", step === "customer-login");
+				if (step === "customer-login") document.getElementById("customerLoginName").focus();
+			};
+			const selectLoginChannel = (channel) => {
+				customerChannel = channel;
+				const button = document.querySelector(`[data-login-channel="${channel}"]`);
+				document.querySelectorAll("[data-login-channel]").forEach((item) => {
+					const selected = item === button;
+					item.classList.toggle("selected", selected);
+					item.setAttribute("aria-pressed", String(selected));
+				});
+				const labels = { Facebook: ["Facebook ID", "Nhập Facebook ID của bạn"], Zalo: ["Zalo ID", "Nhập Zalo ID của bạn"], Phone: ["Số điện thoại", "Nhập số điện thoại của bạn"] }[channel];
+				const input = document.getElementById("customerLoginId");
+				input.disabled = false;
+				input.value = "";
+				input.type = channel === "Phone" ? "tel" : "text";
+				input.placeholder = labels[1];
+				input.autocomplete = channel === "Phone" ? "tel" : "off";
+				document.getElementById("customerLoginIdLabel").innerHTML = `${labels[0]} <span style="color:var(--red)">*</span>`;
+				document.getElementById("customerLoginError").textContent = "";
+			};
+			const enterCustomerExperience = () => {
+				document.getElementById("accountPortal").hidden = true;
+				const app = document.getElementById("application");
+				app.hidden = false;
+				app.classList.add("customer-view");
+			};
+			const exitCustomerExperience = () => {
+				customerSession = false;
+				customerTurns = [];
+				const app = document.getElementById("application");
+				app.classList.remove("customer-view");
+				app.hidden = true;
+				document.getElementById("accountPortal").hidden = false;
+				document.getElementById("customerLoginForm").reset();
+				customerChannel = null;
+				customerName = "";
+				document.querySelectorAll("[data-login-channel]").forEach((item) => { item.classList.remove("selected"); item.setAttribute("aria-pressed", "false"); });
+				const input = document.getElementById("customerLoginId");
+				input.disabled = true;
+				input.placeholder = "Chọn kênh ở trên trước";
+				document.getElementById("customerLoginError").textContent = "";
+				showPortalStep("accounts");
+			};
+			const renderCustomerTurns = () => {
+				const root = document.getElementById("customerMessages");
+				root.innerHTML = customerTurns.map((turn) => {
+					const isCustomer = turn.from === "customer";
+					const audio = turn.audio ? `<audio class="audio-player" controls preload="metadata" src="${turn.audio}">Trình duyệt không phát được audio.</audio>` : "";
+					const transcript = turn.transcript ? `<div class="asr-label">${isCustomer ? (customerChannel === "Phone" ? "Bản ASR minh họa" : "") : "Phản hồi chatbot"}</div>` : "";
+					return `<article class="chat-turn ${isCustomer ? "customer" : "bot"}"><div class="turn-label">${isCustomer ? escapeHtml(customerName) : "Trợ lý Sudo Home"} · ${escapeHtml(turn.time)}</div><div class="turn-bubble">${audio}${transcript}<div class="asr-text">${escapeHtml(turn.transcript || turn.text)}</div></div></article>`;
+				}).join("");
+				root.scrollTop = root.scrollHeight;
+			};
+			const addCustomerTurn = (text, audioUrl = "") => {
+				const now = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+				customerTurns.push({ from: "customer", transcript: text, audio: audioUrl, time: now });
+				const botText = "Dạ, em sẵn sàng hỗ trợ mình ạ. Anh/chị đang quan tâm mẫu sofa Sora hay muốn em tư vấn thêm lựa chọn phù hợp với không gian nhà mình?";
+				customerTurns.push({ from: "bot", text: botText, transcript: botText, audio: customerChannel === "Phone" ? sampleBotAudio : "", time: now });
+				renderCustomerTurns();
+			};
+			const beginCustomerSession = (event) => {
+				event.preventDefault();
+				const nameInput = document.getElementById("customerLoginName"), idInput = document.getElementById("customerLoginId");
+				const name = nameInput.value.trim(), identity = idInput.value.trim(), error = document.getElementById("customerLoginError");
+				if (!customerChannel) { error.textContent = "Vui lòng chọn kênh liên hệ."; return; }
+				if (!name || !identity) { error.textContent = "Vui lòng nhập đầy đủ họ tên và thông tin định danh."; (!name ? nameInput : idInput).focus(); return; }
+				const phoneDigits = identity.replace(/\D/g, "");
+				if (customerChannel === "Phone" && (!/^\+?[\d\s().-]+$/.test(identity) || phoneDigits.length < 9 || phoneDigits.length > 15)) { error.textContent = "Vui lòng nhập số điện thoại hợp lệ (9–15 chữ số)."; idInput.focus(); return; }
+				customerName = name;
+				customerSession = true;
+				const labels = { Facebook: ["Facebook", "Nhắn tin trực tiếp với shop", "Nhắn tin cho shop…"], Zalo: ["Zalo Official Account", "Zalo OA · Sudo Home", "Nhắn tin tới Zalo OA…"], Phone: ["Điện thoại", "Cuộc gọi demo · Trợ lý thoại", "Nhập lời thoại demo…"] }[customerChannel];
+				const view = document.getElementById("customerExperience");
+				view.dataset.channel = customerChannel;
+				document.getElementById("customerPlatformName").textContent = customerChannel === "Zalo" ? "Sudo Home · Zalo OA" : `Sudo Home · ${labels[0]}`;
+				document.getElementById("customerPlatformSubtitle").textContent = labels[1];
+				document.getElementById("chatShopName").textContent = customerChannel === "Zalo" ? "Sudo Home · Official Account" : "Sudo Home";
+				document.getElementById("chatShopSubtitle").textContent = customerChannel === "Zalo" ? "Tài khoản chính thức · Đang hoạt động" : customerChannel === "Facebook" ? "Đang hoạt động · Trả lời nhanh" : "Đang hoạt động · Trợ lý AI";
+				document.getElementById("customerWelcome").textContent = `Xin chào, ${name}`;
+				document.getElementById("customerWelcomeText").textContent = customerChannel === "Zalo" ? "Bạn đang trò chuyện với Zalo Official Account của Sudo Home." : customerChannel === "Facebook" ? "Bạn đang nhắn tin trực tiếp với Sudo Home trên Facebook." : "Phiên gọi tư vấn demo đã sẵn sàng.";
+				document.getElementById("customerMessageInput").placeholder = labels[2];
+				document.getElementById("phoneCallout").hidden = customerChannel !== "Phone";
+				document.getElementById("audioUploadLabel").hidden = customerChannel !== "Phone";
+				document.getElementById("sessionTag").textContent = "Đang tư vấn";
+				document.getElementById("sessionTag").classList.remove("ended");
+				customerTurns = [{ from: "bot", text: "Chào anh/chị, Sudo Home có thể hỗ trợ mình tìm sản phẩm phù hợp. Anh/chị đang quan tâm sản phẩm nào ạ?", transcript: "Chào anh/chị, Sudo Home có thể hỗ trợ mình tìm sản phẩm phù hợp. Anh/chị đang quan tâm sản phẩm nào ạ?", audio: customerChannel === "Phone" ? sampleBotAudio : "", time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) }];
+				renderCustomerTurns();
+				enterCustomerExperience();
+			};
+			const endCustomerSession = () => {
+				if (!customerSession) { toast("Hãy bắt đầu phiên tư vấn trước."); return; }
+				customerSession = false;
+				const tag = document.getElementById("sessionTag");
+				tag.textContent = "Đã kết thúc";
+				tag.classList.add("ended");
+				document.getElementById("customerComposer").querySelectorAll("input,button").forEach((control) => { control.disabled = true; });
+				toast("Phiên demo đã kết thúc. Nội dung chỉ tồn tại trên trang này.");
+			};
+			document.getElementById("enterAdmin").addEventListener("click", () => {
+				document.getElementById("accountPortal").hidden = true;
+				document.getElementById("application").hidden = false;
+			});
+			document.getElementById("adminLogout").addEventListener("click", () => {
+				document.getElementById("application").hidden = true;
+				document.getElementById("accountPortal").hidden = false;
+			});
+			document.getElementById("enterCustomer").addEventListener("click", () => showPortalStep("customer-login"));
+			document.getElementById("backToAccounts").addEventListener("click", () => showPortalStep("accounts"));
+			document.querySelectorAll("[data-login-channel]").forEach((button) => button.addEventListener("click", () => selectLoginChannel(button.dataset.loginChannel)));
+			document.getElementById("customerLoginForm").addEventListener("submit", beginCustomerSession);
+			document.getElementById("customerLogout").addEventListener("click", exitCustomerExperience);
+			document.getElementById("customerSend").addEventListener("click", () => {
+				if (!customerSession) { toast("Hãy nhập định danh và bắt đầu phiên trước."); return; }
+				const input = document.getElementById("customerMessageInput"), text = input.value.trim();
+				if (!text) { input.focus(); return; }
+				addCustomerTurn(text);
+				input.value = "";
+			});
+			document.getElementById("customerMessageInput").addEventListener("keydown", (event) => { if (event.key === "Enter") document.getElementById("customerSend").click(); });
+			document.getElementById("audioUpload").addEventListener("change", (event) => {
+				const file = event.target.files && event.target.files[0];
+				if (!file) return;
+				if (customerChannel !== "Phone" || !customerSession) { toast("Hãy bắt đầu phiên SĐT trước khi tải ghi âm."); event.target.value = ""; return; }
+				if (!file.type.startsWith("audio/")) { toast("Vui lòng chọn một file âm thanh."); event.target.value = ""; return; }
+				const transcript = `Bản ASR minh họa cho file “${file.name}”: Dạ, em muốn tìm hiểu thêm về mẫu sofa và ưu đãi hiện có.`;
+				addCustomerTurn(transcript, URL.createObjectURL(file));
+				event.target.value = "";
+			});
+			document.getElementById("endCustomerSession").addEventListener("click", endCustomerSession);
+			document.getElementById("platformCall").addEventListener("click", () => toast("Tính năng gọi điện chỉ minh họa trong bản demo."));
+			document.getElementById("platformInfo").addEventListener("click", () => toast("Sudo Home · Thông tin cửa hàng minh họa."));
 			initCatalog();
 			initPolicies();
 			renderAll();
