@@ -79,7 +79,7 @@ export function Sidebar({
 					{NAV.map(({ key, label, icon: Icon }) => (
 						<Link
 							key={key}
-							href={key === "workspace" ? "/" : `/${key}`}
+							href={key === "workspace" ? "/workspace" : `/${key}`}
 							title={collapsed ? label : undefined}
 							aria-current={view === key ? "page" : undefined}
 							className={`flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-2.5 text-left text-sm font-semibold lg:gap-3 ${collapsed ? "lg:justify-center lg:px-0" : ""} ${view === key ? "bg-[#2b3c64] text-white shadow-[inset_3px_0_#8ea0ff]" : "text-[#aeb9ce] hover:bg-[#202c43] hover:text-white"}`}

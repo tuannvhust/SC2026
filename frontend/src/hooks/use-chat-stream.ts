@@ -35,6 +35,18 @@ function newSessionId() {
 
 const SESSION_STORAGE_KEY = "sc2026-session-id";
 
+export type ChatConnection = {
+  scope?: string;
+  channel?: string;
+  metadata?: Record<string, string>;
+};
+
+export function chatSessionStorageKey(scope?: string, customerId?: string) {
+  if (scope) return `${SESSION_STORAGE_KEY}:${scope}`;
+  if (customerId) return `${SESSION_STORAGE_KEY}:${customerId}`;
+  return SESSION_STORAGE_KEY;
+}
+
 function isValidSessionId(value: string | null): value is string {
   if (!value) return false;
   const trimmed = value.trim();
@@ -42,7 +54,10 @@ function isValidSessionId(value: string | null): value is string {
   return /^[A-Za-z0-9_-]+$/.test(trimmed);
 }
 
-export function useChatStream() {
+export function useChatStream(connection?: ChatConnection) {
+  const connectionRef = useRef(connection);
+  connectionRef.current = connection;
+  const scope = connection?.scope ?? "";
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [callBrief, setCallBrief] = useState<CallBriefSummary | null>(null);
@@ -64,9 +79,7 @@ export function useChatStream() {
       const params = new URLSearchParams(window.location.search);
       const selectedCustomerId = params.get("customer_id")?.trim() ?? "";
       setCustomerId(selectedCustomerId);
-      const storageKey = selectedCustomerId
-        ? `${SESSION_STORAGE_KEY}:${selectedCustomerId}`
-        : SESSION_STORAGE_KEY;
+      const storageKey = chatSessionStorageKey(scope, selectedCustomerId);
       const stored = window.sessionStorage.getItem(storageKey);
       if (isValidSessionId(stored)) {
         setSessionId(stored);
@@ -80,14 +93,14 @@ export function useChatStream() {
     try {
       const selectedCustomerId = new URLSearchParams(window.location.search)
         .get("customer_id")?.trim() ?? "";
-      const storageKey = selectedCustomerId
-        ? `${SESSION_STORAGE_KEY}:${selectedCustomerId}`
-        : SESSION_STORAGE_KEY;
-      window.sessionStorage.setItem(storageKey, nextId);
+      window.sessionStorage.setItem(
+        chatSessionStorageKey(scope, selectedCustomerId),
+        nextId,
+      );
     } catch {
       // Ignore storage errors; session still works in memory.
     }
-  }, []);
+  }, [scope]);
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg = text.trim();
@@ -126,6 +139,12 @@ export function useChatStream() {
           session_id: sessionId,
           message: userMsg,
           stream: true,
+          ...(connectionRef.current?.channel
+            ? { channel: connectionRef.current.channel }
+            : {}),
+          ...(connectionRef.current?.metadata
+            ? { metadata: connectionRef.current.metadata }
+            : {}),
         }),
         signal: controller.signal,
       });
@@ -270,7 +289,13 @@ export function useChatStream() {
       const res = await fetch("/api/chat/end-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, customer_id: customerId || "anonymous" }),
+        body: JSON.stringify({
+          session_id: sessionId,
+          customer_id: customerId || "anonymous",
+          ...(connectionRef.current?.metadata
+            ? { metadata: connectionRef.current.metadata }
+            : {}),
+        }),
         signal: controller.signal,
       });
 
@@ -294,7 +319,7 @@ export function useChatStream() {
       }
       const payload = (await res.json()) as EndSessionResult;
       // Only report success after backend confirms persistence.
-      if (!payload.finalized) {
+      if (!payload.finalized && !payload.empty_session) {
         throw new Error("Backend chưa xác nhận lưu phiên.");
       }
       setEndResult(payload);
@@ -320,10 +345,10 @@ export function useChatStream() {
     const nextId = newSessionId();
     setSessionId(nextId);
     try {
-      const storageKey = customerId
-        ? `${SESSION_STORAGE_KEY}:${customerId}`
-        : SESSION_STORAGE_KEY;
-      window.sessionStorage.setItem(storageKey, nextId);
+      window.sessionStorage.setItem(
+        chatSessionStorageKey(connectionRef.current?.scope, customerId),
+        nextId,
+      );
     } catch {
       // Ignore storage errors; session still works in memory.
     }

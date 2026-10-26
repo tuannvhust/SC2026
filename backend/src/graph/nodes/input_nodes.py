@@ -447,6 +447,62 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
         or brief_fallback.get("customer_phone")
     )
 
+    # Kênh Zalo/Facebook đã có ID: tra CRM trước khi hỏi lại số điện thoại.
+    channel_zalo = str(context.get("zalo_id") or "").strip() or None
+    channel_fb = str(context.get("fb_id") or "").strip() or None
+    if not phone and (channel_zalo or channel_fb):
+        channel_result = crm_get_customer.invoke(
+            {
+                "phone": None,
+                "name": None,
+                "zalo_id": channel_zalo,
+                "fb_id": channel_fb,
+            }
+        )
+        if channel_result.get("error"):
+            return {
+                "customer_id": None,
+                "customer_info": context,
+                "needs_identity": True,
+                "identity_status": "system_error",
+                "identity_attempts": int(state.get("identity_attempts") or 0) + 1,
+                "missing_identity_fields": ["phone"],
+                "pending_need": state.get("pending_need"),
+            }
+        if (
+            channel_result.get("found")
+            and channel_result.get("customer_id")
+            and not channel_result.get("ambiguous")
+            and not channel_result.get("identity_conflict")
+        ):
+            if channel_zalo:
+                context["zalo_id"] = channel_zalo
+            if channel_fb:
+                context["fb_id"] = channel_fb
+            matched_phone = _normalize_phone(channel_result.get("phone"))
+            matched_name = _real_name(channel_result.get("name"))
+            if matched_name:
+                context["name"] = matched_name
+            if matched_phone and _is_valid_phone(matched_phone):
+                phone = matched_phone
+                context["phone"] = matched_phone
+            else:
+                customer_id = channel_result["customer_id"]
+                session_id = state.get("session_id")
+                if customer_id and session_id:
+                    get_postgres_memory_store().update_session_customer_id(
+                        session_id, customer_id
+                    )
+                return {
+                    "customer_id": customer_id,
+                    "customer_info": {**context, **channel_result, "customer_id": customer_id},
+                    "needs_identity": False,
+                    "identity_status": "resolved",
+                    "identity_attempts": 0,
+                    "missing_identity_fields": [],
+                    "pending_need": state.get("pending_need"),
+                }
+
     # ---- Case B — no phone available ----
     if not phone:
         pending_need = state.get("pending_need")

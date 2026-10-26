@@ -31,6 +31,12 @@ export function Topbar() {
 				>
 					Open AI chat
 				</Link>
+				<Link
+					href="/"
+					className="rounded-[10px] border border-line bg-white px-2.5 py-1.5 text-xs font-semibold text-[#344054]"
+				>
+					Đăng xuất
+				</Link>
 				<span className="rounded-full border border-[#f4dfad] bg-amber-soft px-2.5 py-1.5 text-[11px] font-bold text-[#8d5a0b]">
 					● Reference data may use demo fallback
 				</span>

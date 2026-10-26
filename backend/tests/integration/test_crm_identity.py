@@ -500,6 +500,76 @@ class TestResolveIdentityNode:
         assert result["identity_attempts"] == 0
         assert result["pending_need"] == "Tư vấn sản phẩm"
 
+    def test_zalo_id_resolves_customer_without_typing_a_phone(self, monkeypatch):
+        calls = []
+
+        def invoke(payload):
+            calls.append(payload)
+            return {
+                "found": True,
+                "customer_id": "CUST-Z",
+                "name": "Lan Phạm",
+                "honorific": "chị",
+                "phone": "0901234567",
+                "ambiguous": False,
+                "identity_conflict": False,
+                "error": None,
+                "is_verified": True,
+            }
+
+        monkeypatch.setattr(
+            input_nodes,
+            "crm_get_customer",
+            type("FakeCRM", (), {"invoke": staticmethod(invoke)})(),
+        )
+        result = resolve_identity_node(
+            self._state(
+                customer_info={
+                    "name": "Lan",
+                    "zalo_id": "zalo.lan",
+                    "channel": "zalo_oa",
+                    "_input_text": "xin chào",
+                },
+                messages=[HumanMessage(content="xin chào")],
+            )
+        )
+
+        assert calls[0]["zalo_id"] == "zalo.lan"
+        assert calls[0]["phone"] is None
+        assert result["customer_id"] == "CUST-Z"
+        assert result["identity_status"] == "resolved"
+        assert result["needs_identity"] is False
+
+    def test_unknown_channel_id_still_asks_for_phone(self, monkeypatch):
+        monkeypatch.setattr(
+            input_nodes,
+            "crm_get_customer",
+            type(
+                "FakeCRM",
+                (),
+                {
+                    "invoke": staticmethod(
+                        lambda _payload: {
+                            "found": False,
+                            "customer_id": None,
+                            "ambiguous": False,
+                            "identity_conflict": False,
+                            "error": None,
+                        }
+                    )
+                },
+            )(),
+        )
+        result = resolve_identity_node(
+            self._state(
+                customer_info={"name": "Lan", "fb_id": "fb.missing", "_input_text": "xin chào"},
+                messages=[HumanMessage(content="xin chào")],
+            )
+        )
+
+        assert result["identity_status"] == "needs_input"
+        assert result["missing_identity_fields"] == ["phone", "name"]
+
     def test_missing_phone_requests_identity(self):
         result = resolve_identity_node(
             self._state(

@@ -36,7 +36,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 		? (routeView as ViewKey)
 		: "workspace";
 	const setView = useCallback((nextView: ViewKey) => {
-		router.push(nextView === "workspace" ? "/" : `/${nextView}`);
+		router.push(nextView === "workspace" ? "/workspace" : `/${nextView}`);
 	}, [router]);
   const [interactions, setInteractions] = useState(INITIAL_INTERACTIONS);
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS);
