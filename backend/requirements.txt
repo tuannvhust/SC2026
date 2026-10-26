@@ -22,3 +22,4 @@ langchain-groq>=0.3.0
 SQLAlchemy>=2.0.0
 psycopg2-binary>=2.9.0
 supabase>=2.0.0
+jsonschema>=4.18.0
