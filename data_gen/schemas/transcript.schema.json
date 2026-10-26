@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sc2026:paired-transcript:v1",
+  "title": "SC2026 paired call transcript",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["transcript_id", "customer_id", "session_id", "call_id", "channel", "call_date", "persona", "industry", "region_accent", "persistent_customer_facts", "time_sensitive_facts", "ground_truth_facts", "coverage", "turns", "source_scenario_id", "review_status", "provenance", "validation"],
+  "properties": {
+    "transcript_id": {"type": "string", "minLength": 1}, "customer_id": {"type": "string", "minLength": 1},
+    "session_id": {"type": "string", "minLength": 1}, "call_id": {"type": "string", "minLength": 1},
+    "channel": {"enum": ["hotline", "chat_fanpage", "zalo_oa"]}, "call_date": {"type": "string", "format": "date"},
+    "persona": {"type": "string", "minLength": 1}, "industry": {"type": "string", "minLength": 1}, "region_accent": {"type": "string", "minLength": 1},
+    "persistent_customer_facts": {"type": "object"}, "time_sensitive_facts": {"type": "object"}, "ground_truth_facts": {"type": "object"}, "prior_history_context": {}, "coverage": {"type": "object", "required": ["persona", "industry", "region", "skus"]},
+    "turns": {"type": "array", "minItems": 4, "items": {"type": "object", "additionalProperties": false, "required": ["speaker", "text"], "properties": {"speaker": {"enum": ["customer", "agent"]}, "text": {"type": "string", "minLength": 1}, "idx": {"type": "integer"}, "entities": {"type": "object"}, "text_asr": {"type": "string"}, "raw_text": {"type": "string"}}}},
+    "source_scenario_id": {"type": "string"}, "review_status": {"enum": ["pending_review", "accepted", "rejected"]},
+    "provenance": {"type": "object", "required": ["provider", "model", "seed", "generated_at", "scenario_sha256", "artifact_status"]},
+    "validation": {"type": "object", "required": ["status", "errors", "btc_validator"], "properties": {"status": {"enum": ["passed", "failed"]}, "errors": {"type": "array", "items": {"type": "string"}}, "btc_validator": {"type": "string"}}},
+    "review": {"type": "object"}
+  }
+}

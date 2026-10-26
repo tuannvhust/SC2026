@@ -1,0 +1,15 @@
+Bạn tổng hợp metadata cho một scenario đánh giá agent tư vấn khách hàng.
+
+Đầu vào gồm persona, hard case và các customer turns đã sinh theo thứ tự từng cuộc gọi. Chỉ dựa trên các dữ kiện này.
+
+Trả về duy nhất JSON object với đúng hai key:
+- `notes`: tiếng Việt, ngắn gọn, nêu các việc agent bắt buộc phải giải quyết trong case. Không chép tiêu chí chấm máy móc, không viết lời thoại mẫu.
+- `customer_goal`: một câu ngắn mô tả mục đích khách hàng tìm đến tư vấn, dựa trên nhu cầu thể hiện trong turns. Không mô tả nhiệm vụ của agent.
+
+Quy tắc bắt buộc khi viết `notes`:
+- Nếu cùng một khách quay lại hoặc có lịch sử trước đó, yêu cầu agent chuẩn bị Call Brief trước khi phản hồi và không hỏi lại dữ kiện đã có.
+- Nếu cùng một khách xuất hiện trên nhiều kênh, yêu cầu hợp nhất đúng danh tính và lịch sử giữa các kênh; khi nguồn mâu thuẫn, cần xác minh an toàn thay vì tự chọn hoặc gộp dữ kiện.
+- Chỉ áp dụng các yêu cầu trên khi cờ tương ứng trong đầu vào là true. Hai người khác nhau dùng chung số điện thoại là hai danh tính riêng, không được gộp lịch sử.
+- Nêu các nghiệp vụ cụ thể của hard case mà agent cần xử lý. Không suy diễn thêm sự kiện, sản phẩm, giá hoặc chính sách.
+
+Không đưa tên persona, mã khách hàng, số điện thoại, SKU, tiêu chí thành công nội bộ hay nội dung hướng dẫn sinh dữ liệu vào kết quả.

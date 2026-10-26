@@ -1,0 +1,26 @@
+## Quy tắc sinh `customer_turns_asr`
+
+`customer_turns` là bản chuẩn, tự nhiên, có dấu. Hãy tạo `customer_turns_asr` bằng cách biến đổi từng chuỗi chuẩn tương ứng; không viết hội thoại mới, không đổi thứ tự/số lượt. Chọn đúng phép biến đổi theo `input_mode` và `teencode_level` trong payload. Kênh không quyết định mode.
+
+### `chat_teencode`
+
+Đây là tin nhắn chat được viết kiểu đời thường, không phải transcript nhận dạng giọng nói. Bắt buộc thể hiện teencode đủ rõ để khác bản chuẩn, nhưng vẫn đọc hiểu được:
+
+- `light`: rải khoảng 3–5 dạng viết tắt phổ biến trong cả cuộc, ưu tiên “ko”, “đc”, “sp”, “ib”, “mk/mình”, “bn”, “r”; mỗi lượt chỉ cần một vài chỗ, không biến mọi từ thành viết tắt.
+- `heavy`: dùng thường xuyên hơn, khoảng 1–3 dạng teencode trong mỗi lượt; có thể dùng “hok”, “z”, “j”, “bnhiu”, “mik”, “ạk”, kéo dài chữ như “shop ơiii”. Câu vẫn phải dễ hiểu.
+- Giữ dấu tiếng Việt ở phần lớn từ. Không viết toàn bộ không dấu, không chèn lỗi gõ ngẫu nhiên, không sửa thành câu sai ngữ pháp khó hiểu.
+
+### `asr_transcript`
+
+Đây là văn bản đầu vào được nhận dạng từ lời nói. Biến đổi cách trình bày để trông như transcript thực tế: có thể viết thường, lược bớt dấu câu, thể hiện số theo cách đọc thành lời, và dùng một số dạng nói/viết tắt quen thuộc nếu tự nhiên. Bản này cần có khác biệt nhìn thấy được so với `customer_turns`.
+
+- Có thể tạo 1–2 lỗi nhận dạng nhẹ, có thể khôi phục theo ngữ cảnh trong toàn cuộc, ví dụ tên thương hiệu ghi gần âm (“Xiaomi” → “xiao mi”) hoặc một từ chức năng bị nhận nhầm gần âm.
+- Không cấm mọi lỗi ASR; lỗi nhẹ là một phần của dữ liệu kiểm thử. Tuy nhiên tuyệt đối không làm đổi ý định, phủ định, tên/mẫu sản phẩm đến mức thành sản phẩm khác, số lượng, kích cỡ, ngân sách, giá, ngày giờ hoặc dữ kiện nghiệp vụ.
+- Không bịa thêm thông tin, không bỏ mất ý chính, không thêm lời của nhân viên. Giữ nguyên số lượt và ánh xạ một-một với bản chuẩn.
+
+### Kiểm tra trước khi trả lời
+
+- Đầu ra duy nhất là mảng JSON các chuỗi đã biến đổi, cùng số phần tử và đúng thứ tự với `clean_customer_turns`.
+- Với `chat_teencode`, kiểm tra có đủ viết tắt theo mức được yêu cầu; không để đầu ra gần như giống hệt bản chuẩn.
+- Với `asr_transcript`, kiểm tra có đặc trưng transcript và 1–2 sai lệch nhận dạng nhẹ, nhưng không làm hỏng dữ kiện trọng yếu.
+- Bảo toàn nguyên văn các con số định lượng và giá trị quan trọng; được phép đổi cách ghi số thành chữ nếu giá trị không đổi.
