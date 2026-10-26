@@ -1,0 +1,28 @@
+.env
+.env.*
+.git/
+.gitignore
+.dockerignore
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+*.db
+
+# Generated evaluation artifacts and repository-only tooling are not image inputs.
+generated/
+backend/tests/
+tests/
+scripts/
+docs/
+
+# Local Qdrant state is provided through a runtime volume or Qdrant service.
+data/qdrant_storage/
+data/processed/
+
+# Frontend dependencies and local Next.js build output.
+frontend/node_modules/
+frontend/.next/

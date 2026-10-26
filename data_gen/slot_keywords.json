@@ -1,0 +1,8 @@
+{
+  "room_area_m2": ["diện tích", "phòng", "m2", "m²"],
+  "budget_vnd": ["ngân sách", "tầm", "triệu", "tr"],
+  "product_advised": ["sản phẩm", "mẫu", "sku", "máy", "giày"],
+  "price_quoted_vnd": ["giá", "bao nhiêu", "giá tiền"],
+  "customer_phone": ["số điện thoại", "sdt", "điện thoại"],
+  "address": ["địa chỉ", "nhà mình ở đâu", "giao về đâu"]
+}
