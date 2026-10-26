@@ -113,6 +113,9 @@ def _create_v1_store(tmp_path):
                 """
             )
         )
+        connection.execute(
+            text("INSERT INTO conversation_sessions (session_id, customer_id) VALUES ('SESSION-1', 'CUST-1')")
+        )
     engine.dispose()
     return PostgresMemoryStore(database_url)
 
@@ -265,6 +268,10 @@ def test_customer_without_history_gets_valid_empty_brief(tmp_path, monkeypatch):
 
 def test_newly_resolved_session_loads_memory_before_planning(tmp_path, monkeypatch):
     store = _create_v1_store(tmp_path)
+    with store.engine.begin() as connection:
+        connection.execute(
+            text("INSERT INTO conversation_sessions (session_id, customer_id) VALUES ('SESSION-NEW', NULL)")
+        )
     _seed_customer_memory(store)
     monkeypatch.setattr(input_nodes, "get_postgres_memory_store", lambda: store)
     from src.memory.profile.profile_store import ProfileStore
@@ -304,7 +311,7 @@ def test_newly_resolved_session_loads_memory_before_planning(tmp_path, monkeypat
                 "name": "Lan",
                 "_input_text": "Tôi muốn tiếp tục tư vấn",
             },
-            "session_id": "NEW-SESSION",
+            "session_id": "SESSION-NEW",
         }
         resolved = resolve_identity_node(initial)
         assert resolved["customer_id"] == "CUST-1"

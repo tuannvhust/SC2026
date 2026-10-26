@@ -22,11 +22,18 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from src.memory.ids import sync_id_sequences
+
 load_dotenv(PROJECT_ROOT / ".env")
 
 SEED_PATH = PROJECT_ROOT / "data" / "catalog" / "crm_seed.json"
 
 REGIONS = {"bac", "trung", "nam"}
+LEGACY_SESSION_ID_RENAMES = {
+    "S-OLD-1": "S000001",
+    "S-OLD-2": "S000002",
+    "S-OLD-3": "S000003",
+}
 
 REQUIRED_COLUMNS = {
     "customers": {
@@ -44,10 +51,14 @@ REQUIRED_COLUMNS = {
     },
     "conversation_sessions": {
         "session_id", "customer_id", "channel", "status",
-        "started_at", "last_activity_at", "ended_at", "outcome",
+        "started_at", "last_activity_at", "ended_at", "finalized_at",
+        "outcome", "handoff_reason", "updated_at",
     },
     "episodic_memory": {
         "session_id", "customer_id", "summary", "outcome", "ended_at",
+        "started_at", "handoff_reason", "products_advised", "orders_summary",
+        "open_questions", "open_blockers", "next_actions", "source_event_ids",
+        "turn_count", "payload_json", "updated_at",
     },
 }
 
@@ -231,7 +242,8 @@ def _build_plan():
                 "items": [{
                     "line_number": 1,
                     "sku": sku,
-                    "product_name_snapshot": sku,
+                    # The source contains SKU but no historical product name.
+                    "product_name_snapshot": None,
                     "quantity": 1,
                     "unit_price_vnd": total,
                     "line_total_vnd": total,
@@ -257,6 +269,23 @@ def _build_plan():
                 "summary": _clean(session.get("summary"))
                     or "Seeded historical session.",
                 "outcome": _clean(session.get("outcome")),
+                "orders_summary": [
+                    {
+                        "order_id": _clean(order.get("order_id")),
+                        "sku": _clean(order.get("sku")) or (
+                            _clean(order.get("skus")[0])
+                            if isinstance(order.get("skus"), list)
+                            and len(order.get("skus")) == 1
+                            else None
+                        ),
+                        "status": _clean(order.get("status")),
+                    }
+                    for order in (source.get("orders") or [])
+                    if _validate_date(
+                        order.get("date") or order.get("order_date"),
+                        f"order {order.get('order_id')}"
+                    ) == session_date
+                ],
             })
 
     return customers, orders, sessions
@@ -289,10 +318,62 @@ def _check_schema(engine):
             + "\nHãy kiểm tra và áp dụng migration trước khi seed."
         )
 
+    with engine.connect() as connection:
+        missing_sequences = [
+            name for name in (
+                "customer_id_seq", "order_id_seq", "session_id_seq"
+            )
+            if connection.execute(
+                text("SELECT to_regclass(:sequence_name)"),
+                {"sequence_name": f"public.{name}"},
+            ).scalar_one_or_none() is None
+        ]
+    if missing_sequences:
+        raise RuntimeError(
+            "Missing normalized ID sequences: " + ", ".join(missing_sequences)
+            + ". Apply migration 003_record_id_sequences.sql first."
+        )
+
 
 def _check_conflicts(conn, customers, orders, sessions):
     """Check all known ID/data conflicts before any INSERT or UPDATE."""
     conflicts = []
+
+    # Renaming these seed identifiers must not silently duplicate already
+    # imported sessions or leave event/profile/checkpoint references behind.
+    inspector = inspect(conn)
+    tables = set(inspector.get_table_names(schema="public"))
+    session_reference_columns = (
+        ("conversation_sessions", "session_id"),
+        ("working_events", "session_id"),
+        ("episodic_memory", "session_id"),
+        ("profile_facts", "source_session_id"),
+        ("checkpoints", "thread_id"),
+        ("checkpoint_writes", "thread_id"),
+        ("checkpoint_blobs", "thread_id"),
+    )
+    for legacy_id, normalized_id in LEGACY_SESSION_ID_RENAMES.items():
+        references = []
+        for table, column in session_reference_columns:
+            if table not in tables:
+                continue
+            available = {
+                item["name"]
+                for item in inspector.get_columns(table, schema="public")
+            }
+            if column not in available:
+                continue
+            found = conn.execute(
+                text(f"SELECT 1 FROM public.{table} WHERE {column} = :sid LIMIT 1"),
+                {"sid": legacy_id},
+            ).first()
+            if found:
+                references.append(f"{table}.{column}")
+        if references:
+            conflicts.append(
+                f"legacy session {legacy_id} -> {normalized_id} has existing references "
+                f"({', '.join(references)}); reconcile with an explicit mapping first"
+            )
 
     for customer in customers:
         cid = customer["customer_id"]
@@ -551,13 +632,14 @@ def _write_seed(conn, customers, orders, sessions):
             text("""
                 INSERT INTO public.conversation_sessions (
                     session_id, customer_id, channel, status,
-                    started_at, last_activity_at, ended_at, outcome
+                    started_at, last_activity_at, ended_at, finalized_at,
+                    outcome, updated_at
                 ) VALUES (
                     :session_id, :customer_id, :channel, 'ended',
                     CAST(:ts AS TIMESTAMPTZ),
                     CAST(:ts AS TIMESTAMPTZ),
                     CAST(:ts AS TIMESTAMPTZ),
-                    :outcome
+                    CAST(:ts AS TIMESTAMPTZ), :outcome, CAST(:ts AS TIMESTAMPTZ)
                 )
                 ON CONFLICT (session_id) DO UPDATE SET
                     customer_id = COALESCE(
@@ -571,9 +653,17 @@ def _write_seed(conn, customers, orders, sessions):
         conn.execute(
             text("""
                 INSERT INTO public.episodic_memory (
-                    session_id, customer_id, summary, outcome, ended_at
+                    session_id, customer_id, summary, outcome, ended_at,
+                    started_at, handoff_reason, products_advised, orders_summary,
+                    open_questions, open_blockers, next_actions,
+                    source_event_ids, turn_count, payload_json, updated_at
                 ) VALUES (
                     :session_id, :customer_id, :summary, :outcome,
+                    CAST(:ts AS TIMESTAMPTZ), CAST(:ts AS TIMESTAMPTZ), NULL,
+                    '[]'::jsonb, CAST(:orders_summary AS JSONB),
+                    '[]'::jsonb, '[]'::jsonb,
+                    '[]'::jsonb, '{}'::uuid[], 0,
+                    jsonb_build_object('source', 'crm_seed', 'time_precision', 'day'),
                     CAST(:ts AS TIMESTAMPTZ)
                 )
                 ON CONFLICT (session_id) DO UPDATE SET
@@ -582,7 +672,11 @@ def _write_seed(conn, customers, orders, sessions):
                         EXCLUDED.customer_id
                     )
             """),
-            {**session, "ts": timestamp},
+            {
+                **session,
+                "orders_summary": json.dumps(session["orders_summary"], ensure_ascii=False),
+                "ts": timestamp,
+            },
         )
 
 
@@ -619,6 +713,7 @@ def run(dry_run=True):
         with engine.begin() as conn:
             _check_conflicts(conn, customers, orders, sessions)
             _write_seed(conn, customers, orders, sessions)
+            sync_id_sequences(conn)
 
         print("[SEED] Transaction committed successfully.")
         print("[SEED] Hoàn tất. Hãy kiểm tra số lượng bản ghi trên Supabase.")

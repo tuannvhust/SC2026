@@ -18,6 +18,7 @@ from sqlalchemy.engine import Engine, make_url
 
 
 import uuid
+from src.memory.ids import next_session_id
 
 
 def _json_default(obj: Any) -> Any:
@@ -50,6 +51,17 @@ def _decode_json(value: Any) -> Any:
 
 def _bounded_limit(limit: int, default: int = 10) -> int:
     return max(1, min(int(limit or default), 1000))
+
+
+def _table_columns(engine: Engine, table: str) -> set[str]:
+    inspector = inspect(engine)
+    try:
+        columns = inspector.get_columns(table)
+    except Exception:
+        if engine.dialect.name != "sqlite":
+            raise
+        columns = inspector.get_columns(table, schema="public")
+    return {column["name"] for column in columns}
 
 
 def default_database_url() -> str:
@@ -247,6 +259,13 @@ class PostgresMemoryStore:
             )
         now_fn = "now()" if self.engine.dialect.name != "sqlite" else "datetime('now')"
         with self.engine.begin() as connection:
+            session_columns = _table_columns(self.engine, "conversation_sessions")
+            activity_update = (
+                f"last_activity_at = {now_fn}"
+                if "last_activity_at" in session_columns
+                else ""
+            )
+            activity_clause = f", {activity_update}" if activity_update else ""
             connection.execute(
                 text(
                     """
@@ -259,10 +278,7 @@ class PostgresMemoryStore:
                         customer_id = COALESCE(
                             conversation_sessions.customer_id,
                             excluded.customer_id
-                        ),
-                        last_activity_at = """
-                    + now_fn
-                    + """
+                        )""" + activity_clause + """
                     """
                 ),
                 {
@@ -290,6 +306,23 @@ class PostgresMemoryStore:
                     "Session is already associated with a different customer."
                 )
             return stored_customer_id
+
+    def create_session(self, channel: str = "web_chat") -> str:
+        """Allocate and insert a fresh session, retrying any ID collision."""
+        for _ in range(5):
+            session_id = next_session_id(self.engine)
+            with self.engine.begin() as connection:
+                inserted = connection.execute(
+                    text(
+                        "INSERT INTO conversation_sessions (session_id, customer_id, channel) "
+                        "VALUES (:session_id, NULL, :channel) "
+                        "ON CONFLICT(session_id) DO NOTHING"
+                    ),
+                    {"session_id": session_id, "channel": channel or "web_chat"},
+                ).rowcount
+            if inserted == 1:
+                return session_id
+        raise RuntimeError("Could not allocate a unique conversation session ID.")
 
     def get_session_events(
         self,
@@ -370,6 +403,17 @@ class PostgresMemoryStore:
         """
         updated_at = datetime.now(timezone.utc).isoformat()
         with self.engine.begin() as connection:
+            conflicting_event = connection.execute(
+                text(
+                    "SELECT event_id FROM working_events WHERE session_id = :session_id "
+                    "AND customer_id IS NOT NULL AND customer_id <> :customer_id LIMIT 1"
+                ),
+                {"session_id": session_id, "customer_id": customer_id},
+            ).first()
+            if conflicting_event:
+                raise RuntimeError(
+                    "Session contains a working event assigned to a different customer."
+                )
             # Update the session record (only this session, not others).
             result = connection.execute(
                 text(
@@ -400,6 +444,8 @@ class PostgresMemoryStore:
                     raise RuntimeError(
                         "Session is already associated with a different customer."
                     )
+                if existing is None:
+                    raise RuntimeError("Cannot assign a customer to a missing session.")
             # Backfill every working event in this session.
             rows = connection.execute(
                 text(
@@ -505,9 +551,7 @@ class PostgresMemoryStore:
         payload: Dict[str, Any],
     ) -> None:
         """Upsert the structured summary of a completed session."""
-        columns = {
-            column["name"] for column in inspect(self.engine).get_columns("episodic_memory")
-        }
+        columns = _table_columns(self.engine, "episodic_memory")
         if "summary" in columns:
             values: Dict[str, Any] = {
                 "session_id": session_id,
@@ -533,7 +577,15 @@ class PostgresMemoryStore:
                     payload.get("next_actions", []), ensure_ascii=False
                 ),
                 "turn_count": int(payload.get("turn_count") or 0),
+                "started_at": payload.get("started_at"),
+                "updated_at": ended_at,
             }
+            if "source_event_ids" in columns:
+                values["source_event_ids"] = (
+                    payload.get("event_ids", [])
+                    if self.engine.dialect.name != "sqlite"
+                    else json.dumps(payload.get("event_ids", []))
+                )
             if "payload_json" in columns:
                 values["payload_json"] = _dumps_json(payload)
             names = [name for name in values if name in columns]
@@ -568,16 +620,107 @@ class PostgresMemoryStore:
             """
 
         with self.engine.begin() as connection:
+            session_columns = _table_columns(self.engine, "conversation_sessions")
+            session_fields = ["customer_id"]
+            if "started_at" in session_columns:
+                session_fields.append("started_at")
+            session_owner = connection.execute(
+                text(
+                    f"SELECT {', '.join(session_fields)} FROM conversation_sessions "
+                    "WHERE session_id = :sid"
+                ),
+                {"sid": session_id},
+            ).mappings().first()
+            if session_owner is None:
+                raise RuntimeError("Cannot finalize a missing conversation session.")
+            owner_id = session_owner["customer_id"]
+            if owner_id and customer_id and owner_id != customer_id:
+                raise RuntimeError("Cannot finalize a session for a different customer.")
+            if "started_at" in values and not values["started_at"]:
+                values["started_at"] = session_owner.get("started_at")
+            if customer_id and not owner_id:
+                connection.execute(
+                    text("UPDATE conversation_sessions SET customer_id = :cid "
+                         "WHERE session_id = :sid AND customer_id IS NULL"),
+                    {"cid": customer_id, "sid": session_id},
+                )
             connection.execute(text(statement), values)
+
+            # Finalization fields and the episode commit in the same transaction.
+            lifecycle_values = {
+                "status": "ended",
+                "ended_at": ended_at,
+                "finalized_at": ended_at,
+                "outcome": payload.get("outcome"),
+                "handoff_reason": payload.get("handoff_reason"),
+                "updated_at": ended_at,
+            }
+            assignments = []
+            for name, value in lifecycle_values.items():
+                if name not in session_columns:
+                    continue
+                if name in {"ended_at", "finalized_at"}:
+                    assignments.append(f"{name} = COALESCE({name}, :{name})")
+                elif name == "status":
+                    assignments.append("status = 'ended'")
+                else:
+                    assignments.append(f"{name} = :{name}")
+            if assignments:
+                connection.execute(
+                    text("UPDATE conversation_sessions SET " + ", ".join(assignments)
+                         + " WHERE session_id = :session_id"),
+                    {**lifecycle_values, "session_id": session_id},
+                )
+
+    def finalize_empty_session(
+        self,
+        *,
+        session_id: str,
+        customer_id: Optional[str],
+        ended_at: str,
+    ) -> None:
+        """Finalize a session with no turns without creating an empty episode."""
+        columns = _table_columns(self.engine, "conversation_sessions")
+        lifecycle_values = {
+            "status": "ended",
+            "ended_at": ended_at,
+            "finalized_at": ended_at,
+            "updated_at": ended_at,
+        }
+        assignments = []
+        for name, value in lifecycle_values.items():
+            if name not in columns:
+                continue
+            if name in {"ended_at", "finalized_at"}:
+                assignments.append(f"{name} = COALESCE({name}, :{name})")
+            elif name == "status":
+                assignments.append("status = 'ended'")
+            else:
+                assignments.append(f"{name} = :{name}")
+        if customer_id and "customer_id" in columns:
+            assignments.append("customer_id = COALESCE(customer_id, :customer_id)")
+        with self.engine.begin() as connection:
+            result = connection.execute(
+                text(
+                    "UPDATE conversation_sessions SET " + ", ".join(assignments)
+                    + " WHERE session_id = :session_id"
+                    + (" AND (customer_id IS NULL OR customer_id = :customer_id)"
+                       if customer_id else "")
+                ),
+                {**lifecycle_values, "session_id": session_id, "customer_id": customer_id},
+            )
+            if result.rowcount == 0:
+                raise RuntimeError(
+                    "Empty session could not be finalized: it is missing or belongs "
+                    "to a different customer."
+                )
 
     def get_recent_episodes(
         self,
         customer_id: str,
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
-        columns = {
-            column["name"] for column in inspect(self.engine).get_columns("episodic_memory")
-        }
+        columns = _table_columns(self.engine, "episodic_memory")
         available = [
             name
             for name in (
@@ -641,15 +784,22 @@ class PostgresMemoryStore:
         self, customer_id: str
     ) -> Dict[str, Dict[str, Any]]:
         """Return current profile facts with provenance (simplified schema)."""
+        columns = _table_columns(self.engine, "profile_facts")
+        required = {"profile_key", "profile_value"}
+        if not required.issubset(columns):
+            raise RuntimeError("profile_facts is missing current-value columns.")
+        optional = (
+            "source_session_id", "source_event_id", "source_kind",
+            "confidence", "updated_at",
+        )
+        selected = ["profile_key", "profile_value"] + [
+            name for name in optional if name in columns
+        ]
         with self.engine.connect() as connection:
             rows = connection.execute(
                 text(
-                    """
-                    SELECT profile_key, profile_value, source_session_id,
-                           source_event_id, source_kind, confidence, updated_at
-                    FROM profile_facts
-                    WHERE customer_id = :customer_id
-                    """
+                    f"SELECT {', '.join(selected)} FROM profile_facts "
+                    "WHERE customer_id = :customer_id"
                 ),
                 {"customer_id": customer_id},
             ).mappings().all()
@@ -657,11 +807,11 @@ class PostgresMemoryStore:
         for row in rows:
             facts[row["profile_key"]] = {
                 "value": _decode_json(row["profile_value"]),
-                "source_session_id": row["source_session_id"],
-                "source_event_id": str(row["source_event_id"]) if row["source_event_id"] else None,
-                "source_kind": row["source_kind"],
-                "confidence": float(row["confidence"]) if row["confidence"] is not None else None,
-                "updated_at": row["updated_at"],
+                "source_session_id": row.get("source_session_id"),
+                "source_event_id": str(row["source_event_id"]) if row.get("source_event_id") else None,
+                "source_kind": row.get("source_kind"),
+                "confidence": float(row["confidence"]) if row.get("confidence") is not None else None,
+                "updated_at": row.get("updated_at"),
             }
         return facts
 
@@ -680,9 +830,7 @@ class PostgresMemoryStore:
     def get_recent_episodes_for_session(
         self, session_id: str
     ) -> Optional[Dict[str, Any]]:
-        columns = {
-            column["name"] for column in inspect(self.engine).get_columns("episodic_memory")
-        }
+        columns = _table_columns(self.engine, "episodic_memory")
         available = [
             name
             for name in (
@@ -745,76 +893,83 @@ class PostgresMemoryStore:
     ) -> None:
         """UPSERT current profile facts (simplified schema, no history table)."""
         is_sqlite = self.engine.dialect.name == "sqlite"
+        columns = _table_columns(self.engine, "profile_facts")
         with self.engine.begin() as connection:
+            session_owner = connection.execute(
+                text(
+                    "SELECT customer_id FROM conversation_sessions "
+                    "WHERE session_id = :session_id"
+                ),
+                {"session_id": session_id},
+            ).mappings().first()
+            if session_owner is None:
+                raise RuntimeError("Cannot save profile facts for a missing session.")
+            if session_owner["customer_id"] != customer_id:
+                raise RuntimeError("Profile fact customer does not own the source session.")
             for fact in facts:
                 key = fact["key"]
                 new_value_json = _dumps_json(fact["value"])
+                fact_event_id = fact.get("source_event_id", source_event_id)
+                if fact_event_id:
+                    source_event = connection.execute(
+                        text(
+                            "SELECT customer_id FROM working_events "
+                            "WHERE event_id = :event_id AND session_id = :session_id"
+                        ),
+                        {"event_id": fact_event_id, "session_id": session_id},
+                    ).mappings().first()
+                    if source_event is None or source_event["customer_id"] not in (
+                        None, customer_id
+                    ):
+                        raise RuntimeError(
+                            "Profile fact event does not belong to the source session/customer."
+                        )
+                all_values = {
+                    "customer_id": customer_id,
+                    "profile_key": key,
+                    "profile_value": new_value_json,
+                    "source_session_id": session_id,
+                    "source_event_id": fact_event_id,
+                    "source_kind": fact.get("source_kind") or source_kind,
+                    "confidence": fact.get("confidence", confidence),
+                    "updated_at": updated_at,
+                }
+                names = [name for name in all_values if name in columns]
+                if "profile_value" not in names:
+                    raise RuntimeError("profile_facts is missing profile_value.")
+                insert_values = []
+                for name in names:
+                    placeholder = f":{name}"
+                    if not is_sqlite and name == "profile_value":
+                        placeholder = f"CAST({placeholder} AS JSONB)"
+                    elif not is_sqlite and name == "source_event_id":
+                        placeholder = f"CAST({placeholder} AS UUID)"
+                    elif not is_sqlite and name == "updated_at":
+                        placeholder = f"CAST({placeholder} AS TIMESTAMPTZ)"
+                    insert_values.append(placeholder)
+                updates = [
+                    f"{name} = excluded.{name}"
+                    for name in names
+                    if name not in {"customer_id", "profile_key"}
+                ]
+                statement = (
+                    f"INSERT INTO profile_facts ({', '.join(names)}) "
+                    f"VALUES ({', '.join(insert_values)}) "
+                    "ON CONFLICT(customer_id, profile_key) DO UPDATE SET "
+                    + ", ".join(updates)
+                )
                 if is_sqlite:
                     # SQLite has no JSONB/UUID/TIMESTAMPTZ casts; store ISO text.
                     connection.execute(
                         text(
-                            """
-                            INSERT INTO profile_facts (
-                                customer_id, profile_key, profile_value,
-                                source_session_id, source_event_id, source_kind,
-                                confidence, updated_at
-                            ) VALUES (
-                                :customer_id, :profile_key, :value_json,
-                                :source_session_id, :source_event_id,
-                                :source_kind, :confidence, :updated_at
-                            )
-                            ON CONFLICT(customer_id, profile_key) DO UPDATE SET
-                                profile_value = excluded.profile_value,
-                                source_session_id = excluded.source_session_id,
-                                source_event_id = excluded.source_event_id,
-                                source_kind = excluded.source_kind,
-                                confidence = excluded.confidence,
-                                updated_at = excluded.updated_at
-                            """
+                            statement
                         ),
-                        {
-                            "customer_id": customer_id,
-                            "profile_key": key,
-                            "value_json": new_value_json,
-                            "source_session_id": session_id,
-                            "source_event_id": source_event_id,
-                            "source_kind": fact.get("source_kind") or source_kind,
-                            "confidence": fact.get("confidence", confidence),
-                            "updated_at": updated_at,
-                        },
+                        all_values,
                     )
                     continue
                 connection.execute(
-                    text(
-                        """
-                        INSERT INTO profile_facts (
-                            customer_id, profile_key, profile_value,
-                            source_session_id, source_event_id, source_kind,
-                            confidence, updated_at
-                        ) VALUES (
-                            :customer_id, :profile_key, CAST(:value_json AS JSONB),
-                            :source_session_id, CAST(:source_event_id AS UUID),
-                            :source_kind, :confidence, CAST(:updated_at AS TIMESTAMPTZ)
-                        )
-                        ON CONFLICT(customer_id, profile_key) DO UPDATE SET
-                            profile_value = excluded.profile_value,
-                            source_session_id = excluded.source_session_id,
-                            source_event_id = excluded.source_event_id,
-                            source_kind = excluded.source_kind,
-                            confidence = excluded.confidence,
-                            updated_at = excluded.updated_at
-                    """
-                    ),
-                    {
-                        "customer_id": customer_id,
-                        "profile_key": key,
-                        "value_json": new_value_json,
-                        "source_session_id": session_id,
-                        "source_event_id": source_event_id,
-                        "source_kind": fact.get("source_kind") or source_kind,
-                        "confidence": fact.get("confidence", confidence),
-                        "updated_at": updated_at,
-                    },
+                    text(statement),
+                    all_values,
                 )
 
     def get_profile_fact_history(

@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
+from src.memory.ids import next_customer_id, next_order_id
 try:
     from supabase import Client, ClientOptions, create_client
 except ImportError:
@@ -693,9 +694,9 @@ def _real_crm_name(full_name: Optional[str], preferred_name: Optional[str]) -> O
 _REGISTRATION_MUTEX = Lock()
 
 
-def _generate_customer_id() -> str:
-    """Generate a unique opaque customer_id compatible with text primary key."""
-    return f"CUST_{uuid.uuid4().hex[:8].upper()}"
+def _generate_customer_id(connection=None) -> str:
+    """Allocate the next normalized customer ID from PostgreSQL."""
+    return next_customer_id(_get_crm_engine(), connection)
 
 
 def crm_create_customer_if_absent(
@@ -815,7 +816,7 @@ def crm_create_customer_if_absent(
                 # No match found -> create new customer with collision retry
                 customer_id = None
                 for _ in range(5):
-                    candidate_id = _generate_customer_id()
+                    candidate_id = _generate_customer_id(connection)
                     id_check = connection.execute(
                         text("SELECT 1 FROM public.customers WHERE customer_id = :cid"),
                         {"cid": candidate_id},
@@ -1452,6 +1453,10 @@ def compute_estimated_delivery(on: Optional[str]) -> str:
 
 
 class OrderCreateInput(BaseModel):
+    customer_id: Optional[str] = Field(
+        default=None,
+        description="Resolved CRM customer ID; preferred when available",
+    )
     customer_phone: str = Field(
         description="Customer phone number",
     )
@@ -1488,6 +1493,7 @@ def order_create(
     qty: int,
     price_vnd: int,
     payment: PaymentMethod,
+    customer_id: Optional[str] = None,
     promo_code: Optional[str] = None,
     address: Optional[str] = None,
     on: Optional[str] = None,
@@ -1514,8 +1520,27 @@ def order_create(
     try:
         engine = _get_crm_engine()
         with engine.begin() as connection:
-            customers = _resolve_crm_customers(connection, phone=normalized_phone)
-            distinct = {row["customer_id"] for row in customers}
+            if customer_id:
+                selected = connection.execute(
+                    text("SELECT customer_id, phone FROM public.customers "
+                         "WHERE customer_id = :customer_id AND deleted_at IS NULL "
+                         "AND status NOT IN ('merged', 'deleted')"),
+                    {"customer_id": customer_id},
+                ).mappings().first()
+                customers = [selected] if selected else []
+                # Reject a stale/mismatched phone rather than creating an order
+                # for an unrelated resolved identity.
+                if selected and selected.get("phone"):
+                    stored_phone = _normalize_phone(selected["phone"])
+                    if stored_phone != normalized_phone:
+                        return {
+                            "order_id": None, "status": "identity_conflict",
+                            "error": "customer_id does not match customer_phone",
+                            "estimated_delivery": compute_estimated_delivery(on),
+                        }
+            else:
+                customers = _resolve_crm_customers(connection, phone=normalized_phone)
+            distinct = {row["customer_id"] for row in customers if row}
             if len(distinct) != 1:
                 return {
                     "order_id": None,
@@ -1525,7 +1550,7 @@ def order_create(
                 }
             customer_id = next(iter(distinct))
             order_date = _parse_iso_date(on) or date.today()
-            order_id = f"ORD-{order_date.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+            order_id = next_order_id(engine, connection)
             line_total = quantity * unit_price
             connection.execute(
                 text(
@@ -1545,7 +1570,7 @@ def order_create(
                 text(
                     "INSERT INTO public.order_items (order_id, line_number, sku, "
                     "product_name_snapshot, quantity, unit_price_vnd, "
-                    "line_total_vnd) VALUES (:order_id, 1, :sku, :sku, "
+                    "line_total_vnd) VALUES (:order_id, 1, :sku, NULL, "
                     ":quantity, :unit_price_vnd, :line_total_vnd)"
                 ),
                 {

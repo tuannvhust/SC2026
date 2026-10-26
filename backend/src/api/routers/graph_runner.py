@@ -68,12 +68,12 @@ def invoke_customer_turn(
     customer_info: Optional[Dict[str, Any]] = None,
     session_ended: bool = False,
     on_call_brief: Optional[Callable[[Dict[str, Any]], None]] = None,
+    on_session_ready: Optional[Callable[[str], None]] = None,
 ) -> Dict[str, Any]:
-    active_session_id = session_id or str(uuid.uuid4())
+    memory_store = get_postgres_memory_store()
     requested_customer_id = (
         customer_id if customer_id and customer_id != "anonymous" else None
     )
-    memory_store = get_postgres_memory_store()
     channel_aliases = {
         "chat": "web_chat",
         "call": "hotline",
@@ -89,6 +89,7 @@ def invoke_customer_turn(
         "other",
     }:
         normalized_channel = "other"
+    active_session_id = session_id or memory_store.create_session(normalized_channel)
 
     try:
         effective_customer_id = memory_store.ensure_session(
@@ -104,6 +105,8 @@ def invoke_customer_turn(
         raise RuntimeError(
             "Could not create or confirm the conversation session."
         ) from error
+    if on_session_ready:
+        on_session_ready(active_session_id)
 
     events = memory_store.get_session_events(
         active_session_id,
@@ -212,6 +215,9 @@ def finalize_session(
     ):
         raise ValueError("The session is associated with a different customer.")
     restored_customer_id = requested_customer_id or stored_customer_id
+    if restored_customer_id and not stored_customer_id:
+        store.update_session_customer_id(active_session_id, restored_customer_id)
+        stored_customer_id = restored_customer_id
     events = store.get_session_events(
         active_session_id,
         customer_id=restored_customer_id,
@@ -224,6 +230,14 @@ def finalize_session(
             if candidate:
                 restored_customer_id = candidate
                 break
+        if restored_customer_id and not stored_customer_id:
+            store.update_session_customer_id(active_session_id, restored_customer_id)
+            stored_customer_id = restored_customer_id
+            events = store.get_session_events(
+                active_session_id,
+                customer_id=restored_customer_id,
+                limit=1000,
+            )
 
     trace = GraphTrace(
         run_id=new_run_id(),

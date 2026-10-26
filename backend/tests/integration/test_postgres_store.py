@@ -64,6 +64,9 @@ def test_profile_facts_are_upserted_and_read_as_json():
                 """
             )
         )
+        connection.execute(
+            text("INSERT INTO conversation_sessions (session_id, customer_id) VALUES ('session-1', 'customer-1'), ('session-2', 'customer-1')")
+        )
     try:
         store.save_profile_facts(
             "customer-1",

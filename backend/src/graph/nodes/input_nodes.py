@@ -117,7 +117,7 @@ TEENCODE_MAP = {
 def _get_call_brief_validator() -> Draft202012Validator:
     """Load and cache the canonical CallBrief JSON Schema."""
     schema_path = (
-        Path(__file__).resolve().parents[3]
+        Path(__file__).resolve().parents[4]
         / "data"
         / "schemas"
         / "call_brief.schema.json"
@@ -342,7 +342,7 @@ def input_guardrail_node(state: AgentState) -> Dict[str, Any]:
     text = _get_last_message_text(state).strip()
     now = datetime.now().isoformat()
     session_context = {
-        "session_id": state.get("session_id") or str(uuid.uuid4()),
+        "session_id": state.get("session_id"),
         "session_started_at": state.get("session_started_at") or now,
         "turn_id": state.get("turn_id") or str(uuid.uuid4()),
     }
@@ -401,8 +401,11 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
 
     # ---- Case A — customer_id already present in state ----
     existing_customer_id = state.get("customer_id")
-    if existing_customer_id:
-        context = dict(state.get("customer_info") or {})
+    context = dict(state.get("customer_info") or {})
+    missing_fields = set(state.get("missing_identity_fields") or [])
+    if existing_customer_id and not (
+        "name" in missing_fields and not _real_name(context.get("name"))
+    ):
         context["_input_text"] = context.get("_input_text", "") or ""
         return {
             "customer_id": existing_customer_id,
@@ -415,7 +418,6 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
         }
 
     # ---- Prepare context and extract phone ----
-    context = dict(state.get("customer_info") or {})
     text = context.get("_input_text", "") or ""
     raw_text = _get_last_message_text(state) or text
 
@@ -424,7 +426,6 @@ def resolve_identity_node(state: AgentState) -> Dict[str, Any]:
         # Recover historical context, but prefer a name explicitly provided
     # in the current message when the previous identity needs clarification.
     brief_fallback = dict(state.get("call_brief") or {})
-    missing_fields = set(state.get("missing_identity_fields") or [])
 
     extracted_name = _extract_name(raw_text or text)
 
@@ -746,12 +747,15 @@ def _get_last_session(sessions: List[Dict[str, Any]],) -> Optional[LastSession]:
         key=lambda item: str(item.get("date") or ""),
     )
 
+    outcome = str(latest.get("outcome") or "khac")
+    if outcome not in set(CallBriefOutcome.__args__):
+        outcome = "khac"
     return LastSession(
         session_id=str(latest.get("session_id", "")),
         date=str(latest.get("date", "")),
         channel=str(latest.get("channel") or "other"),
         summary=str(latest.get("summary") or ""),
-        outcome=str(latest.get("outcome") or "other")
+        outcome=outcome
     )
 
 def _build_must_not_ask(
@@ -1196,7 +1200,7 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
                 date=str(session["date"]),
                 channel=str(session.get("channel") or "other"),
                 summary=str(session.get("summary") or ""),
-                outcome=str(session.get("outcome") or "other"),
+                outcome=str(session.get("outcome") or "khac"),
             )
             for session in episode_sessions
         ],
@@ -1235,10 +1239,15 @@ def build_call_brief_node(state: AgentState) -> Dict[str, Any]:
             raise RuntimeError(
                 "Cannot persist Call Brief because memory storage is unavailable."
             ) from working_store_error
+        persisted_brief = {
+            key: value
+            for key, value in brief_dict.items()
+            if key in _get_call_brief_validator().schema.get("properties", {})
+        }
         brief_dict["call_brief_revision"] = working_store.save_call_brief(
             session_id=session_id,
             customer_id=customer_id,
-            call_brief=brief_dict,
+            call_brief=persisted_brief,
         )
         brief_dict["call_brief_updated_at"] = (datetime.now(timezone.utc).isoformat())
     _validate_call_brief_schema(brief_dict)

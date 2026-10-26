@@ -67,6 +67,7 @@
       "level": "M1",
       "description": "Tạo đơn. args_match trong kịch bản đối chiếu sku và price_vnd (giá SAU khuyến mãi hợp lệ).",
       "input": {
+        "customer_id": "string? (resolved CRM identity; preferred when available)",
         "customer_phone": "string",
         "sku": "string",
         "qty": "int",

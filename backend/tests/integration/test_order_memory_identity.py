@@ -2,6 +2,7 @@
 
 from datetime import date, datetime, timedelta
 from sqlalchemy import create_engine, text
+import pytest
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
@@ -13,6 +14,7 @@ from src.tools.tool_repository import (
     memory_write,
     order_create,
 )
+from src.tools import tool_repository
 
 
 def _new_sqlite_memory_store(database_url):
@@ -26,7 +28,46 @@ def _new_sqlite_memory_store(database_url):
                     customer_id TEXT,
                     channel TEXT NOT NULL DEFAULT 'web_chat',
                     status TEXT NOT NULL DEFAULT 'active',
-                    updated_at TEXT
+                    updated_at TEXT,
+                    last_activity_at TEXT
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS working_events (
+                    event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,
+                    turn_id TEXT NOT NULL, turn_number INTEGER NOT NULL,
+                    customer_id TEXT, created_at TEXT NOT NULL, payload_json TEXT NOT NULL,
+                    UNIQUE(session_id, turn_id), UNIQUE(session_id, turn_number)
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS episodic_memory (
+                    session_id TEXT PRIMARY KEY, customer_id TEXT,
+                    ended_at TEXT, summary TEXT NOT NULL, current_need TEXT,
+                    outcome TEXT, handoff_reason TEXT, products_advised TEXT,
+                    orders_summary TEXT, open_questions TEXT, open_blockers TEXT,
+                    next_actions TEXT, turn_count INTEGER, started_at TEXT,
+                    payload_json TEXT, updated_at TEXT
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS profile_facts (
+                    customer_id TEXT NOT NULL, profile_key TEXT NOT NULL,
+                    profile_value TEXT, source_session_id TEXT, source_event_id TEXT,
+                    source_kind TEXT, confidence REAL, updated_at TEXT,
+                    PRIMARY KEY(customer_id, profile_key)
                 )
                 """
             )
@@ -35,7 +76,7 @@ def _new_sqlite_memory_store(database_url):
     return persistence_nodes.PostgresMemoryStore(database_url)
 
 
-def test_order_delivery_never_in_past_and_skips_sunday_and_holiday():
+def test_order_delivery_never_in_past_and_skips_sunday_and_holiday(monkeypatch):
     # Friday order -> Saturday delivery (>= order date, not Sunday).
     friday = "2026-10-16"
     delivery = compute_estimated_delivery(friday)
@@ -57,6 +98,18 @@ def test_order_delivery_never_in_past_and_skips_sunday_and_holiday():
     assert today_default != "2026-10-10"
 
     # Tool output wired to the same helper.
+    engine = create_engine("sqlite+pysqlite://")
+    from sqlalchemy import event
+    @event.listens_for(engine, "connect")
+    def attach_public(connection, _record):
+        connection.execute("ATTACH DATABASE ':memory:' AS public")
+    with engine.begin() as connection:
+        connection.execute(text("CREATE TABLE public.customers (customer_id TEXT PRIMARY KEY, full_name TEXT, preferred_name TEXT, honorific TEXT, phone TEXT, phone_verified BOOLEAN, zalo_id TEXT, fb_id TEXT, email TEXT, status TEXT, deleted_at TEXT)"))
+        connection.execute(text("INSERT INTO public.customers VALUES ('C051', 'Lan', 'Lan', NULL, '0912345678', 0, NULL, NULL, NULL, 'provisional', NULL)"))
+        connection.execute(text("CREATE TABLE public.orders (order_id TEXT PRIMARY KEY, customer_id TEXT, order_date DATE, status TEXT, total_amount_vnd INTEGER, currency TEXT, source_system TEXT)"))
+        connection.execute(text("CREATE TABLE public.order_items (order_id TEXT, line_number INTEGER, sku TEXT, product_name_snapshot TEXT, quantity INTEGER, unit_price_vnd INTEGER, line_total_vnd INTEGER, UNIQUE(order_id, line_number))"))
+    monkeypatch.setattr(tool_repository, "_get_crm_engine", lambda: engine)
+    monkeypatch.setattr(tool_repository, "next_order_id", lambda *_args: "OD301178")
     result = order_create.invoke(
         {
             "customer_phone": "0912345678",
@@ -68,6 +121,11 @@ def test_order_delivery_never_in_past_and_skips_sunday_and_holiday():
         }
     )
     assert result["estimated_delivery"] == compute_estimated_delivery("2026-10-16")
+    assert result["order_id"] == "OD301178"
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT customer_id FROM public.orders")).scalar_one() == "C051"
+        assert connection.execute(text("SELECT sku, quantity, unit_price_vnd FROM public.order_items")).one() == ("SKU-AP-Y", 1, 5200000)
+    engine.dispose()
 
 
 def test_memory_write_provenance_then_commit_and_read_back(tmp_path, monkeypatch):

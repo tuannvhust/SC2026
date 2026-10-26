@@ -23,7 +23,12 @@ def _create_store(tmp_path):
                     customer_id TEXT,
                     channel TEXT NOT NULL DEFAULT 'web_chat',
                     status TEXT NOT NULL DEFAULT 'active',
+                    started_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     last_activity_at TEXT,
+                    ended_at TEXT,
+                    finalized_at TEXT,
+                    outcome TEXT,
+                    handoff_reason TEXT,
                     updated_at TEXT
                 )
                 """
@@ -43,6 +48,30 @@ def _create_store(tmp_path):
                     payload_json TEXT NOT NULL,
                     UNIQUE(session_id, turn_id),
                     UNIQUE(session_id, turn_number)
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE episodic_memory (
+                    session_id TEXT PRIMARY KEY,
+                    customer_id TEXT,
+                    ended_at TEXT,
+                    summary TEXT NOT NULL,
+                    current_need TEXT,
+                    outcome TEXT,
+                    handoff_reason TEXT,
+                    products_advised TEXT,
+                    orders_summary TEXT,
+                    open_questions TEXT,
+                    open_blockers TEXT,
+                    next_actions TEXT,
+                    turn_count INTEGER,
+                    started_at TEXT,
+                    payload_json TEXT,
+                    updated_at TEXT
                 )
                 """
             )
@@ -151,6 +180,37 @@ def test_unknown_customer_session_still_persists_null_customer_event(tmp_path):
         assert turn_number == 1
         assert _session_row(store, "SESSION-GUEST")["customer_id"] is None
         assert store.get_session_events("SESSION-GUEST")[0]["customer_id"] is None
+    finally:
+        store.close()
+
+
+def test_episode_and_session_finalization_commit_together_and_are_idempotent(tmp_path):
+    store = _create_store(tmp_path)
+    try:
+        store.ensure_session(session_id="S000004", customer_id=None)
+        store.save_episode(
+            session_id="S000004",
+            customer_id=None,
+            ended_at="2026-10-26T10:00:00+00:00",
+            payload={"summary": "Finished", "outcome": "khac", "turn_count": 1},
+        )
+        store.save_episode(
+            session_id="S000004",
+            customer_id=None,
+            ended_at="2026-10-26T10:05:00+00:00",
+            payload={"summary": "Finished", "outcome": "khac", "turn_count": 1},
+        )
+        with store.engine.connect() as connection:
+            session = connection.execute(
+                text("SELECT status, ended_at, finalized_at, outcome FROM conversation_sessions WHERE session_id = 'S000004'")
+            ).one()
+            episode_count = connection.execute(
+                text("SELECT COUNT(*) FROM episodic_memory WHERE session_id = 'S000004'")
+            ).scalar_one()
+        assert session[0] == "ended"
+        assert session[1] == session[2] == "2026-10-26T10:00:00+00:00"
+        assert session[3] == "khac"
+        assert episode_count == 1
     finally:
         store.close()
 

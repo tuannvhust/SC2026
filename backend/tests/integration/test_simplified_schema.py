@@ -38,6 +38,8 @@ def test_runtime_creates_no_tables_or_history():
 
 def test_profile_upsert_keeps_current_value_only(monkeypatch):
     store = _sqlite_store()
+    with store.engine.begin() as connection:
+        connection.execute(text("INSERT INTO public.conversation_sessions (session_id, customer_id) VALUES ('S1', 'C001'), ('S2', 'C001')"))
     store.save_profile_facts(customer_id="C001", facts=[{"key": "size", "value": "M"}], session_id="S1", updated_at="2026-10-19T00:00:00+00:00")
     store.save_profile_facts(customer_id="C001", facts=[{"key": "size", "value": "L"}], session_id="S2", updated_at="2026-10-19T01:00:00+00:00")
     facts = store.get_profile_facts("C001")

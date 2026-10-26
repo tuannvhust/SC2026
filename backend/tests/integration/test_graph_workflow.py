@@ -42,7 +42,66 @@ def _new_sqlite_memory_store(database_url):
                     customer_id TEXT,
                     channel TEXT NOT NULL DEFAULT 'web_chat',
                     status TEXT NOT NULL DEFAULT 'active',
+                    started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    last_activity_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    ended_at TEXT,
+                    finalized_at TEXT,
+                    outcome TEXT,
+                    handoff_reason TEXT,
                     updated_at TEXT
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS episodic_memory (
+                    session_id TEXT PRIMARY KEY,
+                    customer_id TEXT,
+                    ended_at TEXT,
+                    summary TEXT NOT NULL,
+                    current_need TEXT,
+                    outcome TEXT,
+                    handoff_reason TEXT,
+                    products_advised TEXT,
+                    orders_summary TEXT,
+                    open_questions TEXT,
+                    open_blockers TEXT,
+                    next_actions TEXT,
+                    turn_count INTEGER,
+                    started_at TEXT,
+                    payload_json TEXT,
+                    updated_at TEXT
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS working_events (
+                    event_id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    turn_id TEXT NOT NULL,
+                    turn_number INTEGER NOT NULL,
+                    customer_id TEXT,
+                    created_at TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    UNIQUE(session_id, turn_id),
+                    UNIQUE(session_id, turn_number)
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS profile_facts (
+                    customer_id TEXT NOT NULL, profile_key TEXT NOT NULL,
+                    profile_value TEXT, source_session_id TEXT, source_event_id TEXT,
+                    source_kind TEXT DEFAULT 'customer_stated', confidence REAL,
+                    updated_at TEXT, PRIMARY KEY(customer_id, profile_key)
                 )
                 """
             )
@@ -149,7 +208,7 @@ def test_invalid_input_ends_without_undeclared_state_fields(tmp_path, monkeypatc
             f"sqlite+pysqlite:///{tmp_path / 'memory.sqlite3'}"
         ),
     )
-    result = build_graph().invoke({"messages": [HumanMessage(content="x")]})
+    result = build_graph().invoke({"messages": [HumanMessage(content="x")], "session_id": "S000100"})
 
     assert result["input_valid"] is False
     assert "tool_results" not in result
@@ -430,7 +489,7 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
     persistence_nodes.persist_call_node(state)
     episode = store.get_episode("SESSION-2")
 
-    assert episode["outcome"] == "completed"
+    assert episode["outcome"] == "khac"
     assert episode["products_advised"] == [
         {
             "sku": "SKU-AP-X",
@@ -444,7 +503,12 @@ def test_persist_call_writes_episode_and_only_explicit_profile_facts(
     assert profile_store.updates == [
         (
             "CUST-2",
-            [{"key": "preferred_category", "value": "air purifier"}],
+            [{
+                "key": "preferred_category",
+                "value": "air purifier",
+                "source_event_id": store.get_session_events("SESSION-2")[0]["event_id"],
+                "source_kind": "customer_stated",
+            }],
             "SESSION-2",
         )
     ]
@@ -492,10 +556,10 @@ def test_persist_call_skips_empty_session_and_is_idempotent(tmp_path, monkeypatc
     assert store.get_episode("SESSION-EMPTY") is None
 
 
-def test_profile_fact_is_written_to_qdrant_and_postgres():
+def test_profile_fact_is_written_to_postgres_only():
     from types import SimpleNamespace
 
-    from src.memory.profile.profile_store import ProfileStore, PROFILE_COLLECTION
+    from src.memory.profile.profile_store import ProfileStore
 
     class FakePostgresStore:
         def save_profile_facts(self, **kwargs):
@@ -523,10 +587,7 @@ def test_profile_fact_is_written_to_qdrant_and_postgres():
         "SESSION-4",
     )
 
-    assert vector_store.initialized == (PROFILE_COLLECTION, 768)
-    point = vector_store.client.upserted["points"][0]
-    assert point.payload["provenance_session_id"] == "SESSION-4"
-    assert point.payload["profile_key"] == "preferred_category"
+    assert not hasattr(vector_store, "initialized")
     assert postgres_store.saved["customer_id"] == "CUST-4"
     assert postgres_store.saved["session_id"] == "SESSION-4"
     assert postgres_store.saved["facts"] == [
@@ -542,6 +603,10 @@ def test_profile_commit_survives_qdrant_failure_and_versions_history(tmp_path):
     postgres = _new_sqlite_memory_store(
         f"sqlite+pysqlite:///{tmp_path / 'profile.sqlite3'}"
     )
+    with postgres.engine.begin() as connection:
+        connection.execute(
+            text("INSERT INTO conversation_sessions (session_id, customer_id) VALUES ('SESSION-A', 'CUST-P2'), ('SESSION-B', 'CUST-P2')")
+        )
 
     class FailingVectorStore:
         def init_collection(self, *args, **kwargs):
@@ -558,9 +623,11 @@ def test_profile_commit_survives_qdrant_failure_and_versions_history(tmp_path):
         "CUST-P2", [{"key": "size", "value": "L"}], "SESSION-B"
     )
     assert postgres.get_profile_facts("CUST-P2") == {"size": "L"}
-    history = postgres.get_profile_fact_history("CUST-P2", "size")
-    assert [item["new_value"] for item in history] == ["M", "L"]
-    assert history[1]["old_value"] == "M"
+    try:
+        postgres.get_profile_fact_history("CUST-P2", "size")
+        raise AssertionError("Simplified schema must not expose profile history")
+    except RuntimeError as error:
+        assert "simplified schema" in str(error)
 
 
 def test_memory_write_queues_profile_fact_until_session_commit():

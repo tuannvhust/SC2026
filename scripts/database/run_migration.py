@@ -75,13 +75,17 @@ def run_migration(rollback: bool = False):
     print(f"[MIGRATION] Target database: {describe_database_url(db_url)}")
 
     migration_dir = BACKEND_ROOT / "src" / "memory" / "migrations"
-    sequence = ["002_simplified_schema", "001_schema_v1"] if rollback else ["001_schema_v1", "002_simplified_schema"]
+    sequence = (
+        ["003_record_id_sequences"]
+        if rollback
+        else ["001_schema_v1", "002_simplified_schema", "003_record_id_sequences"]
+    )
 
     from sqlalchemy import create_engine
     engine = create_engine(db_url)
 
     if rollback:
-        print("[MIGRATION] WARNING: rollback requested — additive 002 reverted first, then v1.")
+        print("[MIGRATION] Rolling back only the additive ID sequences; data tables are preserved.")
     for name in sequence:
         suffix = "_rollback.sql" if rollback else ".sql"
         sql_file = migration_dir / f"{name}{suffix}"
@@ -103,6 +107,10 @@ def run_migration(rollback: bool = False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rollback", action="store_true", help="Rollback schema v1")
+    parser.add_argument(
+        "--rollback",
+        action="store_true",
+        help="Remove only the additive ID sequences; preserve all data tables",
+    )
     args = parser.parse_args()
     run_migration(rollback=args.rollback)

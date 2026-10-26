@@ -129,7 +129,9 @@ def _identity_snapshot(state: AgentState) -> Dict[str, Any]:
 def persist_turn_node(state: AgentState) -> Dict[str, Any]:
     """Append this turn's transcript, tool activity, identity, and status to PostgreSQL."""
     now = datetime.now(timezone.utc).isoformat()
-    session_id = state.get("session_id") or str(uuid.uuid4())
+    session_id = state.get("session_id")
+    if not session_id:
+        raise ValueError("session_id must be allocated before graph execution.")
     turn_id = state.get("turn_id") or str(uuid.uuid4())
     turn_messages = _current_turn_messages(state.get("messages", []))
     results = _tool_results(turn_messages)
@@ -196,7 +198,12 @@ def _successful_profile_updates(events: List[Dict[str, Any]]) -> List[Dict[str, 
             on_date = args.get("on")
             if on_date and event_date and str(on_date) != event_date:
                 continue
-            updates[key] = {"key": key, "value": args["value"]}
+            updates[key] = {
+                "key": key,
+                "value": args["value"],
+                "source_event_id": event.get("event_id"),
+                "source_kind": "customer_stated",
+            }
     return list(updates.values())
 
 
@@ -323,8 +330,14 @@ def persist_call_node(state: AgentState) -> Dict[str, Any]:
         if existing is not None:
             logger.info("session %s already finalized; skip duplicate end.", session_id)
             return {"finalized": True, "already_finalized": True}
-        # Empty session: safe skip instead of crashing the end-session flow.
-        logger.info("session %s has no working events; skip episode.", session_id)
+        # Empty sessions have lifecycle state but no content to summarize.
+        ended_at = datetime.now(timezone.utc).isoformat()
+        store.finalize_empty_session(
+            session_id=session_id,
+            customer_id=customer_id,
+            ended_at=ended_at,
+        )
+        logger.info("session %s had no working events; finalized without an episode.", session_id)
         return {"finalized": True, "already_finalized": False, "empty_session": True}
 
     existing = store.get_episode(session_id)

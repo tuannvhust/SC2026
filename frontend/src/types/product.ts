@@ -31,7 +31,9 @@ export interface Message {
 }
 
 export interface ChatStreamPayload {
-  type?: "call_brief" | "response" | "error";
+  session_id?: string;
+  turn_id?: string;
+  type?: "call_brief" | "response" | "session" | "error";
   text?: string;
   error?: string;
   done?: boolean;

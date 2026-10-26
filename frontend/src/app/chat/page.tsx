@@ -18,6 +18,7 @@ export default function ChatPage() {
     retryLast,
     sessionId,
     sessionReady,
+    sessionInitialized,
     sessionStatus,
     endResult,
     endError,
@@ -74,7 +75,7 @@ export default function ChatPage() {
             />
           </div>
           <div className="mx-auto w-full max-w-3xl px-4 pt-2 text-[12px] text-[var(--text-secondary)]">
-            Phiên: {!sessionReady || !sessionId ? "Đang khởi tạo phiên..." : `${sessionId.slice(0, 8)}…`} · Trạng thái:{" "}
+            Phiên: {!sessionInitialized ? "Đang khởi tạo phiên..." : sessionId ? `${sessionId.slice(0, 8)}…` : "Chưa tạo"} · Trạng thái:{" "}
             {sessionStatus === "active" && "Đang tư vấn"}
             {sessionStatus === "ending" && "Đang lưu phiên..."}
             {sessionStatus === "ended" && "Đã kết thúc và lưu memory"}
@@ -107,7 +108,7 @@ export default function ChatPage() {
           />
           <ChatInput
             onSend={sendMessage}
-            loading={!sessionReady || loading || sessionStatus === "ending" || sessionStatus === "ended"}
+            loading={!sessionInitialized || loading || sessionStatus === "ending" || sessionStatus === "ended"}
           />
         </main>
 

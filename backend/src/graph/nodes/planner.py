@@ -127,6 +127,10 @@ Do not read the CallBrief back to the customer.
     if a separate shipping/recipient phone is truly required by policy and
     missing.
 
+20a. When the CallBrief includes a resolved customer_id, pass that customer_id
+     to order.create together with the verified customer_phone. This keeps the
+     order attached to the identified profile when phone numbers are shared.
+
 21. When calling memory.write, always pass the current "Session id" from the
     CallBrief as provenance_session_id so the fact can be traced to this
     session when it is committed.

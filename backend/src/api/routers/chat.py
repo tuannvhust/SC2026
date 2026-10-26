@@ -70,7 +70,7 @@ def end_chat_session(request: ChatEndSessionRequest):
 def handle_chat(request: ChatRequest):
     turn_id = request.turn_id or str(uuid.uuid4())
 
-    def run_turn(on_call_brief=None):
+    def run_turn(on_call_brief=None, on_session_ready=None):
         state = invoke_customer_turn(
             customer_id=request.customer_id,
             session_id=request.session_id,
@@ -80,6 +80,7 @@ def handle_chat(request: ChatRequest):
             customer_info=request.metadata,
             session_ended=request.session_ended,
             on_call_brief=on_call_brief,
+            on_session_ready=on_session_ready,
         )
         return response_from_graph(state)
 
@@ -96,9 +97,15 @@ def handle_chat(request: ChatRequest):
                     }
                 )
 
+            def emit_session_id(session_id):
+                events.put({"type": "session", "session_id": session_id})
+
             def run_streamed_turn():
                 try:
-                    response = run_turn(on_call_brief=emit_call_brief)
+                    response = run_turn(
+                        on_call_brief=emit_call_brief,
+                        on_session_ready=emit_session_id,
+                    )
                     events.put(
                         {
                             "type": "response",

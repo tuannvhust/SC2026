@@ -12,6 +12,13 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function newTurnId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 export type SessionStatus = "active" | "ending" | "ended" | "error";
 
 export interface EndSessionResult {
@@ -26,19 +33,12 @@ export interface EndSessionResult {
   persistence_warning?: string | null;
 }
 
-function newSessionId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
 const SESSION_STORAGE_KEY = "sc2026-session-id";
 
 function isValidSessionId(value: string | null): value is string {
   if (!value) return false;
   const trimmed = value.trim();
-  if (trimmed.length < 8 || trimmed.length > 128) return false;
+  if (trimmed.length < 7 || trimmed.length > 128) return false;
   return /^[A-Za-z0-9_-]+$/.test(trimmed);
 }
 
@@ -50,11 +50,13 @@ export function useChatStream() {
   // Null on first render so server and client produce identical HTML.
   // The real ID is created/restored after mount (client-only).
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
   const sessionReady = sessionId !== null;
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("active");
   const [endResult, setEndResult] = useState<EndSessionResult | null>(null);
   const [endError, setEndError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  const lastTurnIdRef = useRef<string | null>(null);
 
   // Client-only: restore the current session across refresh, otherwise
   // create exactly one ID. Never finalize or create extra sessions here.
@@ -63,26 +65,24 @@ export function useChatStream() {
       const stored = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
       if (isValidSessionId(stored)) {
         setSessionId(stored);
+        setSessionInitialized(true);
         return;
       }
     } catch {
       // Storage unavailable: fall through to in-memory ID.
     }
-    const nextId = newSessionId();
-    setSessionId(nextId);
-    try {
-      window.sessionStorage.setItem(SESSION_STORAGE_KEY, nextId);
-    } catch {
-      // Ignore storage errors; session still works in memory.
-    }
+    setSessionId(null); // The backend allocates the first session ID.
+    setSessionInitialized(true);
   }, []);
 
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = useCallback(async (text: string, retryTurnId?: string) => {
     const userMsg = text.trim();
-    if (!userMsg || !sessionId) return;
+    if (!userMsg) return;
     if (sessionStatus === "ending" || sessionStatus === "ended") return;
 
     setLastUserMessage(userMsg);
+    const turnId = retryTurnId || newTurnId();
+    lastTurnIdRef.current = turnId;
     setCallBrief({
       status: "loading",
       has_history: false,
@@ -112,6 +112,7 @@ export function useChatStream() {
         body: JSON.stringify({
           customer_id: "",
           session_id: sessionId,
+          turn_id: turnId,
           message: userMsg,
           stream: true,
         }),
@@ -145,6 +146,15 @@ export function useChatStream() {
           payload = JSON.parse(data);
         } catch {
           return;
+        }
+
+        if (typeof payload.session_id === "string" && payload.session_id) {
+          setSessionId(payload.session_id);
+          try {
+            window.sessionStorage.setItem(SESSION_STORAGE_KEY, payload.session_id);
+          } catch {
+            // Keep the session in memory if browser storage is unavailable.
+          }
         }
 
         if (typeof payload.error === "string") {
@@ -302,13 +312,14 @@ export function useChatStream() {
     abortRef.current?.abort();
     setMessages([]);
     setLastUserMessage("");
+    lastTurnIdRef.current = null;
     setEndResult(null);
     setEndError("");
     setCallBrief(null);
-    const nextId = newSessionId();
-    setSessionId(nextId);
+    setSessionId(null);
+    setSessionInitialized(true);
     try {
-      window.sessionStorage.setItem(SESSION_STORAGE_KEY, nextId);
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
     } catch {
       // Ignore storage errors; session still works in memory.
     }
@@ -324,7 +335,9 @@ export function useChatStream() {
   }, []);
 
   const retryLast = useCallback(() => {
-    if (lastUserMessage && !loading) void sendMessage(lastUserMessage);
+    if (lastUserMessage && !loading) {
+      void sendMessage(lastUserMessage, lastTurnIdRef.current || undefined);
+    }
   }, [lastUserMessage, loading, sendMessage]);
 
   return {
@@ -333,6 +346,7 @@ export function useChatStream() {
     lastUserMessage,
     sessionId,
     sessionReady,
+    sessionInitialized,
     sessionStatus,
     endResult,
     endError,

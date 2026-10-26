@@ -364,6 +364,9 @@ class TestCRMCreateCustomer:
     def test_creates_provisional_customer_with_unverified_phone(self, monkeypatch):
         engine = _create_crm_engine()
         monkeypatch.setattr(tool_repository, "_get_crm_engine", lambda: engine)
+        monkeypatch.setattr(
+            tool_repository, "_generate_customer_id", lambda _connection=None: "C051"
+        )
 
         try:
             result = tool_repository.crm_create_customer_if_absent(
@@ -390,6 +393,7 @@ class TestCRMCreateCustomer:
 
         assert result["outcome"] == "created"
         assert result["created"] is True
+        assert result["customer_id"] == "C051"
         assert result["customer_id"] == row["customer_id"]
         assert row["full_name"] == "Nguyễn Lan"
         assert row["preferred_name"] == "Lan"
@@ -402,6 +406,9 @@ class TestCRMCreateCustomer:
     def test_repeated_registration_reuses_existing_record(self, monkeypatch):
         engine = _create_crm_engine()
         monkeypatch.setattr(tool_repository, "_get_crm_engine", lambda: engine)
+        monkeypatch.setattr(
+            tool_repository, "_generate_customer_id", lambda _connection=None: "C051"
+        )
 
         try:
             first = tool_repository.crm_create_customer_if_absent(

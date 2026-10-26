@@ -319,7 +319,7 @@
       ],
       "sessions": [
         {
-          "session_id": "S-OLD-1",
+          "session_id": "S000001",
           "date": "2026-02-17",
           "channel": "hotline",
           "summary": "Mua AirPure X bản 2024 giá 4.290.000đ, phòng 20m², địa chỉ giao: 12 ngõ 38 Hoàng Cầu, Đống Đa, Hà Nội",
@@ -357,7 +357,7 @@
       "orders": [],
       "sessions": [
         {
-          "session_id": "S-OLD-2",
+          "session_id": "S000002",
           "date": "2026-03-29",
           "channel": "zalo_oa",
           "summary": "Hỏi nồi chiên Xiaomi 4.5L, báo giá 1.590.000đ, khách nói 'để tết mua'",
@@ -377,7 +377,7 @@
       "shared_phone_with": "C035",
       "sessions": [
         {
-          "session_id": "S-OLD-3",
+          "session_id": "S000003",
           "date": "2026-10-09",
           "channel": "hotline",
           "summary": "Cô Loan hỏi máy lọc nước RO Karofi 9 lõi, nhà ở Cần Thơ, chờ con gái quyết",
