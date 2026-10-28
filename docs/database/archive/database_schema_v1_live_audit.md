@@ -1,3 +1,5 @@
+> Archived on 2026-10-28. This file is not a current schema. See `docs/database/schema.md`.
+
 # Audit schema database live v1 — SC2026 tren Supabase
 
 ## 1. Thoi diem va phuong phap kiem tra

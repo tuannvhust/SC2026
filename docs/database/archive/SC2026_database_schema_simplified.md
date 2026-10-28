@@ -1,3 +1,5 @@
+> Archived on 2026-10-28. This file is not a current schema. See `docs/database/schema.md`.
+
 # SC2026 — Database Schema mục tiêu (bản đơn giản hóa)
 
 > Trạng thái: **đề xuất thiết kế**, chưa áp dụng lên Supabase live. Tài liệu này mô tả schema mục tiêu để review và làm cơ sở tạo migration. Không chạy trực tiếp toàn bộ tài liệu như migration.

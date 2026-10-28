@@ -15,11 +15,16 @@ __pycache__/
 .coverage
 htmlcov/
 coverage/
+.agents/
+.cursor/
+.github/
 
 # Local databases, service state, and evaluation runs.
 *.db
 *.sqlite
 *.sqlite3
+supabase/.temp/
+supabase/.branches/
 data/qdrant_storage/
 data/processed/
 data/memory/

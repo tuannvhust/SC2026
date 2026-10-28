@@ -847,7 +847,7 @@ def crm_create_customer_if_absent(
                         :honorific,
                         :phone,
                         FALSE,
-                        'provisional',
+                        'active',
                         :source,
                         {now_fn},
                         {now_fn}

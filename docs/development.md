@@ -24,9 +24,18 @@ python -m pytest -q
 npm --prefix frontend run build
 ```
 
-The root test suite contains cross-service checks. Backend unit and integration
-tests live under `backend/tests/`; pytest discovers them from the repository
-root using `pytest.ini`.
+The root test suite contains cross-service checks. Backend unit and integration tests live under `backend/tests/`; pytest discovers them from the repository root using `pytest.ini`.
+
+## Supabase
+
+Two schemas are kept. The running backend uses
+`backend/src/memory/migrations/` through `scripts/database/run_migration.py`.
+The local Supabase design uses `supabase/migrations/` and `supabase/seed.sql`,
+applied with `npx supabase db reset`.
+
+See `docs/database/schema.md` for which schema is which, and
+`docs/database/local_and_remote.md` for the CLI, the `.env` switch, and the
+catalog import.
 
 ## Docker
 
@@ -35,6 +44,4 @@ docker compose build
 docker compose up -d
 ```
 
-Compose builds the backend from `backend/Dockerfile` and the frontend from
-`frontend/Dockerfile`, with the repository root as each build context so the
-backend can include reference data without changing its runtime paths.
+Compose builds the backend from `backend/Dockerfile` and the frontend from `frontend/Dockerfile`, with the repository root as each build context so the backend can include reference data without changing its runtime paths.

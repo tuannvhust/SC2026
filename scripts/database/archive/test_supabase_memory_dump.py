@@ -1,4 +1,6 @@
-"""Export all PostgreSQL/Supabase memory tables into a single Markdown file.
+"""Archived export of memory tables into supabase_memory_dump.md.
+
+The current schema index is docs/database/schema.md. The dump file stays gitignored.
 
 Target tables:
 1. working_events
@@ -7,7 +9,7 @@ Target tables:
 4. profile_fact_history
 
 Usage:
-    python scripts/database/test_supabase_memory_dump.py
+    python scripts/database/archive/test_supabase_memory_dump.py
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ from dotenv import load_dotenv
 from sqlalchemy import inspect, text
 
 # Ensure project root is in sys.path
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 BACKEND_ROOT = PROJECT_ROOT / "backend"
@@ -268,7 +270,7 @@ def dump_memory_database(
     md_lines.append(f"- Duration: {duration_sec:.2f}s")
     md_lines.append("")
     md_lines.append("> [!NOTE]")
-    md_lines.append("> File này được tạo tự động bởi `scripts/database/test_supabase_memory_dump.py` bằng kết nối trực tiếp đến PostgreSQL/Supabase thực tế của dự án. File chứa toàn bộ bản ghi và không được commit lên Git.")
+    md_lines.append("> File này được tạo tự động bởi `scripts/database/archive/test_supabase_memory_dump.py` bằng kết nối trực tiếp đến PostgreSQL/Supabase thực tế của dự án. File chứa toàn bộ bản ghi và không được commit lên Git.")
     md_lines.append("")
 
     # Section 1: Database Connection

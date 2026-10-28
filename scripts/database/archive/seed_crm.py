@@ -1,5 +1,5 @@
 
-"""Seed CRM customers, orders and historical sessions.
+"""Archived CRM seeder. The current local load is scripts/database/import_reference_data.py.
 
 Default mode is dry-run. Use --apply to write to Supabase PostgreSQL.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, inspect, text
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 BACKEND_ROOT = PROJECT_ROOT / "backend"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))

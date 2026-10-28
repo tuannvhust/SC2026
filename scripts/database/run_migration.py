@@ -1,4 +1,7 @@
-"""Run versioned SQL migrations against configured Supabase project.
+"""Apply the app schema in backend/src/memory/migrations.
+
+This is the schema the running backend uses. It is separate from the local
+design in supabase/migrations. See docs/database/schema.md.
 
 Usage:
     python scripts/database/run_migration.py [--rollback]
@@ -33,7 +36,8 @@ from src.memory.working.postgres_store import (
 )
 from sqlalchemy import inspect, text
 
-# Simplified target tables (14) per docs/SC2026_database_schema_simplified.md.
+# Tables the app schema is expected to contain. The older target write-up is
+# docs/database/archive/SC2026_database_schema_simplified.md.
 SIMPLIFIED_TABLES = (
     "customers",
     "orders",
