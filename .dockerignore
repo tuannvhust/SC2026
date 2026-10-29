@@ -1,28 +1,57 @@
+# Secrets and local environment files
 .env
 .env.*
+!.env.example
+
+# Version control and agent/IDE metadata
 .git/
 .gitignore
 .dockerignore
+.agents/
+.cursor/
+.github/
+.vscode/
+.idea/
+.DS_Store
+
+# Python environments, bytecode, and caches
 .venv/
+.conda/
 __pycache__/
 *.py[cod]
+*.so
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-*.log
+.cache/
+.coverage
+htmlcov/
+coverage/
+
+# Local databases, service state, and evaluation traces
 *.db
-
-# Generated evaluation artifacts and repository-only tooling are not image inputs.
-generated/
-backend/tests/
-tests/
-scripts/
-docs/
-
-# Local Qdrant state is provided through a runtime volume or Qdrant service.
+*.sqlite
+*.sqlite3
+supabase/
+data/memory/
 data/qdrant_storage/
 data/processed/
+runs/
+reports/
+generated/
 
-# Frontend dependencies and local Next.js build output.
-frontend/node_modules/
-frontend/.next/
+# Repository-only tooling, tests, datasets, and documentation
+tests/
+backend/tests/
+scripts/
+docs/
+data_gen/
+*.pdf
+*.dump.md
+*.log
+
+# Frontend (built with its own isolated Docker context)
+frontend/
+node_modules/
+.next/

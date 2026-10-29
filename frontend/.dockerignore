@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Next.js build output and cache
+.next/
+out/
+build/
+dist/
+
+# Environment files
+.env*
+!.env.example
+
+# Git and OS metadata
+.git/
+.gitignore
+.dockerignore
+.DS_Store
+*.log
+*.tsbuildinfo

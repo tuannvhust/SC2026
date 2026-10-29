@@ -1,4 +1,4 @@
-from tests.test_api_external import normalize_model_name
+from tests.integration.test_api_external import normalize_model_name
 
 
 def test_normalize_model_name_accepts_bare_name_and_resource_name():

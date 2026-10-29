@@ -1,6 +1,7 @@
 # Secrets and local environment files. Keep the checked-in template.
 .env
 .env.*
+.env*.local
 !.env.example
 
 # Python environments, bytecode, test caches, and coverage output.
@@ -8,11 +9,14 @@
 .conda/
 __pycache__/
 *.py[cod]
+*.so
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.cache/
 .coverage
+.coverage.*
 htmlcov/
 coverage/
 .agents/
@@ -32,7 +36,10 @@ runs/
 
 # Build output and installed frontend dependencies.
 node_modules/
+frontend/node_modules/
 .next/
+frontend/.next/
+.turbo/
 out/
 dist/
 build/
@@ -40,12 +47,14 @@ build/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Local editor files and logs.
 .vscode/
 .idea/
 *.log
 .DS_Store
+Thumbs.db
 
 # Sensitive exports and local reports.
 supabase_memory_dump.md
